@@ -76,9 +76,8 @@ bool downloadHaxFiles() {
     WHBLogFreetypePrint(L"Starting download of hax files...");
     WHBLogFreetypeDrawScreen();
     std::this_thread::sleep_for(std::chrono::seconds(1));
-    WHBLogFreetypePrint(L"Mounting SLC...");
-    if (Mocha_MountFS("storage_slc", "/dev/slc01", "/vol/storage_slc01") != MOCHA_RESULT_SUCCESS) {
-        WHBLogFreetypePrintf(L"Failed to mount SLC!");
+    if (!isSlcMounted()) {
+        WHBLogFreetypePrintf(L"Failed to mount SLC! FTP system file access enabled?");
         WHBLogFreetypeDrawScreen();
         std::this_thread::sleep_for(std::chrono::seconds(2));
         return false;

@@ -6,6 +6,7 @@
 #include <dirent.h>
 #include <sys/unistd.h>
 
+static bool systemSLCMounted = false;
 static bool systemMLCMounted = false;
 static bool systemUSBMounted = false;
 static bool discMounted = false;
@@ -40,18 +41,24 @@ bool mountSystemDrives() {
     WHBLogFreetypeDraw();
     if (USE_LIBMOCHA()) {
         //unmountDefaultDevoptab();
-        if (Mocha_MountFS("storage_mlc01", nullptr, "/vol/storage_mlc01") == MOCHA_RESULT_SUCCESS) systemMLCMounted = true;
-        if (Mocha_MountFS("storage_usb01", nullptr, "/vol/storage_usb01") == MOCHA_RESULT_SUCCESS) systemUSBMounted = true;
+        if (Mocha_MountFS("storage_slc", "/dev/slc01", "/vol/storage_slc01") == MOCHA_RESULT_SUCCESS) systemSLCMounted = true;
+        // if (Mocha_MountFS("storage_mlc01", nullptr, "/vol/storage_mlc01") == MOCHA_RESULT_SUCCESS) systemMLCMounted = true;
+        // if (Mocha_MountFS("storage_usb01", nullptr, "/vol/storage_usb01") == MOCHA_RESULT_SUCCESS) systemUSBMounted = true;
     }
     else {
         systemMLCMounted = true;
         systemUSBMounted = false;
     }
 
+    if (systemSLCMounted) WHBLogPrint("Successfully mounted the SLC storage!");
     if (systemMLCMounted) WHBLogPrint("Successfully mounted the internal Wii U storage!");
     if (systemUSBMounted) WHBLogPrint("Successfully mounted the external Wii U storage!");
     WHBLogFreetypeDraw();
-    return systemMLCMounted; // Require only the MLC to be mounted for this function to be successful
+    return systemSLCMounted; // Require only the MLC to be mounted for this function to be successful
+}
+
+bool isSlcMounted() {
+    return systemSLCMounted;
 }
 
 bool mountDisc() {
@@ -68,6 +75,7 @@ bool mountDisc() {
 
 bool unmountSystemDrives() {
     if (USE_LIBMOCHA()) {
+        if (systemUSBMounted && Mocha_UnmountFS("storage_slc") == MOCHA_RESULT_SUCCESS) systemSLCMounted = false;
         if (systemMLCMounted && Mocha_UnmountFS("storage_mlc01") == MOCHA_RESULT_SUCCESS) systemMLCMounted = false;
         if (systemUSBMounted && Mocha_UnmountFS("storage_usb01") == MOCHA_RESULT_SUCCESS) systemUSBMounted = false;
     }
@@ -191,18 +199,4 @@ bool isDirEmpty(const char* path) {
     
     closedir(dirHandle);
     return true;
-}
-
-TITLE_LOCATION deviceToLocation(const char* device) {
-    if (memcmp(device, "mlc", 3) == 0) return TITLE_LOCATION::NAND;
-    if (memcmp(device, "usb", 3) == 0) return TITLE_LOCATION::USB;
-    if (memcmp(device, "odd", 3) == 0) return TITLE_LOCATION::DISC;
-    return TITLE_LOCATION::UNKNOWN;
-}
-
-TITLE_LOCATION pathToLocation(const char* device) {
-    if (memcmp(device, "storage_mlc01", strlen("storage_mlc01")) == 0) return TITLE_LOCATION::NAND;
-    if (memcmp(device, "storage_usb01", strlen("storage_usb01")) == 0) return TITLE_LOCATION::USB;
-    if (memcmp(device, "storage_odd0", strlen("storage_odd0")) == 0) return TITLE_LOCATION::DISC;
-    return TITLE_LOCATION::UNKNOWN;
 }

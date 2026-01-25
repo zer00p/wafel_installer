@@ -7,6 +7,7 @@ bool unmountSystemDrives();
 bool unmountDisc();
 
 bool isDiscMounted();
+bool isSlcMounted();
 bool testStorage(TITLE_LOCATION location);
 
 // Filesystem helper functions

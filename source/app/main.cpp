@@ -3,8 +3,6 @@
 #include "cfw.h"
 #include "filesystem.h"
 #include "exploit.h"
-#include "titles.h"
-#include "users.h"
 #include "gui.h"
 
 // Initialize correct heaps for CustomRPXLoader
@@ -27,7 +25,8 @@ int main() {
 
     // Start Dumpling
     showLoadingScreen();
-    if (testCFW() != FAILED && ((getCFWVersion() == MOCHA_FSCLIENT || getCFWVersion() == CEMU || getCFWVersion() == CUSTOM_MOCHA) || executeExploit()) && initCFW() && mountSystemDrives() && loadUsers() && loadTitles(true)) {
+    if (testCFW() != FAILED && ((getCFWVersion() == MOCHA_FSCLIENT || getCFWVersion() == CEMU || getCFWVersion() == CUSTOM_MOCHA) || executeExploit()) && initCFW() ) {
+        mountSystemDrives();
         WHBLogFreetypePrint(L"");
         WHBLogPrint("Finished loading!");
         WHBLogFreetypeDraw();

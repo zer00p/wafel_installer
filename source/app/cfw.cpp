@@ -61,32 +61,7 @@ CFWVersion testCFW() {
             currCFWVersion = CFWVersion::CUSTOM_MOCHA;
         }
         else {
-            uint8_t onlyAllowUSB = showDialogPrompt(L"Detected Mocha or Tiramisu CFW...\nYou can't use SD card access while using Aroma safely!\n\nTo enable SD card support, reboot your Wii U while holding the R button.\nThis'll boot your Wii U without Aroma.\nThen, use your web browser and go to https://dumplingapp.com\nto start Dumpling.\n\nAlternatively, by holding X at boot, you can enter the Dumpling environment\nto enable SD Card access as well.\n\nYou can skip this step if you're only planning on dumping to USB sticks.", L"Continue and only show USB devices", L"Exit Dumpling (this will reboot your Wii U)");
-            if (onlyAllowUSB == 0) {
-                WHBLogFreetypeClear();
-                WHBLogPrint("Detected Mocha or Tiramisu CFW...");
-                WHBLogPrint("Only allowing USB devices since Aroma is active...");
-                WHBLogFreetypeDraw();
-                sleep_for(5s);
-                currCFWVersion = CFWVersion::MOCHA_FSCLIENT;
-            }
-            else {
-                WHBLogFreetypeClear();
-                WHBLogPrint("Detected Mocha or Tiramisu CFW...");
-                WHBLogPrint("User opted to enable SD card access by rebooting their Wii U!");
-                WHBLogPrint("");
-                WHBLogPrint("After you reboot your Wii U while holding the R button");
-                WHBLogPrint("you need to use the web browser and go to https://dumplingapp.com");
-                WHBLogPrint("");
-                WHBLogPrint("Alternatively, you can open the Dumpling environment by holding X at boot");
-                WHBLogPrint("After doing this you can use Dumpling with full capabilities!");
-                WHBLogPrint("");
-                WHBLogPrint("Don't forget to memorize this link and button combination!");
-                WHBLogPrint("Exiting Dumpling in 10 seconds...");
-                WHBLogFreetypeDraw();
-                sleep_for(10s);
-                currCFWVersion = CFWVersion::FAILED;
-            }
+            currCFWVersion = CFWVersion::MOCHA_FSCLIENT;
         }
         return currCFWVersion;
     }
