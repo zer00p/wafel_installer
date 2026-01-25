@@ -2,4 +2,4 @@
 
 #include <string>
 
-void downloadHaxFiles();
+bool downloadHaxFiles();

@@ -26,6 +26,15 @@ void showLoadingScreen() {
 
 #define OPTION(n) (selectedOption == (n) ? L'>' : L' ')
 
+void installISFShax() {
+    if (downloadHaxFiles()) {
+        showDialogPrompt(L"The ISFShax installer is controlled with the buttons on the main console.\nPOWER: moves the curser\nEJECT: confirm\nPress A to launch into the ISFShax Installer", L"Continue");
+        loadFwImg();
+    } else {
+        showDialogPrompt(L"Failed to download all files.\nPlease check your internet connection and try again.", L"OK");
+    }
+}
+
 // Can get recursively called
 void showMainMenu() {
     uint8_t selectedOption = 0;
@@ -47,8 +56,7 @@ void showMainMenu() {
         WHBLogFreetypePrintf(L"%C Dump only DLC files of a game", OPTION(6));
         WHBLogFreetypePrintf(L"%C Dump only Save files of a game", OPTION(7));
         WHBLogFreetypePrintf(L"%C Dump whole MLC (everything stored on internal storage)", OPTION(8));
-        WHBLogFreetypePrintf(L"%C Download hax files", OPTION(9));
-        WHBLogFreetypePrintf(L"%C fw.img loader", OPTION(10));
+        WHBLogFreetypePrintf(L"%C Install ISFShax + sd emulation + payloadler", OPTION(9));
         WHBLogFreetypeScreenPrintBottom(L"===============================");
         WHBLogFreetypeScreenPrintBottom(L"\uE000 Button = Select Option \uE001 Button = Exit Dumpling");
         WHBLogFreetypeScreenPrintBottom(L"");
@@ -64,7 +72,7 @@ void showMainMenu() {
                 selectedOption--;
                 break;
             }
-            if (navigatedDown() && selectedOption < 10) {
+            if (navigatedDown() && selectedOption < 9) {
                 selectedOption++;
                 break;
             }
@@ -114,10 +122,7 @@ void showMainMenu() {
             dumpMLC();
             break;
         case 9:
-            downloadHaxFiles();
-            break;
-        case 10:
-            loadFwImg();
+            installISFShax();
             break;
         default:
             break;
