@@ -1,12 +1,14 @@
 #include "download.h"
 #include "gui.h"
 #include "filesystem.h"
+#include "common.h"
 #include <curl/curl.h>
-#include <wut_fsa.h>
+#include <wut/fsa.h>
 #include <string>
 #include <vector>
+#include <thread>
+#include <chrono>
 
-// Struct to hold FSA handles for the curl callback
 struct FsaWriteData {
     int32_t clientHandle;
     int32_t fileHandle;
@@ -18,7 +20,10 @@ static size_t write_data_fsa(void *ptr, size_t size, size_t nmemb, void *stream)
     uint32_t bytes_written = 0;
 
     if (data->fileHandle >= 0) {
-        FSAWriteFile(data->clientHandle, ptr, 1, bytes_to_write, data->fileHandle, 0, &bytes_written);
+        FSStatus status = FSAWriteFile(data->clientHandle, ptr, 1, bytes_to_write, data->fileHandle, 0, &bytes_written);
+        if (status != FS_STATUS_OK) {
+            return 0;
+        }
     }
     return bytes_written;
 }
@@ -31,7 +36,7 @@ static void downloadFile(int32_t clientHandle, const std::string& url, const std
     if (!curl_handle) {
         WHBLogFreetypePrintf(L"Failed to initialize curl!");
         WHBLogFreetypeDrawScreen();
-        sleep_for(3s);
+        std::this_thread::sleep_for(std::chrono::seconds(3));
         return;
     }
 
@@ -40,7 +45,7 @@ static void downloadFile(int32_t clientHandle, const std::string& url, const std
     if (status != FS_STATUS_OK) {
         WHBLogFreetypePrintf(L"Failed to open %S for writing! Error: %d", toWstring(path).c_str(), status);
         WHBLogFreetypeDrawScreen();
-        sleep_for(3s);
+        std::this_thread::sleep_for(std::chrono::seconds(3));
         curl_easy_cleanup(curl_handle);
         return;
     }
@@ -66,20 +71,20 @@ static void downloadFile(int32_t clientHandle, const std::string& url, const std
 
     FSACloseFile(clientHandle, fileHandle);
     curl_easy_cleanup(curl_handle);
-    sleep_for(1s);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
 }
 
 void downloadHaxFiles() {
     WHBLogFreetypeStartScreen();
     WHBLogFreetypePrint(L"Starting download of hax files...");
     WHBLogFreetypeDrawScreen();
-    sleep_for(2s);
+    std::this_thread::sleep_for(std::chrono::seconds(2));
 
     int32_t fsaHandle = FSAInit();
     if (fsaHandle < 0) {
         WHBLogFreetypePrintf(L"FSAInit failed: %d", fsaHandle);
         WHBLogFreetypeDrawScreen();
-        sleep_for(3s);
+        std::this_thread::sleep_for(std::chrono::seconds(3));
         return;
     }
 
@@ -88,7 +93,7 @@ void downloadHaxFiles() {
     if (mountStatus != FS_STATUS_OK) {
         WHBLogFreetypePrintf(L"Failed to mount SD card. Error: %d", mountStatus);
         WHBLogFreetypeDrawScreen();
-        sleep_for(3s);
+        std::this_thread::sleep_for(std::chrono::seconds(3));
         FSAShutdown(fsaHandle);
         return;
     }
@@ -99,22 +104,22 @@ void downloadHaxFiles() {
         if (dirStatus != FS_STATUS_OK && dirStatus != FS_STATUS_EXISTS) {
             WHBLogFreetypePrintf(L"Failed to create directory %S. Error: %d", toWstring(dir).c_str(), dirStatus);
             WHBLogFreetypeDrawScreen();
-            sleep_for(3s);
-            FSAUnmount(clientHandle, "/vol/sdcard", 2);
+            std::this_thread::sleep_for(std::chrono::seconds(3));
+            FSAUnmount(clientHandle, "/vol/sdcard", FSA_UNMOUNT_FLAG_FORCE);
             FSAShutdown(fsaHandle);
             return;
         }
     }
 
     downloadFile(clientHandle, "https://github.com/isfshax/isfshax_installer/releases/latest/download/ios.img", "/vol/sdcard/system/hax/installer/fw.img");
-    downloadFile(clientHandle, "https://github.com/isfshax/isfshax/releases/latest/download/superblock.img", "/vol/sdcard/system/hax/installer/superblock.img");
-    downloadFile(clientHandle, "https://github.com/isfshax/isfshax/releases/latest/download/superblock.img.sha", "/vol/sdcard/system/hax/installer/superblock.img.sha");
+    downloadFile(clientHandle, "https://github.com/isfshax/isfshax/releases/latest/download/superblock.img", "/vol/sdcard/system/hax/installer/sblock.img");
+    downloadFile(clientHandle, "https://github.com/isfshax/isfshax/releases/latest/download/superblock.img.sha", "/vol/sdcard/system/hax/installer/sblock.sha");
 
-    FSAUnmount(clientHandle, "/vol/sdcard", 2);
+    FSAUnmount(clientHandle, "/vol/sdcard", FSA_UNMOUNT_FLAG_FORCE);
     FSAShutdown(fsaHandle);
 
     WHBLogFreetypeClear();
     WHBLogFreetypePrint(L"All hax files downloaded successfully!");
     WHBLogFreetypeDrawScreen();
-    sleep_for(3s);
+    std::this_thread::sleep_for(std::chrono::seconds(3));
 }
