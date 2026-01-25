@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <cerrno>
 #include <mocha/mocha.h>
+#include "cacert_pem.h"
 
 static size_t write_data_posix(void *ptr, size_t size, size_t nmemb, void *stream) {
     int fd = *(int*)stream;
@@ -50,6 +51,13 @@ static void downloadFile(const std::string& url, const std::string& path) {
     curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "Dumpling/2.0");
     curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
 
+    // set cert
+    curl_blob blob;
+    blob.data  = (void *) cacert_pem;
+    blob.len   = cacert_pem_size;
+    blob.flags = CURL_BLOB_COPY;
+    curl_easy_setopt(curl_handle, CURLOPT_CAINFO_BLOB, &blob);
+
     CURLcode res = curl_easy_perform(curl_handle);
     if (res != CURLE_OK) {
         WHBLogFreetypePrintf(L"Curl failed: %S", toWstring(curl_easy_strerror(res)).c_str());
@@ -69,7 +77,7 @@ void downloadHaxFiles() {
     WHBLogFreetypePrint(L"Starting download of hax files...");
     WHBLogFreetypeDrawScreen();
     std::this_thread::sleep_for(std::chrono::seconds(2));
-
+    WHBLogFreetypePrint(L"Mounting SLC...");
     if (Mocha_MountFS("storage_slc", "/dev/slc01", "/vol/storage_slc01") != MOCHA_RESULT_SUCCESS) {
         WHBLogFreetypePrintf(L"Failed to mount SLC!");
         WHBLogFreetypeDrawScreen();
@@ -77,9 +85,10 @@ void downloadHaxFiles() {
         return;
     }
 
-    std::vector<std::string> dirs = {, "/vol/storage_slc/sys/hax", "/vol/storage_slc/sys/hax/installer"};
+    std::vector<std::string> dirs = {"/vol/storage_slc/sys/hax", "/vol/storage_slc/sys/hax/installer"};
     for(const auto& dir : dirs) {
         std::string posix_path = convertToPosixPath(dir.c_str());
+        WHBLogFreetypePrintf(L"Create directory %S.", toWstring(posix_path).c_str());
         if (mkdir(posix_path.c_str(), 0755) != 0 && errno != EEXIST) {
             WHBLogFreetypePrintf(L"Failed to create directory %S. Errno: %d", toWstring(posix_path).c_str(), errno);
             WHBLogFreetypeDrawScreen();
