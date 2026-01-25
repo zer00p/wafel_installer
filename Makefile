@@ -77,13 +77,13 @@ CXXFLAGS	:=	$(CFLAGS) -std=c++20
 ASFLAGS		:=	-g $(ARCH)
 LDFLAGS		=	-g $(ARCH) $(RPXSPECS) -Wl,-Map,$(notdir $*.map)
 
-LIBS		:=	-lstdc++ -lwut -lmocha -lcurl -lmbedtls -lz -lnsysnet
+LIBS		:=	-lstdc++ -lcurl -lmbedtls -lmbedx509 -lmbedcrypto -lz -lmocha -lrpxloader -lwut
 
 #-------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level
 # containing include and lib
 #-------------------------------------------------------------------------------
-LIBDIRS	:=	$(PORTLIBS) $(DEVKITPRO)/wut $(WUT_ROOT)/usr $(DEVKITPRO)/portlibs/wiiu
+LIBDIRS	:=	$(PORTLIBS) $(DEVKITPRO)/wut $(WUT_ROOT)/usr $(DEVKITPRO)/wums
 
 
 #-------------------------------------------------------------------------------
