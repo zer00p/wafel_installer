@@ -11,6 +11,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <cerrno>
+#include <mocha/mocha.h>
 
 static size_t write_data_posix(void *ptr, size_t size, size_t nmemb, void *stream) {
     int fd = *(int*)stream;
@@ -69,6 +70,13 @@ void downloadHaxFiles() {
     WHBLogFreetypeDrawScreen();
     std::this_thread::sleep_for(std::chrono::seconds(2));
 
+    if (Mocha_MountFS("storage_slc", "/dev/slc01", "/vol/storage_slc01") != MOCHA_RESULT_SUCCESS) {
+        WHBLogFreetypePrintf(L"Failed to mount SLC!");
+        WHBLogFreetypeDrawScreen();
+        std::this_thread::sleep_for(std::chrono::seconds(3));
+        return;
+    }
+
     std::vector<std::string> dirs = {"/system", "/system/hax", "/system/hax/installer"};
     for(const auto& dir : dirs) {
         std::string posix_path = convertToPosixPath(dir.c_str());
@@ -76,6 +84,7 @@ void downloadHaxFiles() {
             WHBLogFreetypePrintf(L"Failed to create directory %S. Errno: %d", toWstring(posix_path).c_str(), errno);
             WHBLogFreetypeDrawScreen();
             std::this_thread::sleep_for(std::chrono::seconds(3));
+            Mocha_UnmountFS("storage_slc");
             return;
         }
     }
@@ -83,6 +92,8 @@ void downloadHaxFiles() {
     downloadFile("https://github.com/isfshax/isfshax_installer/releases/latest/download/ios.img", convertToPosixPath("/system/hax/installer/fw.img"));
     downloadFile("https://github.com/isfshax/isfshax/releases/latest/download/superblock.img", convertToPosixPath("/system/hax/installer/sblock.img"));
     downloadFile("https://github.com/isfshax/isfshax/releases/latest/download/superblock.img.sha", convertToPosixPath("/system/hax/installer/sblock.sha"));
+
+    Mocha_UnmountFS("storage_slc");
 
     WHBLogFreetypeClear();
     WHBLogFreetypePrint(L"All hax files downloaded successfully!");
