@@ -84,12 +84,9 @@ static int32_t IPC_ioctl(IPCMessage *message) {
             break;
         }
         case IOCTL_KERN_WRITE32: {
-            if ((message->ioctl.length_in < 4) || (message->ioctl.length_io < 4)) return IOS_ERROR_INVALID_SIZE;
+            if (message->ioctl.length_in < 8) return IOS_ERROR_INVALID_SIZE;
             else {
-                uint32_t size = message->ioctl.length_io/4;
-                for (uint32_t i=0; i<size; i++) {
-                    message->ioctl.buffer_io[i] = svcCustomKernelCommand(KERNEL_WRITE32, message->ioctl.buffer_in[0] + (i*4));
-                }
+                svcCustomKernelCommand(KERNEL_WRITE32, message->ioctl.buffer_in[0], message->ioctl.buffer_in[1]);
             }
             break;
         }
