@@ -77,7 +77,7 @@ void downloadHaxFiles() {
         return;
     }
 
-    std::vector<std::string> dirs = {"/system", "/system/hax", "/system/hax/installer"};
+    std::vector<std::string> dirs = {, "/vol/storage_slc/sys/hax", "/vol/storage_slc/sys/hax/installer"};
     for(const auto& dir : dirs) {
         std::string posix_path = convertToPosixPath(dir.c_str());
         if (mkdir(posix_path.c_str(), 0755) != 0 && errno != EEXIST) {
@@ -89,9 +89,9 @@ void downloadHaxFiles() {
         }
     }
 
-    downloadFile("https://github.com/isfshax/isfshax_installer/releases/latest/download/ios.img", convertToPosixPath("/system/hax/installer/fw.img"));
-    downloadFile("https://github.com/isfshax/isfshax/releases/latest/download/superblock.img", convertToPosixPath("/system/hax/installer/sblock.img"));
-    downloadFile("https://github.com/isfshax/isfshax/releases/latest/download/superblock.img.sha", convertToPosixPath("/system/hax/installer/sblock.sha"));
+    downloadFile("https://github.com/isfshax/isfshax/releases/latest/download/superblock.img", convertToPosixPath("/vol/storage_slc/sys/hax/installer/sblock.img"));
+    downloadFile("https://github.com/isfshax/isfshax/releases/latest/download/superblock.img.sha", convertToPosixPath("/vol/storage_slc/sys/hax/installer/sblock.sha"));
+    downloadFile("https://github.com/isfshax/isfshax_installer/releases/latest/download/ios.img", convertToPosixPath("/vol/storage_slc/sys/hax/installer/fw.img"));
 
     Mocha_UnmountFS("storage_slc");
 
