@@ -69,19 +69,20 @@ void downloadHaxFiles() {
     WHBLogFreetypeDrawScreen();
     std::this_thread::sleep_for(std::chrono::seconds(2));
 
-    std::vector<std::string> dirs = {"/vol/system", "/vol/system/hax", "/vol/system/hax/installer"};
+    std::vector<std::string> dirs = {"/system", "/system/hax", "/system/hax/installer"};
     for(const auto& dir : dirs) {
-        if (mkdir(dir.c_str(), 0755) != 0 && errno != EEXIST) {
-            WHBLogFreetypePrintf(L"Failed to create directory %S. Errno: %d", toWstring(dir).c_str(), errno);
+        std::string posix_path = convertToPosixPath(dir.c_str());
+        if (mkdir(posix_path.c_str(), 0755) != 0 && errno != EEXIST) {
+            WHBLogFreetypePrintf(L"Failed to create directory %S. Errno: %d", toWstring(posix_path).c_str(), errno);
             WHBLogFreetypeDrawScreen();
             std::this_thread::sleep_for(std::chrono::seconds(3));
             return;
         }
     }
 
-    downloadFile("https://github.com/isfshax/isfshax_installer/releases/latest/download/ios.img", "/vol/system/hax/installer/fw.img");
-    downloadFile("https://github.com/isfshax/isfshax/releases/latest/download/superblock.img", "/vol/system/hax/installer/sblock.img");
-    downloadFile("https://github.com/isfshax/isfshax/releases/latest/download/superblock.img.sha", "/vol/system/hax/installer/sblock.sha");
+    downloadFile("https://github.com/isfshax/isfshax_installer/releases/latest/download/ios.img", convertToPosixPath("/system/hax/installer/fw.img"));
+    downloadFile("https://github.com/isfshax/isfshax/releases/latest/download/superblock.img", convertToPosixPath("/system/hax/installer/sblock.img"));
+    downloadFile("https://github.com/isfshax/isfshax/releases/latest/download/superblock.img.sha", convertToPosixPath("/system/hax/installer/sblock.sha"));
 
     WHBLogFreetypeClear();
     WHBLogFreetypePrint(L"All hax files downloaded successfully!");
