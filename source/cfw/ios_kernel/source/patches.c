@@ -4,6 +4,9 @@
 #include "../../ios_mcp/ios_mcp_syms.h"
 #include "../../ios_fs/ios_fs_syms.h"
 
+void (*invalidate_icache)()                           = (void (*)()) 0x0812DCF0;
+void (*invalidate_dcache)(unsigned int, unsigned int) = (void (*)()) 0x08120164;
+void (*flush_dcache)(unsigned int, unsigned int)      = (void (*)()) 0x08120160;
 
 int32_t kernel_syscall_0x81(uint32_t command, uint32_t arg1, uint32_t arg2, uint32_t arg3) {
     ThreadContext_t **currentThreadContext = (ThreadContext_t **)0x08173BA0;
@@ -19,7 +22,11 @@ int32_t kernel_syscall_0x81(uint32_t command, uint32_t arg1, uint32_t arg2, uint
             break;
         }
         case KERNEL_WRITE32: {
-            *(volatile uint32_t*)arg1 = arg2;
+            // Use kernelMemcpy to handle potential unaligned writes safely.
+            // The compiler would otherwise generate an instruction that expects a 4-byte aligned address.
+            kernelMemcpy((void*)arg1, &arg2, sizeof(uint32_t));
+            flush_dcache(arg1, 4);
+            invalidate_icache();
             break;
         }
         case KERNEL_MEMCPY: {
