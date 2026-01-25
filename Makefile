@@ -83,7 +83,7 @@ LIBS		:=	-lstdc++ -lwut -lmocha -lcurl -lmbedtls -lz -lnsysnet
 # list of directories containing libraries, this must be the top level
 # containing include and lib
 #-------------------------------------------------------------------------------
-LIBDIRS	:=	$(PORTLIBS) $(DEVKITPRO)/wut $(WUT_ROOT)/usr
+LIBDIRS	:=	$(PORTLIBS) $(DEVKITPRO)/wut $(WUT_ROOT)/usr $(DEVKITPRO)/portlibs/wiiu
 
 
 #-------------------------------------------------------------------------------
