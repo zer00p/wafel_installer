@@ -75,7 +75,7 @@ static const char ancast_decrypt_hook[] = {
     0xe1, 0x2f, 0xff, 0x1e, 0x01, 0x00, 0x01, 0xa0,
 };
 
-static const char path[32] = "/vol/system/hax";
+static const char path[32] = "/system/hax/installer";
 
 static uint32_t generate_bl_t(uint32_t from, uint32_t to)
 {
