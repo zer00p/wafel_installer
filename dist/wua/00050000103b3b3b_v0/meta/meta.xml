@@ -69,30 +69,30 @@
   <reserved_flag5 type="hexBinary" length="4">00000000</reserved_flag5>
   <reserved_flag6 type="hexBinary" length="4">00000003</reserved_flag6>
   <reserved_flag7 type="hexBinary" length="4">00000000</reserved_flag7>
-  <longname_ja type="string" length="512">Dumpling</longname_ja>
-  <longname_en type="string" length="512">Dumpling</longname_en>
-  <longname_fr type="string" length="512">Dumpling</longname_fr>
-  <longname_de type="string" length="512">Dumpling</longname_de>
-  <longname_it type="string" length="512">Dumpling</longname_it>
-  <longname_es type="string" length="512">Dumpling</longname_es>
-  <longname_zhs type="string" length="512">Dumpling</longname_zhs>
-  <longname_ko type="string" length="512">Dumpling</longname_ko>
-  <longname_nl type="string" length="512">Dumpling</longname_nl>
-  <longname_pt type="string" length="512">Dumpling</longname_pt>
-  <longname_ru type="string" length="512">Dumpling</longname_ru>
-  <longname_zht type="string" length="512">Dumpling</longname_zht>
-  <shortname_ja type="string" length="256">Dumpling</shortname_ja>
-  <shortname_en type="string" length="256">Dumpling</shortname_en>
-  <shortname_fr type="string" length="256">Dumpling</shortname_fr>
-  <shortname_de type="string" length="256">Dumpling</shortname_de>
-  <shortname_it type="string" length="256">Dumpling</shortname_it>
-  <shortname_es type="string" length="256">Dumpling</shortname_es>
-  <shortname_zhs type="string" length="256">Dumpling</shortname_zhs>
-  <shortname_ko type="string" length="256">Dumpling</shortname_ko>
-  <shortname_nl type="string" length="256">Dumpling</shortname_nl>
-  <shortname_pt type="string" length="256">Dumpling</shortname_pt>
-  <shortname_ru type="string" length="256">Dumpling</shortname_ru>
-  <shortname_zht type="string" length="256">Dumpling</shortname_zht>
+  <longname_ja type="string" length="512">ISFShax Loader</longname_ja>
+  <longname_en type="string" length="512">ISFShax Loader</longname_en>
+  <longname_fr type="string" length="512">ISFShax Loader</longname_fr>
+  <longname_de type="string" length="512">ISFShax Loader</longname_de>
+  <longname_it type="string" length="512">ISFShax Loader</longname_it>
+  <longname_es type="string" length="512">ISFShax Loader</longname_es>
+  <longname_zhs type="string" length="512">ISFShax Loader</longname_zhs>
+  <longname_ko type="string" length="512">ISFShax Loader</longname_ko>
+  <longname_nl type="string" length="512">ISFShax Loader</longname_nl>
+  <longname_pt type="string" length="512">ISFShax Loader</longname_pt>
+  <longname_ru type="string" length="512">ISFShax Loader</longname_ru>
+  <longname_zht type="string" length="512">ISFShax Loader</longname_zht>
+  <shortname_ja type="string" length="256">ISFShax Loader</shortname_ja>
+  <shortname_en type="string" length="256">ISFShax Loader</shortname_en>
+  <shortname_fr type="string" length="256">ISFShax Loader</shortname_fr>
+  <shortname_de type="string" length="256">ISFShax Loader</shortname_de>
+  <shortname_it type="string" length="256">ISFShax Loader</shortname_it>
+  <shortname_es type="string" length="256">ISFShax Loader</shortname_es>
+  <shortname_zhs type="string" length="256">ISFShax Loader</shortname_zhs>
+  <shortname_ko type="string" length="256">ISFShax Loader</shortname_ko>
+  <shortname_nl type="string" length="256">ISFShax Loader</shortname_nl>
+  <shortname_pt type="string" length="256">ISFShax Loader</shortname_pt>
+  <shortname_ru type="string" length="256">ISFShax Loader</shortname_ru>
+  <shortname_zht type="string" length="256">ISFShax Loader</shortname_zht>
   <publisher_ja type="string" length="256">I Made This :)</publisher_ja>
   <publisher_en type="string" length="256">I Made This :)</publisher_en>
   <publisher_fr type="string" length="256">I Made This :)</publisher_fr>

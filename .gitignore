@@ -47,11 +47,16 @@ config.properties
 /build
 /dist/wiiu
 /dist/dumpling.zip
+/dist/isfshax_loader.zip
 /cemu
 dumpling.wuhb
 dumpling.rpx
 dumpling.wua
 dumpling.elf
+isfshax_loader.wuhb
+isfshax_loader.rpx
+isfshax_loader.wua
+isfshax_loader.elf
 
 source/cfw/ios_kernel/build/
 source/cfw/ios_kernel/ios_kernel.bin

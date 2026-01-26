@@ -73,7 +73,7 @@ void showMainMenu() {
         WHBLogFreetypePrintf(L"%C Redownload files", OPTION(1));
         WHBLogFreetypePrintf(L"%C Boot Installer", OPTION(2));
         WHBLogFreetypeScreenPrintBottom(L"===============================");
-        WHBLogFreetypeScreenPrintBottom(L"\uE000 Button = Select Option \uE001 Button = Exit Dumpling");
+        WHBLogFreetypeScreenPrintBottom(L"\uE000 Button = Select Option \uE001 Button = Exit ISFShax Loader");
         WHBLogFreetypeScreenPrintBottom(L"");
         WHBLogFreetypeDrawScreen();
 
@@ -96,7 +96,7 @@ void showMainMenu() {
                 break;
             }
             if (pressedBack()) {
-                uint8_t exitSelectedOption = showDialogPrompt(getCFWVersion() == MOCHA_FSCLIENT ? L"Do you really want to exit Dumpling?" : L"Do you really want to exit Dumpling?\nYour console will reboot to prevent compatibility issues!", L"Yes", L"No");
+                uint8_t exitSelectedOption = showDialogPrompt(getCFWVersion() == MOCHA_FSCLIENT ? L"Do you really want to exit ISFShax Loader?" : L"Do you really want to exit ISFShax Loader?\nYour console will reboot to prevent compatibility issues!", L"Yes", L"No");
                 if (exitSelectedOption == 0) {
                     WHBLogFreetypeClear();
                     return;

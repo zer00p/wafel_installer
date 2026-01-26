@@ -53,7 +53,7 @@ bool stillRunning() {
 }
 
 void exitApplication(bool rebootOnExit) {
-    // Loop through ProcUI messages until it says Dumpling should exit
+    // Loop through ProcUI messages until it says ISFShax Loader should exit
     if (getCFWVersion() == MOCHA_FSCLIENT) {
         SYSLaunchMenu();
 
