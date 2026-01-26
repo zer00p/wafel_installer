@@ -34,6 +34,21 @@ bool stopMochaServer() {
 }
 
 CFWVersion testCFW() {
+
+    WHBLogPrint("Detecting prior iosuhax version...");
+    WHBLogFreetypeDraw();
+    IOSHandle stroopwafelHandle = IOS_Open("/dev/stroopwafel", (IOSOpenMode)0);
+    if (stroopwafelHandle >= IOS_ERROR_OK) {
+        WHBLogPrint("Detected stroopwafel...");
+        WHBLogFreetypeDraw();
+        int res = IOS_Ioctl(stroopwafelHandle, 12345, (void *)nullptr, 0, nullptr, 0);
+        WHBLogPrintf("stroopwafel IOCTL returned %d", res);
+        WHBLogFreetypeDraw();
+        IOS_Close(stroopwafelHandle);
+
+    }
+
+
     WHBLogPrint("Detecting prior iosuhax version...");
     WHBLogFreetypeDraw();
 
