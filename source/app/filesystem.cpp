@@ -75,7 +75,7 @@ bool mountDisc() {
 
 bool unmountSystemDrives() {
     if (USE_LIBMOCHA()) {
-        if (systemUSBMounted && Mocha_UnmountFS("storage_slc") == MOCHA_RESULT_SUCCESS) systemSLCMounted = false;
+        if (systemSLCMounted && Mocha_UnmountFS("storage_slc") == MOCHA_RESULT_SUCCESS) systemSLCMounted = false;
         if (systemMLCMounted && Mocha_UnmountFS("storage_mlc01") == MOCHA_RESULT_SUCCESS) systemMLCMounted = false;
         if (systemUSBMounted && Mocha_UnmountFS("storage_usb01") == MOCHA_RESULT_SUCCESS) systemUSBMounted = false;
     }

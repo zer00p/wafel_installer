@@ -29,6 +29,37 @@ void installISFShax() {
     }
 }
 
+void redownloadFiles() {
+    if (downloadHaxFiles()) {
+        showDialogPrompt(L"All hax files downloaded successfully!", L"OK");
+    } else {
+        showDialogPrompt(L"Failed to download all files.\nPlease check your internet connection and try again.", L"OK");
+    }
+}
+
+void bootInstaller() {
+    std::string fwImgPath = convertToPosixPath("/vol/storage_slc/sys/hax/installer/fw.img");
+    bool downloaded = true;
+    if (!fileExist(fwImgPath.c_str())) {
+        uint8_t choice = showDialogPrompt(L"The ISFShax installer (fw.img) is missing.\nDo you want to download everything or just the installer?", L"Everything", L"Just installer");
+        if (choice == 0) {
+            downloaded = downloadHaxFiles();
+        } else {
+            downloaded = downloadInstallerOnly();
+        }
+
+        if (!downloaded) {
+             showDialogPrompt(L"Failed to download the required files.\nPlease check your internet connection and try again.", L"OK");
+             return;
+        }
+    }
+
+    if (downloaded) {
+        showDialogPrompt(L"The ISFShax installer is controlled with the buttons on the main console.\nPOWER: moves the curser\nEJECT: confirm\nPress A to launch into the ISFShax Installer", L"Continue");
+        loadFwImg();
+    }
+}
+
 // Can get recursively called
 void showMainMenu() {
     uint8_t selectedOption = 0;
@@ -39,6 +70,8 @@ void showMainMenu() {
         WHBLogFreetypePrint(L"ISFShax Loader");
         WHBLogFreetypePrint(L"===============================");
         WHBLogFreetypePrintf(L"%C Install ISFShax + sd emulation + payloadler", OPTION(0));
+        WHBLogFreetypePrintf(L"%C Redownload files", OPTION(1));
+        WHBLogFreetypePrintf(L"%C Boot Installer", OPTION(2));
         WHBLogFreetypeScreenPrintBottom(L"===============================");
         WHBLogFreetypeScreenPrintBottom(L"\uE000 Button = Select Option \uE001 Button = Exit Dumpling");
         WHBLogFreetypeScreenPrintBottom(L"");
@@ -78,6 +111,12 @@ void showMainMenu() {
     switch(selectedOption) {
         case 0:
             installISFShax();
+            break;
+        case 1:
+            redownloadFiles();
+            break;
+        case 2:
+            bootInstaller();
             break;
         default:
             break;

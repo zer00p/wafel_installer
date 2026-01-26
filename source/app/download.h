@@ -3,3 +3,4 @@
 #include <string>
 
 bool downloadHaxFiles();
+bool downloadInstallerOnly();

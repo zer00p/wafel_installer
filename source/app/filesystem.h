@@ -12,6 +12,7 @@ bool testStorage(TITLE_LOCATION location);
 
 // Filesystem helper functions
 std::string convertToPosixPath(const char* volPath);
+bool fileExist(const char* path);
 bool dirExist(const char* path);
 
 TITLE_LOCATION deviceToLocation(const char* device);

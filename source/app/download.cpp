@@ -71,11 +71,7 @@ static bool downloadFile(const std::string& url, const std::string& path) {
     return true;
 }
 
-bool downloadHaxFiles() {
-    WHBLogFreetypeStartScreen();
-    WHBLogFreetypePrint(L"Starting download of hax files...");
-    WHBLogFreetypeDrawScreen();
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+static bool createHaxDirectories() {
     if (!isSlcMounted()) {
         WHBLogFreetypePrintf(L"Failed to mount SLC! FTP system file access enabled?");
         WHBLogFreetypeDrawScreen();
@@ -91,10 +87,19 @@ bool downloadHaxFiles() {
             WHBLogFreetypePrintf(L"Failed to create directory %S. Errno: %d", toWstring(posix_path).c_str(), errno);
             WHBLogFreetypeDrawScreen();
             std::this_thread::sleep_for(std::chrono::seconds(2));
-            Mocha_UnmountFS("storage_slc");
             return false;
         }
     }
+    return true;
+}
+
+bool downloadHaxFiles() {
+    WHBLogFreetypeStartScreen();
+    WHBLogFreetypePrint(L"Starting download of hax files...");
+    WHBLogFreetypeDrawScreen();
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    if (!createHaxDirectories()) return false;
 
     // Stroopwafel
     if (!downloadFile("https://github.com/StroopwafelCFW/stroopwafel/releases/latest/download/00core.ipx", convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/00core.ipx")) ||
@@ -108,18 +113,28 @@ bool downloadHaxFiles() {
         !downloadFile("https://github.com/isfshax/isfshax/releases/latest/download/superblock.img.sha", convertToPosixPath("/vol/storage_slc/sys/hax/installer/sblock.sha")) ||
         !downloadFile("https://github.com/isfshax/isfshax_installer/releases/latest/download/ios.img", convertToPosixPath("/vol/storage_slc/sys/hax/installer/fw.img"))) 
     {
-        Mocha_UnmountFS("storage_slc");
         WHBLogFreetypePrint(L"\nDownload failed. Please check your internet connection.");
         WHBLogFreetypeDrawScreen();
-        std::this_thread::sleep_for(std::chrono::seconds(3));
         return false;
     }
 
-    Mocha_UnmountFS("storage_slc");
+    return true;
+}
 
-    WHBLogFreetypeClear();
-    WHBLogFreetypePrint(L"All hax files downloaded successfully!");
+bool downloadInstallerOnly() {
+    WHBLogFreetypeStartScreen();
+    WHBLogFreetypePrint(L"Starting download of installer...");
     WHBLogFreetypeDrawScreen();
-    std::this_thread::sleep_for(std::chrono::seconds(2));
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    if (!createHaxDirectories()) return false;
+
+    if (!downloadFile("https://github.com/isfshax/isfshax_installer/releases/latest/download/ios.img", convertToPosixPath("/vol/storage_slc/sys/hax/installer/fw.img")))
+    {
+        WHBLogFreetypePrint(L"\nDownload failed. Please check your internet connection.");
+        WHBLogFreetypeDrawScreen();
+        return false;
+    }
+
     return true;
 }
