@@ -4,6 +4,7 @@
 #include <mocha/mocha.h>
 #include <sysapp/title.h>
 #include <sysapp/launch.h>
+#include <stroopwafel/stroopwafel.h>
 
 
 
