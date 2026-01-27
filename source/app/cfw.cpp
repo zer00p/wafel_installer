@@ -4,8 +4,10 @@
 #include "navigation.h"
 
 #include <mocha/mocha.h>
+#include <stroopwafel/stroopwafel.h> // Assuming this is the correct header
 
 CFWVersion currCFWVersion = CFWVersion::NONE;
+bool stroopwafel_available = false;
 
 bool stopMochaServer() {
     WHBLogFreetypeClear();
@@ -34,18 +36,13 @@ bool stopMochaServer() {
 }
 
 CFWVersion testCFW() {
-
-    WHBLogPrint("Detecting prior iosuhax version...");
-    WHBLogFreetypeDraw();
-    IOSHandle stroopwafelHandle = IOS_Open("/dev/stroopwafel", (IOSOpenMode)0);
-    if (stroopwafelHandle >= IOS_ERROR_OK) {
-        WHBLogPrint("Detected stroopwafel...");
-        WHBLogFreetypeDraw();
-        int res = IOS_Ioctl(stroopwafelHandle, 12345, (void *)nullptr, 0, nullptr, 0);
-        WHBLogPrintf("stroopwafel IOCTL returned %d", res);
-        WHBLogFreetypeDraw();
-        IOS_Close(stroopwafelHandle);
-
+    // Check for /dev/stroopwafel and initialize libstroopwafel
+    WHBLogPrint("Attempting to initialize libstroopwafel...");
+    if (Stroopwafel_InitLibrary() == STROOPWAFEL_RESULT_SUCCESS) {
+        stroopwafel_available = true;
+        WHBLogPrint("libstroopwafel initialized successfully.");
+    } else {
+        WHBLogPrint("libstroopwafel initialization failed.");
     }
 
 

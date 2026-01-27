@@ -4,6 +4,7 @@
 #include "filesystem.h"
 #include "exploit.h"
 #include "gui.h"
+#include <unistd.h> // For access function
 
 // Initialize correct heaps for CustomRPXLoader
 extern "C" void __init_wut_malloc();
@@ -20,6 +21,8 @@ int main() {
     nn::act::Initialize();
     ACPInitialize();
     initializeInputs();
+
+
 
     IMDisableAPD(); // Disable auto-shutdown feature
 
