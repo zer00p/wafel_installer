@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <app version="1">
-  <name>dumpling</name>
-  <coder>Crementif and emiyl</coder>
+  <name>isfshax_loader</name>
+  <coder>Crementif, emiyl and zer00p</coder>
   <version>2.7.2</version>
   <release_date>20200813200000</release_date>
-  <short_description>Simple Cemu File Dumper</short_description>
-  <long_description>A simple, all-in-one Wii U file dumper! Developed with the intent of making dumping games and other files for Cemu faster and easier.</long_description>
+  <short_description>Loader and installer for ISFShax on Wii U</short_description>
+  <long_description>ISFShax Loader is a tool designed to load and install ISFShax on the Wii U, providing an environment for system recovery and advanced modifications.</long_description>
 </app>

@@ -21,9 +21,9 @@ TOPDIR ?= $(CURDIR)
 # APP_SHORTNAME sets the short name of the application
 # APP_AUTHOR sets the author of the application
 #-------------------------------------------------------------------------------
-APP_NAME		:=	Dumpling
-APP_SHORTNAME	:=	Dumpling
-APP_AUTHOR		:=	Crementif and emiyl
+APP_NAME		:=	ISFShax Loader
+APP_SHORTNAME	:=	ISFShax Loader
+APP_AUTHOR		:=	Crementif, emiyl and zer00p
 
 include $(DEVKITPRO)/wut/share/wut_rules
 
@@ -38,7 +38,7 @@ include $(DEVKITPRO)/wut/share/wut_rules
 # TV_SPLASH is the image displayed during bootup on the TV, leave blank to use default rule
 # DRC_SPLASH is the image displayed during bootup on the DRC, leave blank to use default rule
 #-------------------------------------------------------------------------------
-TARGET		:=	dumpling
+TARGET		:=	isfshax_loader
 BUILD		:=	build
 SOURCES		:=	source/app \
 				source/app/interfaces \
@@ -194,7 +194,7 @@ clean:
 	@echo Clean files from app...
 	@rm -fr $(BUILD) $(TARGET).wuhb $(TARGET).rpx $(TARGET).wua $(TARGET).elf
 	@rm -fr dist/wua/00050000103b3b3b_v0/code/$(TARGET).rpx
-	@rm -fr dist/wiiu/apps/dumpling/$(TARGET).rpx dist/wiiu/apps/dumpling/$(TARGET).wuhb
+	@rm -fr dist/wiiu/apps/isfshax_loader/$(TARGET).rpx dist/wiiu/apps/isfshax_loader/$(TARGET).wuhb
 	@$(MAKE) clean -C $(CURDIR)/source/cfw/ios_kernel
 	@$(MAKE) clean -C $(CURDIR)/source/cfw/ios_fs
 	@$(MAKE) clean -C $(CURDIR)/source/cfw/ios_mcp
@@ -203,15 +203,15 @@ clean:
 #-------------------------------------------------------------------------------
 dist:
 	@echo Making dist folder
-	@mkdir -p dist/wiiu/apps/dumpling
+	@mkdir -p dist/wiiu/apps/isfshax_loader
 	@echo Put latest files into it
-	@cp dist/meta.xml dist/wiiu/apps/dumpling/meta.xml
-	@cp dist/dumpling-banner.png dist/wiiu/apps/dumpling/icon.png
-	@cp $(TARGET).rpx dist/wiiu/apps/dumpling/$(TARGET).rpx
-	@cp $(TARGET).wuhb dist/wiiu/apps/dumpling/$(TARGET).wuhb
+	@cp dist/meta.xml dist/wiiu/apps/isfshax_loader/meta.xml
+	@cp dist/dumpling-banner.png dist/wiiu/apps/isfshax_loader/icon.png
+	@cp $(TARGET).rpx dist/wiiu/apps/isfshax_loader/$(TARGET).rpx
+	@cp $(TARGET).wuhb dist/wiiu/apps/isfshax_loader/$(TARGET).wuhb
 	@echo Zip up a release zip
-	@rm -f dist/dumpling.zip
-	@cd dist && zip -q -r ./dumpling.zip ./wiiu && cd ..
+	@rm -f dist/isfshax_loader.zip
+	@cd dist && zip -q -r ./isfshax_loader.zip ./wiiu && cd ..
 
 #-------------------------------------------------------------------------------
 
@@ -228,7 +228,7 @@ all: $(OUTPUT).wuhb $(OUTPUT).wua
 $(OUTPUT).wuhb	:	$(OUTPUT).rpx
 $(OUTPUT).wua	:	$(OUTPUT).rpx
 	@echo Creating wua...
-	@cp $(OUTPUT).rpx $(TOPDIR)/dist/wua/00050000103b3b3b_v0/code/dumpling.rpx
+	@cp $(OUTPUT).rpx $(TOPDIR)/dist/wua/00050000103b3b3b_v0/code/isfshax_loader.rpx
 	@#rm -rf $(TOPDIR)/dist/wua/00050000103b3b3b_v0/content/
 	@#mkdir $(TOPDIR)/dist/wua/00050000103b3b3b_v0/content/
 	@#cp -r $(TOPDIR)/$(CONTENT)/. $(TOPDIR)/dist/wua/00050000103b3b3b_v0/content/
