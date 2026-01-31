@@ -4,3 +4,4 @@
 
 bool downloadHaxFiles();
 bool downloadInstallerOnly();
+bool downloadAroma();
