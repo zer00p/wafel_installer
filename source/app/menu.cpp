@@ -60,6 +60,14 @@ void bootInstaller() {
     }
 }
 
+void installAromaMenu() {
+    if (downloadAroma()) {
+        showDialogPrompt(L"Aroma downloaded and extracted successfully!", L"OK");
+    } else {
+        showDialogPrompt(L"Failed to download or extract Aroma.\nPlease check your internet connection and try again.", L"OK");
+    }
+}
+
 // Can get recursively called
 void showMainMenu() {
     uint8_t selectedOption = 0;
@@ -72,6 +80,7 @@ void showMainMenu() {
         WHBLogFreetypePrintf(L"%C Install ISFShax + sd emulation + payloadler", OPTION(0));
         WHBLogFreetypePrintf(L"%C Redownload files", OPTION(1));
         WHBLogFreetypePrintf(L"%C Boot Installer", OPTION(2));
+        WHBLogFreetypePrintf(L"%C Download Aroma", OPTION(3));
         WHBLogFreetypeScreenPrintBottom(L"===============================");
         WHBLogFreetypeScreenPrintBottom(L"\uE000 Button = Select Option \uE001 Button = Exit ISFShax Loader");
         WHBLogFreetypeScreenPrintBottom(L"");
@@ -87,7 +96,7 @@ void showMainMenu() {
                 selectedOption--;
                 break;
             }
-            if (navigatedDown() && selectedOption < 9) {
+            if (navigatedDown() && selectedOption < 3) {
                 selectedOption++;
                 break;
             }
@@ -117,6 +126,9 @@ void showMainMenu() {
             break;
         case 2:
             bootInstaller();
+            break;
+        case 3:
+            installAromaMenu();
             break;
         default:
             break;
