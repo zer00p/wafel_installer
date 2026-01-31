@@ -1,5 +1,6 @@
 #include "download.h"
 #include "gui.h"
+#include "menu.h"
 #include "filesystem.h"
 #include "common.h"
 #include <curl/curl.h>
@@ -31,6 +32,7 @@ static bool downloadFile(const std::string& url, const std::string& path) {
     if (!curl_handle) {
         WHBLogFreetypePrintf(L"Failed to initialize curl!");
         WHBLogFreetypeDrawScreen();
+        setErrorPrompt(L"Failed to initialize curl!");
         return false;
     }
 
@@ -38,6 +40,8 @@ static bool downloadFile(const std::string& url, const std::string& path) {
     if (fd < 0) {
         WHBLogFreetypePrintf(L"Failed to open %S for writing! Errno: %d", toWstring(path).c_str(), errno);
         WHBLogFreetypeDrawScreen();
+        std::wstring error = L"Failed to open " + toWstring(path) + L" for writing! Errno: " + std::to_wstring(errno);
+        setErrorPrompt(error);
         curl_easy_cleanup(curl_handle);
         return false;
     }
@@ -63,6 +67,11 @@ static bool downloadFile(const std::string& url, const std::string& path) {
     if (res != CURLE_OK) {
         WHBLogFreetypePrintf(L"Curl failed: %S", toWstring(curl_easy_strerror(res)).c_str());
         WHBLogFreetypeDrawScreen();
+        std::wstring error = L"Curl failed: " + toWstring(curl_easy_strerror(res));
+        if (res == CURLE_PEER_FAILED_VERIFICATION || res == CURLE_SSL_CONNECT_ERROR) {
+            error += L"\nPlease check if your system date and time are correct!";
+        }
+        setErrorPrompt(error);
         return false;
     }
 
@@ -75,7 +84,7 @@ static bool createHaxDirectories() {
     if (!isSlcMounted()) {
         WHBLogFreetypePrintf(L"Failed to mount SLC! FTP system file access enabled?");
         WHBLogFreetypeDrawScreen();
-        std::this_thread::sleep_for(std::chrono::seconds(2));
+        setErrorPrompt(L"Failed to mount SLC! FTP system file access enabled?");
         return false;
     }
 
@@ -86,7 +95,8 @@ static bool createHaxDirectories() {
         if (mkdir(posix_path.c_str(), 0755) != 0 && errno != EEXIST) {
             WHBLogFreetypePrintf(L"Failed to create directory %S. Errno: %d", toWstring(posix_path).c_str(), errno);
             WHBLogFreetypeDrawScreen();
-            std::this_thread::sleep_for(std::chrono::seconds(2));
+            std::wstring error = L"Failed to create directory " + toWstring(posix_path) + L". Errno: " + std::to_wstring(errno);
+            setErrorPrompt(error);
             return false;
         }
     }
@@ -113,8 +123,6 @@ bool downloadHaxFiles() {
         !downloadFile("https://github.com/isfshax/isfshax/releases/latest/download/superblock.img.sha", convertToPosixPath("/vol/storage_slc/sys/hax/installer/sblock.sha")) ||
         !downloadFile("https://github.com/isfshax/isfshax_installer/releases/latest/download/ios.img", convertToPosixPath("/vol/storage_slc/sys/hax/installer/fw.img"))) 
     {
-        WHBLogFreetypePrint(L"\nDownload failed. Please check your internet connection.");
-        WHBLogFreetypeDrawScreen();
         return false;
     }
 
@@ -131,8 +139,6 @@ bool downloadInstallerOnly() {
 
     if (!downloadFile("https://github.com/isfshax/isfshax_installer/releases/latest/download/ios.img", convertToPosixPath("/vol/storage_slc/sys/hax/installer/fw.img")))
     {
-        WHBLogFreetypePrint(L"\nDownload failed. Please check your internet connection.");
-        WHBLogFreetypeDrawScreen();
         return false;
     }
 
