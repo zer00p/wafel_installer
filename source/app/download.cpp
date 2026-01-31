@@ -68,6 +68,9 @@ static bool downloadFile(const std::string& url, const std::string& path) {
         WHBLogFreetypePrintf(L"Curl failed: %S", toWstring(curl_easy_strerror(res)).c_str());
         WHBLogFreetypeDrawScreen();
         std::wstring error = L"Curl failed: " + toWstring(curl_easy_strerror(res));
+        if (res == CURLE_PEER_FAILED_VERIFICATION || res == CURLE_SSL_CONNECT_ERROR) {
+            error += L"\nPlease check if your system date and time are correct!";
+        }
         setErrorPrompt(error);
         return false;
     }
