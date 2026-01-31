@@ -15,6 +15,7 @@
 #include "cacert_pem.h"
 #include "../utils/zip_file.hpp"
 #include <filesystem>
+#include <sstream>
 
 namespace fs = std::filesystem;
 
@@ -163,14 +164,13 @@ static bool downloadToBuffer(const std::string& url, std::string& buffer) {
     return true;
 }
 
-bool downloadAroma() {
-    WHBLogFreetypeStartScreen();
-    WHBLogFreetypePrint(L"Starting Aroma download...");
+static bool downloadAndExtractZip(const std::string& repo, const std::string& pattern, const std::string& displayName) {
+    WHBLogFreetypePrintf(L"Fetching latest %S release...", toWstring(displayName).c_str());
     WHBLogFreetypeDrawScreen();
 
     std::string apiResponse;
-    if (!downloadToBuffer("https://api.github.com/repos/wiiu-env/Aroma/releases/latest", apiResponse)) {
-        WHBLogFreetypePrint(L"Failed to fetch latest release info from GitHub.");
+    if (!downloadToBuffer("https://api.github.com/repos/" + repo + "/releases/latest", apiResponse)) {
+        WHBLogFreetypePrintf(L"Failed to fetch %S release info.", toWstring(displayName).c_str());
         WHBLogFreetypeDrawScreen();
         return false;
     }
@@ -186,7 +186,7 @@ bool downloadAroma() {
         size_t end = apiResponse.find("\"", start);
         if (end == std::string::npos) break;
         std::string url = apiResponse.substr(start, end - start);
-        if (url.find("aroma") != std::string::npos && url.find(".zip") != std::string::npos) {
+        if (url.find(pattern) != std::string::npos && url.find(".zip") != std::string::npos) {
             zipUrl = url;
             break;
         }
@@ -194,19 +194,19 @@ bool downloadAroma() {
     }
 
     if (zipUrl.empty()) {
-        WHBLogFreetypePrint(L"Failed to find Aroma ZIP URL in GitHub response.");
+        WHBLogFreetypePrintf(L"Failed to find %S ZIP URL.", toWstring(displayName).c_str());
         WHBLogFreetypeDrawScreen();
         return false;
     }
 
     std::string zipData;
     if (!downloadToBuffer(zipUrl, zipData)) {
-        WHBLogFreetypePrint(L"Failed to download Aroma ZIP.");
+        WHBLogFreetypePrintf(L"Failed to download %S ZIP.", toWstring(displayName).c_str());
         WHBLogFreetypeDrawScreen();
         return false;
     }
 
-    WHBLogFreetypePrint(L"Extracting Aroma...");
+    WHBLogFreetypePrintf(L"Extracting %S...", toWstring(displayName).c_str());
     WHBLogFreetypeDrawScreen();
 
     try {
@@ -236,12 +236,26 @@ bool downloadAroma() {
             }
         }
     } catch (const std::exception& e) {
-        WHBLogFreetypePrintf(L"Extraction failed: %S", toWstring(e.what()).c_str());
+        WHBLogFreetypePrintf(L"%S extraction failed: %S", toWstring(displayName).c_str(), toWstring(e.what()).c_str());
         WHBLogFreetypeDrawScreen();
         return false;
     }
 
-    WHBLogFreetypePrint(L"Aroma installed successfully!");
+    return true;
+}
+
+bool downloadAroma() {
+    WHBLogFreetypeStartScreen();
+
+    if (!downloadAndExtractZip("wiiu-env/EnvironmentLoader", "EnvironmentLoader", "Environment Loader")) {
+        return false;
+    }
+
+    if (!downloadAndExtractZip("wiiu-env/Aroma", "aroma", "Aroma")) {
+        return false;
+    }
+
+    WHBLogFreetypePrint(L"Aroma and Environment Loader installed successfully!");
     WHBLogFreetypeDrawScreen();
     return true;
 }
