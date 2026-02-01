@@ -28,7 +28,7 @@ int main() {
 
     // Start ISFShax Loader
     showLoadingScreen();
-    if (testCFW() != FAILED && ((getCFWVersion() == MOCHA_FSCLIENT || getCFWVersion() == CEMU || getCFWVersion() == CUSTOM_MOCHA) || executeExploit()) && initCFW() ) {
+    if (testCFW() != FAILED && ((getCFWVersion() == MOCHA_FSCLIENT || getCFWVersion() == CEMU || getCFWVersion() == CUSTOM_MOCHA) || installCFW()) && initCFW() ) {
         mountSystemDrives();
         WHBLogFreetypePrint(L"");
         WHBLogPrint("Finished loading!");

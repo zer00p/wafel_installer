@@ -15,3 +15,4 @@ CFWVersion testCFW();
 bool initCFW();
 void shutdownCFW();
 CFWVersion getCFWVersion();
+bool isStroopwafelAvailable();
