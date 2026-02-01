@@ -17,6 +17,7 @@
 #include "../utils/zip_file.hpp"
 #include <filesystem>
 #include <sstream>
+#include <functional>
 
 namespace fs = std::filesystem;
 
@@ -192,7 +193,7 @@ static std::string getLatestReleaseAssetUrl(const std::string& repo, const std::
     return "";
 }
 
-static bool downloadAndExtractZip(const std::string& repo, const std::string& pattern, const std::string& displayName) {
+static bool downloadAndExtractZip(const std::string& repo, const std::string& pattern, const std::string& displayName, std::function<std::string(std::string)> pathMapper = nullptr) {
     std::string zipUrl = getLatestReleaseAssetUrl(repo, pattern);
     if (zipUrl.empty()) return false;
 
@@ -209,8 +210,14 @@ static bool downloadAndExtractZip(const std::string& repo, const std::string& pa
         std::string sdPath = "fs:/vol/external01/";
 
         for (auto& info : zip.infolist()) {
-            std::string fullPath = sdPath + info.filename;
-            if (info.filename.back() == '/') {
+            std::string targetFilename = info.filename;
+            if (pathMapper) {
+                targetFilename = pathMapper(info.filename);
+                if (targetFilename.empty()) continue; // Skip if mapped to empty
+            }
+
+            std::string fullPath = sdPath + targetFilename;
+            if (targetFilename.back() == '/') {
                 fs::create_directories(fullPath);
             } else {
                 fs::path p(fullPath);
@@ -238,18 +245,31 @@ static bool downloadAndExtractZip(const std::string& repo, const std::string& pa
 bool downloadAroma() {
     WHBLogFreetypeStartScreen();
 
+    // 1. Environment Loader
     if (!downloadAndExtractZip("wiiu-env/EnvironmentLoader", "EnvironmentLoader", "Environment Loader")) {
         return false;
     }
 
-    if (!downloadAndExtractZip("wiiu-env/CustomRPXLoader", "CustomRPXLoader", "Custom RPX Loader")) {
+    // 2. Custom RPX Loader (remapped)
+    auto customRpxMapper = [](std::string path) -> std::string {
+        if (path == "wiiu/payload.elf") return "wiiu/payloads/default/payload.elf";
+        return path;
+    };
+    if (!downloadAndExtractZip("wiiu-env/CustomRPXLoader", "CustomRPXLoader", "Custom RPX Loader", customRpxMapper)) {
         return false;
     }
 
+    // 3. Payload Loader Payload
+    if (!downloadAndExtractZip("wiiu-env/PayloadLoaderPayload", "PayloadLoaderPayload", "Payload Loader Payload")) {
+        return false;
+    }
+
+    // 4. Aroma
     if (!downloadAndExtractZip("wiiu-env/Aroma", "aroma", "Aroma")) {
         return false;
     }
 
+    // 5. HB App Store
     std::string appstoreUrl = getLatestReleaseAssetUrl("fortheusers/hb-appstore", "appstore.wuhb");
     if (appstoreUrl.empty()) return false;
 
