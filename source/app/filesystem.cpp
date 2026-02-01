@@ -153,12 +153,12 @@ bool formatUsbFat() {
 
     WHBLogPrint("Setting label...");
     WHBLogFreetypeDraw();
-    f_mount(NULL, "1:", 0); // Clear any previous mount
+    f_mount(NULL, (void*)"1:", 0); // Clear any previous mount
     FATFS *fs = (FATFS*)malloc(sizeof(FATFS));
     if (fs) {
-        f_mount(fs, "1:", 1);
-        f_setlabel("1:aroma");
-        f_mount(NULL, "1:", 0);
+        f_mount(fs, (void*)"1:", 1);
+        f_setlabel(fs, "aroma");
+        f_mount(NULL, (void*)"1:", 0);
         free(fs);
     }
 

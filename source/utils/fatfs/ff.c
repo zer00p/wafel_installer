@@ -23,6 +23,28 @@
 #include "ff.h"			/* Declarations of FatFs API */
 #include "diskio.h"		/* Declarations of device I/O functions */
 
+#define LD2PD(vol) (vol)
+#define LD2PT(vol) 0
+
+static FATFS* FatFs[FF_VOLUMES];
+
+static int get_ldnumber (const TCHAR** path)
+{
+	const TCHAR *tp;
+	int vol = -1;
+	tp = *path;
+	if (!tp) return -1;
+	if (tp[0] >= '0' && tp[0] <= '9') {
+		vol = tp[0] - '0';
+		tp++;
+	}
+	if (vol >= 0 && vol < FF_VOLUMES && tp[0] == ':') {
+		*path = ++tp;
+		return vol;
+	}
+	return -1;
+}
+
 
 /*--------------------------------------------------------------------------
 

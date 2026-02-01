@@ -12,16 +12,28 @@
 #include "ff.h"
 #include "diskio.h"
 
+struct FatfsMount {
+    std::string name;
+    std::string drive_prefix; // e.g. "1:"
+    FATFS *fs;
+    devoptab_t *devoptab;
+};
+
 // Structure for a file
 typedef struct {
     FIL fil;
+    FatfsMount *mount;
 } fatfs_file_t;
 
 // Structure for a directory
 typedef struct {
     DIR dir;
     FILINFO info;
+    FatfsMount *mount;
 } fatfs_dir_t;
+
+static std::vector<FatfsMount*> mounted_fs;
+static std::mutex mount_mutex;
 
 static int fatfs_to_errno(FRESULT res) {
     switch (res) {
@@ -49,18 +61,35 @@ static int fatfs_to_errno(FRESULT res) {
     }
 }
 
-static std::string map_path(const char *path) {
-    std::string mapped_path = "1:";
+static FatfsMount* get_mount_from_path(const char *path) {
+    std::string p(path);
+    size_t colon = p.find(':');
+    if (colon == std::string::npos) return nullptr;
+    std::string name = p.substr(0, colon);
+
+    std::lock_guard<std::mutex> lock(mount_mutex);
+    for (const auto& m : mounted_fs) {
+        if (m->name == name) return m;
+    }
+    return nullptr;
+}
+
+static const char* strip_prefix(const char *path) {
     const char *p = strchr(path, ':');
-    if (p) mapped_path += (p + 1);
-    else mapped_path += path;
-    return mapped_path;
+    if (p) return p + 1;
+    return path;
 }
 
 static int _fatfs_open_r(struct _reent *r, void *fileStruct, const char *path, int flags, int mode) {
     fatfs_file_t *file = (fatfs_file_t *)fileStruct;
-    BYTE fat_flags = 0;
+    FatfsMount *m = get_mount_from_path(path);
+    if (!m) {
+        r->_errno = ENODEV;
+        return -1;
+    }
+    file->mount = m;
 
+    BYTE fat_flags = 0;
     int accmode = (flags & O_ACCMODE);
     if (accmode == O_RDONLY) fat_flags |= FA_READ;
     else if (accmode == O_WRONLY) fat_flags |= FA_WRITE;
@@ -77,7 +106,7 @@ static int _fatfs_open_r(struct _reent *r, void *fileStruct, const char *path, i
 
     if (flags & O_APPEND) fat_flags |= FA_OPEN_APPEND;
 
-    FRESULT res = f_open(&file->fil, map_path(path).c_str(), fat_flags);
+    FRESULT res = f_open(&file->fil, m->fs, strip_prefix(path), fat_flags);
     if (res != FR_OK) {
         r->_errno = fatfs_to_errno(res);
         return -1;
@@ -110,7 +139,7 @@ static ssize_t _fatfs_read_r(struct _reent *r, void *fd, char *ptr, size_t len) 
 static ssize_t _fatfs_write_r(struct _reent *r, void *fd, const char *ptr, size_t len) {
     fatfs_file_t *file = (fatfs_file_t *)fd;
     UINT written = 0;
-    FRESULT res = f_write(&file->fil, ptr, len, &written);
+    FRESULT res = f_write(&file->fil, (void*)ptr, len, &written);
     if (res != FR_OK) {
         r->_errno = fatfs_to_errno(res);
         return -1;
@@ -149,8 +178,10 @@ static int _fatfs_fstat_r(struct _reent *r, void *fd, struct stat *st) {
 }
 
 static int _fatfs_stat_r(struct _reent *r, const char *path, struct stat *st) {
+    FatfsMount *m = get_mount_from_path(path);
+    if (!m) { r->_errno = ENODEV; return -1; }
     FILINFO info;
-    FRESULT res = f_stat(map_path(path).c_str(), &info);
+    FRESULT res = f_stat(m->fs, strip_prefix(path), &info);
     if (res != FR_OK) {
         r->_errno = fatfs_to_errno(res);
         return -1;
@@ -168,7 +199,9 @@ static int _fatfs_stat_r(struct _reent *r, const char *path, struct stat *st) {
 }
 
 static int _fatfs_unlink_r(struct _reent *r, const char *path) {
-    FRESULT res = f_unlink(map_path(path).c_str());
+    FatfsMount *m = get_mount_from_path(path);
+    if (!m) { r->_errno = ENODEV; return -1; }
+    FRESULT res = f_unlink(m->fs, strip_prefix(path), 0); // 0 = files and directories
     if (res != FR_OK) {
         r->_errno = fatfs_to_errno(res);
         return -1;
@@ -177,7 +210,9 @@ static int _fatfs_unlink_r(struct _reent *r, const char *path) {
 }
 
 static int _fatfs_chdir_r(struct _reent *r, const char *path) {
-    FRESULT res = f_chdir(map_path(path).c_str());
+    FatfsMount *m = get_mount_from_path(path);
+    if (!m) { r->_errno = ENODEV; return -1; }
+    FRESULT res = f_chdir(m->fs, strip_prefix(path));
     if (res != FR_OK) {
         r->_errno = fatfs_to_errno(res);
         return -1;
@@ -186,7 +221,10 @@ static int _fatfs_chdir_r(struct _reent *r, const char *path) {
 }
 
 static int _fatfs_rename_r(struct _reent *r, const char *oldName, const char *newName) {
-    FRESULT res = f_rename(map_path(oldName).c_str(), map_path(newName).c_str());
+    FatfsMount *m = get_mount_from_path(oldName);
+    if (!m) { r->_errno = ENODEV; return -1; }
+    // newName should also be on the same mount.
+    FRESULT res = f_rename(m->fs, strip_prefix(oldName), strip_prefix(newName));
     if (res != FR_OK) {
         r->_errno = fatfs_to_errno(res);
         return -1;
@@ -195,7 +233,9 @@ static int _fatfs_rename_r(struct _reent *r, const char *oldName, const char *ne
 }
 
 static int _fatfs_mkdir_r(struct _reent *r, const char *path, int mode) {
-    FRESULT res = f_mkdir(map_path(path).c_str());
+    FatfsMount *m = get_mount_from_path(path);
+    if (!m) { r->_errno = ENODEV; return -1; }
+    FRESULT res = f_mkdir(m->fs, strip_prefix(path));
     if (res != FR_OK) {
         r->_errno = fatfs_to_errno(res);
         return -1;
@@ -205,7 +245,11 @@ static int _fatfs_mkdir_r(struct _reent *r, const char *path, int mode) {
 
 static DIR_ITER* _fatfs_diropen_r(struct _reent *r, DIR_ITER *dirState, const char *path) {
     fatfs_dir_t *dir = (fatfs_dir_t *)(dirState->dirStruct);
-    FRESULT res = f_opendir(&dir->dir, map_path(path).c_str());
+    FatfsMount *m = get_mount_from_path(path);
+    if (!m) { r->_errno = ENODEV; return NULL; }
+    dir->mount = m;
+
+    FRESULT res = f_opendir(&dir->dir, m->fs, strip_prefix(path));
     if (res != FR_OK) {
         r->_errno = fatfs_to_errno(res);
         return NULL;
@@ -272,58 +316,53 @@ static const devoptab_t fatfs_devoptab = {
     NULL  // utimes_r
 };
 
-struct FatfsMount {
-    std::string name;
-    int pdrv;
-    FATFS *fs;
-    devoptab_t *devoptab;
-};
-
-static std::vector<FatfsMount> mounted_fs;
-static std::mutex mount_mutex;
-
 bool fatfs_mount(const std::string& name, int pdrv) {
     std::lock_guard<std::mutex> lock(mount_mutex);
 
-    for (const auto& mount : mounted_fs) {
-        if (mount.name == name) return true;
+    for (const auto& m : mounted_fs) {
+        if (m->name == name) return true;
     }
 
-    std::string drive_prefix = std::to_string(pdrv) + ":";
+    FatfsMount *m = new FatfsMount();
+    m->name = name;
+    m->drive_prefix = std::to_string(pdrv) + ":";
+    m->fs = (FATFS *)malloc(sizeof(FATFS));
 
-    FATFS *fs = (FATFS *)malloc(sizeof(FATFS));
-    FRESULT res = f_mount(fs, drive_prefix.c_str(), 1);
+    FRESULT res = f_mount(m->fs, (void*)m->drive_prefix.c_str(), 1);
     if (res != FR_OK) {
-        free(fs);
+        free(m->fs);
+        delete m;
         return false;
     }
 
-    devoptab_t *devoptab = (devoptab_t *)malloc(sizeof(devoptab_t));
-    memcpy(devoptab, &fatfs_devoptab, sizeof(devoptab_t));
-    devoptab->name = strdup(name.c_str());
+    m->devoptab = (devoptab_t *)malloc(sizeof(devoptab_t));
+    memcpy(m->devoptab, &fatfs_devoptab, sizeof(devoptab_t));
+    m->devoptab->name = strdup(name.c_str());
+    m->devoptab->deviceData = m;
 
-    if (AddDevice(devoptab) < 0) {
-        f_mount(NULL, drive_prefix.c_str(), 0);
-        free((void*)devoptab->name);
-        free(devoptab);
-        free(fs);
+    if (AddDevice(m->devoptab) < 0) {
+        f_mount(NULL, (void*)m->drive_prefix.c_str(), 0);
+        free((void*)m->devoptab->name);
+        free(m->devoptab);
+        free(m->fs);
+        delete m;
         return false;
     }
 
-    mounted_fs.push_back({name, pdrv, fs, devoptab});
+    mounted_fs.push_back(m);
     return true;
 }
 
 bool fatfs_unmount(const std::string& name) {
     std::lock_guard<std::mutex> lock(mount_mutex);
     for (auto it = mounted_fs.begin(); it != mounted_fs.end(); ++it) {
-        if (it->name == name) {
-            std::string drive_prefix = std::to_string(it->pdrv) + ":";
-            f_mount(NULL, drive_prefix.c_str(), 0);
+        if ((*it)->name == name) {
+            f_mount(NULL, (void*)(*it)->drive_prefix.c_str(), 0);
             RemoveDevice(name.c_str());
-            free((void*)it->devoptab->name);
-            free(it->devoptab);
-            free(it->fs);
+            free((void*)(*it)->devoptab->name);
+            free((*it)->devoptab);
+            free((*it)->fs);
+            delete *it;
             mounted_fs.erase(it);
             return true;
         }
