@@ -136,9 +136,16 @@ bool initCFW() {
 
 void shutdownCFW() {
     Mocha_DeInitLibrary();
+    if (stroopwafel_available) {
+        Stroopwafel_DeInitLibrary();
+    }
     sleep_for(1s);
 }
 
 CFWVersion getCFWVersion() {
     return currCFWVersion;
+}
+
+bool isStroopwafelAvailable() {
+    return stroopwafel_available;
 }

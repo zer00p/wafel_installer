@@ -1,3 +1,3 @@
 extern ThreadContext_t** currentThreadContext;
 
-void installPatches();
+void installPatches(uint32_t is_exploit);

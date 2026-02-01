@@ -1,3 +1,3 @@
 #include "common.h"
 
-int32_t mainKernel();
+int32_t mainKernel(uint32_t is_exploit);

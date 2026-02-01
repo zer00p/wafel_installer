@@ -52,7 +52,7 @@ int32_t kernel_syscall_0x81(uint32_t command, uint32_t arg1, uint32_t arg2, uint
     return result;
 }
 
-void installPatches() {
+void installPatches(uint32_t is_exploit) {
     // Insert jump to the kernel_syscall_0x81
     *(volatile uint32_t*)0x0812CD2C = ARM_B(0x0812CD2C, kernel_syscall_0x81);
 
@@ -97,23 +97,25 @@ void installPatches() {
     // Insert jump to the custom ioctl100 patch
     *(volatile uint32_t*)KERNEL_SRC_ADDR(0x05025242) = THUMB_BL(0x05025242, MCP_ioctl100_patch);
 
-    int32_t (*internal_MapSharedUserExecution)(void *descr) = (void*)0x08124F88;
-    ios_map_shared_info_t map_info;
-    map_info.paddr  = (uint32_t)KERNEL_SRC_ADDR(_mcp_bss_start);
-    map_info.vaddr  = _mcp_bss_start;
-    map_info.size   = 0x3000;
-    map_info.domain = 1; // MCP
-    map_info.type   = 3; // 0 = undefined, 1 = kernel only, 2 = read only, 3 = read/write
-    map_info.cached = 0xFFFFFFFF;
-    internal_MapSharedUserExecution(&map_info); // actually a bss section but oh well it will have read/write
+    if (is_exploit) {
+        int32_t (*internal_MapSharedUserExecution)(void *descr) = (void*)0x08124F88;
+        ios_map_shared_info_t map_info;
+        map_info.paddr  = (uint32_t)KERNEL_SRC_ADDR(_mcp_bss_start);
+        map_info.vaddr  = _mcp_bss_start;
+        map_info.size   = 0x3000;
+        map_info.domain = 1; // MCP
+        map_info.type   = 3; // 0 = undefined, 1 = kernel only, 2 = read only, 3 = read/write
+        map_info.cached = 0xFFFFFFFF;
+        internal_MapSharedUserExecution(&map_info); // actually a bss section but oh well it will have read/write
 
-    map_info.paddr  = (uint32_t)KERNEL_RUN_ADDR(_mcp_text_start);
-    map_info.vaddr  = _mcp_text_start;
-    map_info.size   = 0x4000;
-    map_info.domain = 1; // MCP
-    map_info.type   = 3; // 0 = undefined, 1 = kernel only, 2 = read only, 3 = read write
-    map_info.cached = 0xFFFFFFFF;
-    internal_MapSharedUserExecution(&map_info);
+        map_info.paddr  = (uint32_t)KERNEL_RUN_ADDR(_mcp_text_start);
+        map_info.vaddr  = _mcp_text_start;
+        map_info.size   = 0x4000;
+        map_info.domain = 1; // MCP
+        map_info.type   = 3; // 0 = undefined, 1 = kernel only, 2 = read only, 3 = read write
+        map_info.cached = 0xFFFFFFFF;
+        internal_MapSharedUserExecution(&map_info);
+    }
 
     internal_setClientCapabilites(COS_MASTER, FS, 0xFFFFFFFFFFFFFFFF);
     internal_setClientCapabilites(COS_MASTER, MCP, 0xFFFFFFFFFFFFFFFF);
