@@ -16,6 +16,8 @@
 #include "cacert_pem.h"
 #include "../utils/zip_file.hpp"
 #include <filesystem>
+#include <sstream>
+#include <functional>
 
 namespace fs = std::filesystem;
 
@@ -144,7 +146,10 @@ static bool downloadToBuffer(const std::string& url, std::string& buffer) {
     WHBLogFreetypeDrawScreen();
 
     CURL *curl_handle = curl_easy_init();
-    if (!curl_handle) return false;
+    if (!curl_handle) {
+        setErrorPrompt(L"Failed to initialize curl!");
+        return false;
+    }
 
     curl_easy_setopt(curl_handle, CURLOPT_URL, url.c_str());
     curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, write_data_buffer);
@@ -163,29 +168,22 @@ static bool downloadToBuffer(const std::string& url, std::string& buffer) {
     curl_easy_cleanup(curl_handle);
 
     if (res != CURLE_OK) {
-        WHBLogFreetypePrintf(L"Curl failed: %S", toWstring(curl_easy_strerror(res)).c_str());
-        WHBLogFreetypeDrawScreen();
+        setErrorPrompt(L"Curl failed for " + toWstring(url) + L":\n" + toWstring(curl_easy_strerror(res)));
         return false;
     }
 
     return true;
 }
 
-bool downloadAroma() {
-    WHBLogFreetypeStartScreen();
-    WHBLogFreetypePrint(L"Starting Aroma download...");
-    WHBLogFreetypeDrawScreen();
-
+static std::string getLatestReleaseAssetUrl(const std::string& repo, const std::string& pattern) {
     std::string apiResponse;
-    if (!downloadToBuffer("https://api.github.com/repos/wiiu-env/Aroma/releases/latest", apiResponse)) {
-        WHBLogFreetypePrint(L"Failed to fetch latest release info from GitHub.");
-        WHBLogFreetypeDrawScreen();
-        return false;
+    if (!downloadToBuffer("https://api.github.com/repos/" + repo + "/releases/latest", apiResponse)) {
+        // downloadToBuffer already set the error prompt
+        return "";
     }
 
     std::string searchKey = "\"browser_download_url\":";
     size_t pos = 0;
-    std::string zipUrl;
     while ((pos = apiResponse.find(searchKey, pos)) != std::string::npos) {
         pos += searchKey.length();
         size_t start = apiResponse.find("\"", pos);
@@ -194,27 +192,25 @@ bool downloadAroma() {
         size_t end = apiResponse.find("\"", start);
         if (end == std::string::npos) break;
         std::string url = apiResponse.substr(start, end - start);
-        if (url.find("aroma") != std::string::npos && url.find(".zip") != std::string::npos) {
-            zipUrl = url;
-            break;
+        // If pattern contains a dot, assume it's a full filename match, otherwise match pattern and .zip
+        if (url.find(pattern) != std::string::npos && (pattern.find(".") != std::string::npos || url.find(".zip") != std::string::npos)) {
+            return url;
         }
         pos = end;
     }
 
-    if (zipUrl.empty()) {
-        WHBLogFreetypePrint(L"Failed to find Aroma ZIP URL in GitHub response.");
-        WHBLogFreetypeDrawScreen();
-        return false;
-    }
+    setErrorPrompt(L"Failed to find asset matching '" + toWstring(pattern) + L"' in " + toWstring(repo));
+    return "";
+}
+
+static bool downloadAndExtractZip(const std::string& repo, const std::string& pattern, const std::string& displayName, std::function<std::string(std::string)> pathMapper = nullptr) {
+    std::string zipUrl = getLatestReleaseAssetUrl(repo, pattern);
+    if (zipUrl.empty()) return false;
 
     std::string zipData;
-    if (!downloadToBuffer(zipUrl, zipData)) {
-        WHBLogFreetypePrint(L"Failed to download Aroma ZIP.");
-        WHBLogFreetypeDrawScreen();
-        return false;
-    }
+    if (!downloadToBuffer(zipUrl, zipData)) return false;
 
-    WHBLogFreetypePrint(L"Extracting Aroma...");
+    WHBLogFreetypePrintf(L"Extracting %S...", toWstring(displayName).c_str());
     WHBLogFreetypeDrawScreen();
 
     try {
@@ -224,8 +220,14 @@ bool downloadAroma() {
         std::string sdPath = "fs:/vol/external01/";
 
         for (auto& info : zip.infolist()) {
-            std::string fullPath = sdPath + info.filename;
-            if (info.filename.back() == '/') {
+            std::string targetFilename = info.filename;
+            if (pathMapper) {
+                targetFilename = pathMapper(info.filename);
+                if (targetFilename.empty()) continue; // Skip if mapped to empty
+            }
+
+            std::string fullPath = sdPath + targetFilename;
+            if (targetFilename.back() == '/') {
                 fs::create_directories(fullPath);
             } else {
                 fs::path p(fullPath);
@@ -237,19 +239,57 @@ bool downloadAroma() {
                     write(fd, data.data(), data.size());
                     close(fd);
                 } else {
-                    WHBLogFreetypePrintf(L"Failed to open %S for writing!", toWstring(fullPath).c_str());
-                    WHBLogFreetypeDrawScreen();
+                    setErrorPrompt(L"Failed to open " + toWstring(fullPath) + L" for writing! Errno: " + std::to_wstring(errno));
                     return false;
                 }
             }
         }
     } catch (const std::exception& e) {
-        WHBLogFreetypePrintf(L"Extraction failed: %S", toWstring(e.what()).c_str());
-        WHBLogFreetypeDrawScreen();
+        setErrorPrompt(toWstring(displayName) + L" extraction failed:\n" + toWstring(e.what()));
         return false;
     }
 
-    WHBLogFreetypePrint(L"Aroma installed successfully!");
+    return true;
+}
+
+bool downloadAroma() {
+    WHBLogFreetypeStartScreen();
+
+    // 1. Environment Loader
+    if (!downloadAndExtractZip("wiiu-env/EnvironmentLoader", "EnvironmentLoader", "Environment Loader")) {
+        return false;
+    }
+
+    // 2. Custom RPX Loader (remapped)
+    auto customRpxMapper = [](std::string path) -> std::string {
+        if (path == "wiiu/payload.elf") return "wiiu/payloads/default/payload.elf";
+        return path;
+    };
+    if (!downloadAndExtractZip("wiiu-env/CustomRPXLoader", "CustomRPXLoader", "Custom RPX Loader", customRpxMapper)) {
+        return false;
+    }
+
+    // 3. Payload Loader Payload
+    if (!downloadAndExtractZip("wiiu-env/PayloadLoaderPayload", "PayloadLoaderPayload", "Payload Loader Payload")) {
+        return false;
+    }
+
+    // 4. Aroma
+    if (!downloadAndExtractZip("wiiu-env/Aroma", "aroma", "Aroma")) {
+        return false;
+    }
+
+    // 5. HB App Store
+    std::string appstoreUrl = getLatestReleaseAssetUrl("fortheusers/hb-appstore", "appstore.wuhb");
+    if (appstoreUrl.empty()) return false;
+
+    std::string appstorePath = "fs:/vol/external01/wiiu/apps/appstore/";
+    fs::create_directories(appstorePath);
+    if (!downloadFile(appstoreUrl, appstorePath + "appstore.wuhb")) {
+        return false;
+    }
+
+    WHBLogFreetypePrint(L"Aroma and tools installed successfully!");
     WHBLogFreetypeDrawScreen();
     return true;
 }

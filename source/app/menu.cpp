@@ -62,9 +62,9 @@ void bootInstaller() {
 
 void installAromaMenu() {
     if (downloadAroma()) {
-        showDialogPrompt(L"Aroma downloaded and extracted successfully!", L"OK");
+        showDialogPrompt(L"Aroma and tools downloaded and extracted successfully!", L"OK");
     } else {
-        showDialogPrompt(L"Failed to download or extract Aroma.\nPlease check your internet connection and try again.", L"OK");
+        showErrorPrompt(L"OK");
     }
 }
 
