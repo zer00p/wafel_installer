@@ -1,5 +1,6 @@
 #include "download.h"
 #include "gui.h"
+#include "menu.h"
 #include "filesystem.h"
 #include "common.h"
 #include <curl/curl.h>
@@ -34,15 +35,13 @@ static bool downloadFile(const std::string& url, const std::string& path) {
 
     CURL *curl_handle = curl_easy_init();
     if (!curl_handle) {
-        WHBLogFreetypePrintf(L"Failed to initialize curl!");
-        WHBLogFreetypeDrawScreen();
+        setErrorPrompt(L"Failed to initialize curl!");
         return false;
     }
 
     int fd = open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
     if (fd < 0) {
-        WHBLogFreetypePrintf(L"Failed to open %S for writing! Errno: %d", toWstring(path).c_str(), errno);
-        WHBLogFreetypeDrawScreen();
+        setErrorPrompt(L"Failed to open " + toWstring(path) + L" for writing! Errno: " + std::to_wstring(errno));
         curl_easy_cleanup(curl_handle);
         return false;
     }
@@ -66,8 +65,7 @@ static bool downloadFile(const std::string& url, const std::string& path) {
     curl_easy_cleanup(curl_handle);
 
     if (res != CURLE_OK) {
-        WHBLogFreetypePrintf(L"Curl failed: %S", toWstring(curl_easy_strerror(res)).c_str());
-        WHBLogFreetypeDrawScreen();
+        setErrorPrompt(L"Curl failed for " + toWstring(url) + L":\n" + toWstring(curl_easy_strerror(res)));
         return false;
     }
 
@@ -137,7 +135,10 @@ static bool downloadToBuffer(const std::string& url, std::string& buffer) {
     WHBLogFreetypeDrawScreen();
 
     CURL *curl_handle = curl_easy_init();
-    if (!curl_handle) return false;
+    if (!curl_handle) {
+        setErrorPrompt(L"Failed to initialize curl!");
+        return false;
+    }
 
     curl_easy_setopt(curl_handle, CURLOPT_URL, url.c_str());
     curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, write_data_buffer);
@@ -156,28 +157,22 @@ static bool downloadToBuffer(const std::string& url, std::string& buffer) {
     curl_easy_cleanup(curl_handle);
 
     if (res != CURLE_OK) {
-        WHBLogFreetypePrintf(L"Curl failed: %S", toWstring(curl_easy_strerror(res)).c_str());
-        WHBLogFreetypeDrawScreen();
+        setErrorPrompt(L"Curl failed for " + toWstring(url) + L":\n" + toWstring(curl_easy_strerror(res)));
         return false;
     }
 
     return true;
 }
 
-static bool downloadAndExtractZip(const std::string& repo, const std::string& pattern, const std::string& displayName) {
-    WHBLogFreetypePrintf(L"Fetching latest %S release...", toWstring(displayName).c_str());
-    WHBLogFreetypeDrawScreen();
-
+static std::string getLatestReleaseAssetUrl(const std::string& repo, const std::string& pattern) {
     std::string apiResponse;
     if (!downloadToBuffer("https://api.github.com/repos/" + repo + "/releases/latest", apiResponse)) {
-        WHBLogFreetypePrintf(L"Failed to fetch %S release info.", toWstring(displayName).c_str());
-        WHBLogFreetypeDrawScreen();
-        return false;
+        // downloadToBuffer already set the error prompt
+        return "";
     }
 
     std::string searchKey = "\"browser_download_url\":";
     size_t pos = 0;
-    std::string zipUrl;
     while ((pos = apiResponse.find(searchKey, pos)) != std::string::npos) {
         pos += searchKey.length();
         size_t start = apiResponse.find("\"", pos);
@@ -186,25 +181,23 @@ static bool downloadAndExtractZip(const std::string& repo, const std::string& pa
         size_t end = apiResponse.find("\"", start);
         if (end == std::string::npos) break;
         std::string url = apiResponse.substr(start, end - start);
-        if (url.find(pattern) != std::string::npos && url.find(".zip") != std::string::npos) {
-            zipUrl = url;
-            break;
+        // If pattern contains a dot, assume it's a full filename match, otherwise match pattern and .zip
+        if (url.find(pattern) != std::string::npos && (pattern.find(".") != std::string::npos || url.find(".zip") != std::string::npos)) {
+            return url;
         }
         pos = end;
     }
 
-    if (zipUrl.empty()) {
-        WHBLogFreetypePrintf(L"Failed to find %S ZIP URL.", toWstring(displayName).c_str());
-        WHBLogFreetypeDrawScreen();
-        return false;
-    }
+    setErrorPrompt(L"Failed to find asset matching '" + toWstring(pattern) + L"' in " + toWstring(repo));
+    return "";
+}
+
+static bool downloadAndExtractZip(const std::string& repo, const std::string& pattern, const std::string& displayName) {
+    std::string zipUrl = getLatestReleaseAssetUrl(repo, pattern);
+    if (zipUrl.empty()) return false;
 
     std::string zipData;
-    if (!downloadToBuffer(zipUrl, zipData)) {
-        WHBLogFreetypePrintf(L"Failed to download %S ZIP.", toWstring(displayName).c_str());
-        WHBLogFreetypeDrawScreen();
-        return false;
-    }
+    if (!downloadToBuffer(zipUrl, zipData)) return false;
 
     WHBLogFreetypePrintf(L"Extracting %S...", toWstring(displayName).c_str());
     WHBLogFreetypeDrawScreen();
@@ -229,15 +222,13 @@ static bool downloadAndExtractZip(const std::string& repo, const std::string& pa
                     write(fd, data.data(), data.size());
                     close(fd);
                 } else {
-                    WHBLogFreetypePrintf(L"Failed to open %S for writing!", toWstring(fullPath).c_str());
-                    WHBLogFreetypeDrawScreen();
+                    setErrorPrompt(L"Failed to open " + toWstring(fullPath) + L" for writing! Errno: " + std::to_wstring(errno));
                     return false;
                 }
             }
         }
     } catch (const std::exception& e) {
-        WHBLogFreetypePrintf(L"%S extraction failed: %S", toWstring(displayName).c_str(), toWstring(e.what()).c_str());
-        WHBLogFreetypeDrawScreen();
+        setErrorPrompt(toWstring(displayName) + L" extraction failed:\n" + toWstring(e.what()));
         return false;
     }
 
@@ -251,11 +242,24 @@ bool downloadAroma() {
         return false;
     }
 
+    if (!downloadAndExtractZip("wiiu-env/CustomRPXLoader", "CustomRPXLoader", "Custom RPX Loader")) {
+        return false;
+    }
+
     if (!downloadAndExtractZip("wiiu-env/Aroma", "aroma", "Aroma")) {
         return false;
     }
 
-    WHBLogFreetypePrint(L"Aroma and Environment Loader installed successfully!");
+    std::string appstoreUrl = getLatestReleaseAssetUrl("fortheusers/hb-appstore", "appstore.wuhb");
+    if (appstoreUrl.empty()) return false;
+
+    std::string appstorePath = "fs:/vol/external01/wiiu/apps/appstore/";
+    fs::create_directories(appstorePath);
+    if (!downloadFile(appstoreUrl, appstorePath + "appstore.wuhb")) {
+        return false;
+    }
+
+    WHBLogFreetypePrint(L"Aroma and tools installed successfully!");
     WHBLogFreetypeDrawScreen();
     return true;
 }

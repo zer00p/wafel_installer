@@ -25,7 +25,7 @@ void installISFShax() {
         showDialogPrompt(L"The ISFShax installer is controlled with the buttons on the main console.\nPOWER: moves the curser\nEJECT: confirm\nPress A to launch into the ISFShax Installer", L"Continue");
         loadFwImg();
     } else {
-        showDialogPrompt(L"Failed to download all files.\nPlease check your internet connection and try again.", L"OK");
+        showErrorPrompt(L"OK");
     }
 }
 
@@ -33,7 +33,7 @@ void redownloadFiles() {
     if (downloadHaxFiles()) {
         showDialogPrompt(L"All hax files downloaded successfully!", L"OK");
     } else {
-        showDialogPrompt(L"Failed to download all files.\nPlease check your internet connection and try again.", L"OK");
+        showErrorPrompt(L"OK");
     }
 }
 
@@ -49,7 +49,7 @@ void bootInstaller() {
         }
 
         if (!downloaded) {
-             showDialogPrompt(L"Failed to download the required files.\nPlease check your internet connection and try again.", L"OK");
+             showErrorPrompt(L"OK");
              return;
         }
     }
@@ -62,9 +62,9 @@ void bootInstaller() {
 
 void installAromaMenu() {
     if (downloadAroma()) {
-        showDialogPrompt(L"Aroma downloaded and extracted successfully!", L"OK");
+        showDialogPrompt(L"Aroma and tools downloaded and extracted successfully!", L"OK");
     } else {
-        showDialogPrompt(L"Failed to download or extract Aroma.\nPlease check your internet connection and try again.", L"OK");
+        showErrorPrompt(L"OK");
     }
 }
 
