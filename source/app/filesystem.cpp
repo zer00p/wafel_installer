@@ -125,7 +125,7 @@ bool formatUsbFat() {
     unmountUsbFat(); // Make sure it's not mounted via FatFS devoptab
 
     // Initialize the drive
-    if (disk_initialize(1) != 0) {
+    if (disk_initialize((void*)1) != 0) {
         return false;
     }
 
