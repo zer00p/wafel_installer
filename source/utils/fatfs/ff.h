@@ -311,7 +311,7 @@ FRESULT f_expand (FFFIL* fp, FSIZE_t fsz, BYTE opt);					/* Allocate a contiguou
 FRESULT f_mount (FATFS* fs, void* pdrv, UINT part);					/* Mount a logical drive */
 FRESULT f_umount (FATFS* fs);										/* Unmount a logical drive */
 FRESULT f_mkfs (const TCHAR* path, const MKFS_PARM* opt, void* work, UINT len);	/* Create a FAT volume */
-FRESULT f_fdisk (BYTE pdrv, const LBA_t ptbl[], void* work);		/* Divide a physical drive into some partitions */
+FRESULT f_fdisk (void* pdrv, const LBA_t ptbl[], void* work);		/* Divide a physical drive into some partitions */
 FRESULT f_setcp (WORD cp);											/* Set current code page */
 int f_pattern_match (const TCHAR* pat, const TCHAR* nam, UINT skip, UINT recur); /* Pattern match string (upstream: static function). Returns 1 if matched */
 /* Some API fucntions are implemented as macro */

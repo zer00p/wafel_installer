@@ -26,6 +26,8 @@
 #define LD2PD(vol) (vol)
 #define LD2PT(vol) 0
 
+#include <stdint.h>
+
 static FATFS* FatFs[FF_VOLUMES];
 
 static int get_ldnumber (const TCHAR** path)
@@ -5634,7 +5636,7 @@ FRESULT f_forward (
 /* Create partitions on the physical drive in format of MBR or GPT */
 
 static FRESULT create_partition (
-	BYTE drv,			/* Physical drive number */
+	void* drv,			/* Physical drive number */
 	const LBA_t plst[],	/* Partition list */
 	BYTE sys,			/* System ID for each partition (for only MBR) */
 	BYTE *buf			/* Working buffer for a sector */
@@ -5788,7 +5790,8 @@ FRESULT f_mkfs (
 	static const WORD cst[] = {1, 4, 16, 64, 256, 512, 0};	/* Cluster size boundary for FAT volume (4K sector unit) */
 	static const WORD cst32[] = {1, 2, 4, 8, 16, 32, 0};	/* Cluster size boundary for FAT32 volume (128K sector unit) */
 	static const MKFS_PARM defopt = {FM_ANY, 0, 0, 0, 0};	/* Default parameter */
-	BYTE fsopt, fsty, sys, pdrv, ipart;
+	BYTE fsopt, fsty, sys, ipart;
+	void* pdrv;
 	BYTE *buf;
 	BYTE *pte;
 	WORD ss;	/* Sector size */
@@ -5806,7 +5809,7 @@ FRESULT f_mkfs (
 	vol = get_ldnumber(&path);					/* Get target logical drive */
 	if (vol < 0) return FR_INVALID_DRIVE;
 	if (FatFs[vol]) FatFs[vol]->fs_type = 0;	/* Clear the fs object if mounted */
-	pdrv = LD2PD(vol);		/* Hosting physical drive */
+	pdrv = (void*)(uintptr_t)LD2PD(vol);		/* Hosting physical drive */
 	ipart = LD2PT(vol);		/* Hosting partition (0:create as new, 1..:existing partition) */
 
 	/* Initialize the hosting physical drive */
@@ -6286,7 +6289,7 @@ FRESULT f_mkfs (
 /*-----------------------------------------------------------------------*/
 
 FRESULT f_fdisk (
-	BYTE pdrv,			/* Physical drive number */
+	void* pdrv,			/* Physical drive number */
 	const LBA_t ptbl[],	/* Pointer to the size table for each partitions */
 	void* work			/* Pointer to the working buffer (null: use heap memory) */
 )

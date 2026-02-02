@@ -134,7 +134,7 @@ bool formatUsbFat() {
 
     WHBLogPrint("Creating partition table...");
     WHBLogFreetypeDraw();
-    FRESULT res = f_fdisk(1, plist, work);
+    FRESULT res = f_fdisk((void*)1, plist, work);
     if (res != FR_OK) {
         WHBLogPrintf("f_fdisk failed: %d", res);
         WHBLogFreetypeDraw();
