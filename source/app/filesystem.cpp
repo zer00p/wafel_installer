@@ -2,11 +2,15 @@
 #include "cfw.h"
 #include "gui.h"
 #include "progress.h"
+#include "../utils/fatfs/fatfs_devoptab.h"
+#include "../utils/fatfs/ff.h"
+#include "../utils/fatfs/diskio.h"
 
 #include <dirent.h>
 #include <sys/unistd.h>
 
 static bool systemSLCMounted = false;
+static bool usbFatMounted = false;
 static bool systemMLCMounted = false;
 static bool systemUSBMounted = false;
 static bool discMounted = false;
@@ -99,6 +103,68 @@ bool unmountDisc() {
 
 bool isDiscMounted() {
     return discMounted;
+}
+
+bool mountUsbFat() {
+    if (usbFatMounted) return true;
+    if (fatfs_mount("usb", 1)) {
+        usbFatMounted = true;
+        return true;
+    }
+    return false;
+}
+
+void unmountUsbFat() {
+    if (usbFatMounted) {
+        fatfs_unmount("usb");
+        usbFatMounted = false;
+    }
+}
+
+bool formatUsbFat() {
+    unmountUsbFat(); // Make sure it's not mounted via FatFS devoptab
+
+    // Initialize the drive
+    if (disk_initialize((void*)1) != 0) {
+        return false;
+    }
+
+    BYTE work[FF_MAX_SS];
+    LBA_t plist[] = {100, 0, 0, 0};
+
+    WHBLogPrint("Creating partition table...");
+    WHBLogFreetypeDraw();
+    FRESULT res = f_fdisk((void*)1, plist, work);
+    if (res != FR_OK) {
+        WHBLogPrintf("f_fdisk failed: %d", res);
+        WHBLogFreetypeDraw();
+        return false;
+    }
+
+    WHBLogPrint("Formatting partition...");
+    WHBLogFreetypeDraw();
+    MKFS_PARM opt = {FM_FAT32, 0, 0, 0, 0};
+    res = f_mkfs("1:", &opt, work, sizeof(work));
+    if (res != FR_OK) {
+        WHBLogPrintf("f_mkfs failed: %d", res);
+        WHBLogFreetypeDraw();
+        return false;
+    }
+
+    WHBLogPrint("Setting label...");
+    WHBLogFreetypeDraw();
+    f_mount(NULL, (void*)"1:", 0); // Clear any previous mount
+    FATFS *fs = (FATFS*)malloc(sizeof(FATFS));
+    if (fs) {
+        f_mount(fs, (void*)"1:", 1);
+        f_setlabel(fs, "aroma");
+        f_mount(NULL, (void*)"1:", 0);
+        free(fs);
+    }
+
+    WHBLogPrint("USB drive formatted successfully!");
+    WHBLogFreetypeDraw();
+    return true;
 }
 
 bool testStorage(TITLE_LOCATION location) {

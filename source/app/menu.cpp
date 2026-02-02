@@ -68,6 +68,31 @@ void installAromaMenu() {
     }
 }
 
+void formatUsbAndDownloadAromaMenu() {
+    uint8_t choice = showDialogPrompt(L"WARNING: This will format the USB drive and DELETE ALL DATA on it.\nDo you want to continue?", L"Yes", L"No");
+    if (choice != 0) return;
+
+    if (!formatUsbFat()) {
+        setErrorPrompt(L"Failed to format USB drive!");
+        showErrorPrompt(L"OK");
+        return;
+    }
+
+    if (!mountUsbFat()) {
+        setErrorPrompt(L"Failed to mount USB drive after formatting!");
+        showErrorPrompt(L"OK");
+        return;
+    }
+
+    if (downloadAroma("usb:/")) {
+        showDialogPrompt(L"USB drive formatted and Aroma downloaded successfully!", L"OK");
+    } else {
+        showErrorPrompt(L"OK");
+    }
+
+    unmountUsbFat();
+}
+
 // Can get recursively called
 void showMainMenu() {
     uint8_t selectedOption = 0;
@@ -81,6 +106,7 @@ void showMainMenu() {
         WHBLogFreetypePrintf(L"%C Redownload files", OPTION(1));
         WHBLogFreetypePrintf(L"%C Boot Installer", OPTION(2));
         WHBLogFreetypePrintf(L"%C Download Aroma", OPTION(3));
+        WHBLogFreetypePrintf(L"%C Format USB and Download Aroma", OPTION(4));
         WHBLogFreetypeScreenPrintBottom(L"===============================");
         WHBLogFreetypeScreenPrintBottom(L"\uE000 Button = Select Option \uE001 Button = Exit ISFShax Loader");
         WHBLogFreetypeScreenPrintBottom(L"");
@@ -96,7 +122,7 @@ void showMainMenu() {
                 selectedOption--;
                 break;
             }
-            if (navigatedDown() && selectedOption < 3) {
+            if (navigatedDown() && selectedOption < 4) {
                 selectedOption++;
                 break;
             }
@@ -129,6 +155,9 @@ void showMainMenu() {
             break;
         case 3:
             installAromaMenu();
+            break;
+        case 4:
+            formatUsbAndDownloadAromaMenu();
             break;
         default:
             break;

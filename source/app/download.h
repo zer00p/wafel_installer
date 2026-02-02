@@ -4,4 +4,4 @@
 
 bool downloadHaxFiles();
 bool downloadInstallerOnly();
-bool downloadAroma();
+bool downloadAroma(const std::string& sdPath = "fs:/vol/external01/");
