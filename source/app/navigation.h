@@ -14,3 +14,4 @@ bool navigatedRight();
 bool pressedOk();
 bool pressedStart();
 bool pressedBack();
+bool pressedX();

@@ -1,10 +1,15 @@
 #include "menu.h"
+#include "pluginmanager.h"
 #include "navigation.h"
 #include "filesystem.h"
 #include "gui.h"
 #include "cfw.h"
 #include "fw_img_loader.h"
 #include "download.h"
+#include <dirent.h>
+#include <algorithm>
+#include <vector>
+#include <string>
 
 // Menu screens
 
@@ -93,6 +98,7 @@ void formatUsbAndDownloadAromaMenu() {
     unmountUsbFat();
 }
 
+
 // Can get recursively called
 void showMainMenu() {
     uint8_t selectedOption = 0;
@@ -107,6 +113,8 @@ void showMainMenu() {
         WHBLogFreetypePrintf(L"%C Boot Installer", OPTION(2));
         WHBLogFreetypePrintf(L"%C Download Aroma", OPTION(3));
         WHBLogFreetypePrintf(L"%C Format USB and Download Aroma", OPTION(4));
+        WHBLogFreetypePrint(L"");
+        WHBLogFreetypePrintf(L"%C Stroopwafel Plugin Manager", OPTION(6));
         WHBLogFreetypeScreenPrintBottom(L"===============================");
         WHBLogFreetypeScreenPrintBottom(L"\uE000 Button = Select Option \uE001 Button = Exit ISFShax Loader");
         WHBLogFreetypeScreenPrintBottom(L"");
@@ -118,13 +126,23 @@ void showMainMenu() {
         while(!startSelectedOption) {
             updateInputs();
             // Check each button state
-            if (navigatedUp() && selectedOption > 0) {
-                selectedOption--;
-                break;
+            if (navigatedUp()) {
+                if (selectedOption == 6) {
+                    selectedOption = 4;
+                    break;
+                } else if (selectedOption > 0) {
+                    selectedOption--;
+                    break;
+                }
             }
-            if (navigatedDown() && selectedOption < 4) {
-                selectedOption++;
-                break;
+            if (navigatedDown()) {
+                if (selectedOption == 4) {
+                    selectedOption = 6;
+                    break;
+                } else if (selectedOption < 4) {
+                    selectedOption++;
+                    break;
+                }
             }
             if (pressedOk()) {
                 startSelectedOption = true;
@@ -158,6 +176,9 @@ void showMainMenu() {
             break;
         case 4:
             formatUsbAndDownloadAromaMenu();
+            break;
+        case 6:
+            showPluginManager();
             break;
         default:
             break;

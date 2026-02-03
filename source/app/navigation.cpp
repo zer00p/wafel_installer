@@ -133,3 +133,17 @@ bool pressedStart() {
 bool pressedBack() {
     return vpadButtonPressed(VPAD_BUTTON_B) || kpadButtonPressed(WPAD_BUTTON_B);
 }
+
+bool pressedX() {
+    if (vpadError == VPAD_READ_SUCCESS && (vpadBuffer[0].trigger & VPAD_BUTTON_X)) return true;
+    for (const auto& pad : KPADControllers) {
+        if (!pad.connected) continue;
+        if (pad.status.extensionType == KPADExtensionType::WPAD_EXT_CLASSIC || pad.status.extensionType == KPADExtensionType::WPAD_EXT_MPLUS_CLASSIC) {
+            if (pad.status.classic.trigger & WPAD_CLASSIC_BUTTON_X) return true;
+        }
+        else if (pad.status.extensionType == KPADExtensionType::WPAD_EXT_PRO_CONTROLLER) {
+            if (pad.status.pro.trigger & WPAD_PRO_BUTTON_X) return true;
+        }
+    }
+    return false;
+}
