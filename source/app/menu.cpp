@@ -124,7 +124,7 @@ void showMainMenu() {
                 break;
             }
             if (pressedBack()) {
-                uint8_t exitSelectedOption = showDialogPrompt(getCFWVersion() == MOCHA_FSCLIENT ? L"Do you really want to exit ISFShax Loader?" : L"Do you really want to exit ISFShax Loader?\nYour console will reboot to prevent compatibility issues!", L"Yes", L"No", nullptr, 1);
+                uint8_t exitSelectedOption = showDialogPrompt(getCFWVersion() == MOCHA_FSCLIENT ? L"Do you really want to exit ISFShax Loader?" : L"Do you really want to exit ISFShax Loader?\nYour console will reboot to prevent compatibility issues!", L"Yes", L"No", nullptr, nullptr, 1);
                 if (exitSelectedOption == 0) {
                     WHBLogFreetypeClear();
                     return;
@@ -166,11 +166,12 @@ void showMainMenu() {
 
 // Helper functions
 
-uint8_t showDialogPrompt(const wchar_t* message, const wchar_t* button1, const wchar_t* button2, const wchar_t* button3, uint8_t defaultOption) {
+uint8_t showDialogPrompt(const wchar_t* message, const wchar_t* button1, const wchar_t* button2, const wchar_t* button3, const wchar_t* button4, uint8_t defaultOption) {
     sleep_for(100ms);
     uint8_t selectedOption = defaultOption;
     uint8_t numButtons = 1;
-    if (button3 != nullptr) numButtons = 3;
+    if (button4 != nullptr) numButtons = 4;
+    else if (button3 != nullptr) numButtons = 3;
     else if (button2 != nullptr) numButtons = 2;
 
     while(true) {
@@ -188,6 +189,7 @@ uint8_t showDialogPrompt(const wchar_t* message, const wchar_t* button1, const w
         WHBLogFreetypePrintf(L"%C [%S]", OPTION(0), button1);
         if (button2 != nullptr) WHBLogFreetypePrintf(L"%C [%S]", OPTION(1), button2);
         if (button3 != nullptr) WHBLogFreetypePrintf(L"%C [%S]", OPTION(2), button3);
+        if (button4 != nullptr) WHBLogFreetypePrintf(L"%C [%S]", OPTION(3), button4);
         WHBLogFreetypePrint(L"");
         WHBLogFreetypeScreenPrintBottom(L"===============================");
         WHBLogFreetypeScreenPrintBottom(L"\uE000 Button = Select Option");

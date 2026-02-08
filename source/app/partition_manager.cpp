@@ -211,19 +211,6 @@ void formatAndPartitionMenu() {
         OSSleepTicks(OSMillisecondsToTicks(100));
     }
 
-    FSAVolumeInfo volumeInfo;
-    status = (int)FSAGetVolumeInfo(fsaHandle, "/dev/sdcard01", &volumeInfo);
-    if ((FSStatus)status == FS_STATUS_OK) {
-        WHBLogPrintf("Volume Info for %s:", logDeviceName);
-        WHBLogPrintf("  Flags: 0x%08X, State: %d", volumeInfo.flags, volumeInfo.mediaState);
-        WHBLogPrintf("  Label: %s", volumeInfo.volumeLabel);
-        WHBLogPrintf("  ID: %s", volumeInfo.volumeId);
-        WHBLogPrintf("  Device: %s", volumeInfo.devicePath);
-        WHBLogPrintf("  Mount: %s", volumeInfo.mountPath);
-    } else {
-        WHBLogPrintf("FSAGetVolumeInfo failed: %d", status);
-    }
-
     FSADeviceInfo deviceInfo;
     status = (int)FSAGetDeviceInfo(fsaHandle, "/dev/sdcard01", &deviceInfo);
     if ((FSStatus)status != FS_STATUS_OK) {
@@ -235,22 +222,67 @@ void formatAndPartitionMenu() {
         return;
     }
 
-    WHBLogPrintf("Device Info for %s:", logDeviceName);
-    WHBLogPrintf("  Sectors: %llu, Sector Size: %u", deviceInfo.deviceSizeInSectors, deviceInfo.deviceSectorSize);
-    WHBLogFreetypeDraw();
-
-    if (showDialogPrompt(L"Is this the correct device?", L"Yes", L"No", nullptr, 1) != 0) {
+    uint8_t* mbr = (uint8_t*)memalign(0x40, deviceInfo.deviceSectorSize);
+    if (!mbr) {
+        setErrorPrompt(L"Failed to allocate memory for MBR!");
+        showErrorPrompt(L"OK");
         FSADelClient(fsaHandle);
         return;
     }
 
-    uint64_t totalSize = deviceInfo.deviceSizeInSectors * deviceInfo.deviceSectorSize;
+    WHBLogFreetypeStartScreen();
+    WHBLogFreetypePrint(L"Device Info:");
+    uint64_t totalSize = (uint64_t)deviceInfo.deviceSizeInSectors * deviceInfo.deviceSectorSize;
     uint64_t twoGiB = 2ULL * 1024 * 1024 * 1024;
+    double sizeMB = (double)totalSize / (1024.0 * 1024.0);
+    double sizeGB = sizeMB / 1024.0;
+
+    std::wstring sectorSizeStr = (deviceInfo.deviceSectorSize == 4096) ? L"4K" : (std::to_wstring(deviceInfo.deviceSectorSize) + L"B");
+
+    if (totalSize < twoGiB) {
+        WHBLogFreetypePrintf(L"  Capacity: %.0f MB (%S sector size)", sizeMB, sectorSizeStr.c_str());
+    } else {
+        WHBLogFreetypePrintf(L"  Capacity: %.0f GB (%S sector size)", sizeGB, sectorSizeStr.c_str());
+    }
+
+    bool mbrReadSuccess = false;
+    if ((FSStatus)rawRead(fsaHandle, "/dev/sdcard01", 0, 1, mbr, deviceInfo.deviceSectorSize) == FS_STATUS_OK) {
+        mbrReadSuccess = true;
+        if (mbr[510] == 0x55 && mbr[511] == 0xAA) {
+            WHBLogFreetypePrint(L"  Existing partitions:");
+            for (int i = 0; i < 4; i++) {
+                uint8_t type = mbr[446 + i * 16 + 4];
+                if (type != 0) {
+                    uint32_t sectors = read32LE(&mbr[446 + i * 16 + 12]);
+                    double partSizeMB = (double)sectors * (double)deviceInfo.deviceSectorSize / (1024.0 * 1024.0);
+                    double partSizeGB = partSizeMB / 1024.0;
+                    if (partSizeMB < 2048.0) {
+                        WHBLogFreetypePrintf(L"    Partition %d: %S (%.0f MB)", i + 1, toWstring(getPartitionTypeName(type)).c_str(), partSizeMB);
+                    } else {
+                        WHBLogFreetypePrintf(L"    Partition %d: %S (%.0f GB)", i + 1, toWstring(getPartitionTypeName(type)).c_str(), partSizeGB);
+                    }
+                }
+            }
+        } else {
+            WHBLogFreetypePrint(L"  No MBR found! Wii U Formatted?");
+        }
+    } else {
+        WHBLogFreetypePrint(L"  Failed to read MBR.");
+    }
+
+    WHBLogFreetypeDraw();
+
+    if (showDialogPrompt(L"Is this the correct device?", L"Yes", L"No", nullptr, nullptr, 1) != 0) {
+        free(mbr);
+        FSADelClient(fsaHandle);
+        return;
+    }
 
     if (totalSize < twoGiB) {
         showDialogPrompt(L"Device is smaller than 2GiB.\nPartitioning isn't supported.\nThe whole card will be formatted to FAT16.", L"OK");
 
-        if (showDialogPrompt(L"WARNING: This will format the whole device and DELETE ALL DATA on it.\nDo you want to continue?", L"Yes", L"No", nullptr, 1) != 0) {
+        if (showDialogPrompt(L"WARNING: This will format the whole device and DELETE ALL DATA on it.\nDo you want to continue?", L"Yes", L"No", nullptr, nullptr, 1) != 0) {
+            free(mbr);
             FSADelClient(fsaHandle);
             return;
         }
@@ -264,35 +296,26 @@ void formatAndPartitionMenu() {
             WHBLogFreetypeDraw();
             setErrorPrompt(L"Failed to format device!");
             showErrorPrompt(L"OK");
-            FSADelClient(fsaHandle);
-            return;
-        }
-    } else {
-        uint8_t* mbr = (uint8_t*)memalign(0x40, deviceInfo.deviceSectorSize);
-        if (!mbr) {
-            setErrorPrompt(L"Failed to allocate memory for MBR!");
-            showErrorPrompt(L"OK");
-            FSADelClient(fsaHandle);
-            return;
-        }
-
-        if ((FSStatus)rawRead(fsaHandle, "/dev/sdcard01", 0, 1, mbr, deviceInfo.deviceSectorSize) != FS_STATUS_OK) {
             free(mbr);
+            FSADelClient(fsaHandle);
+            return;
+        }
+        free(mbr);
+    } else {
+        if (!mbrReadSuccess) {
             setErrorPrompt(L"Failed to read MBR!");
             showErrorPrompt(L"OK");
+            free(mbr);
             FSADelClient(fsaHandle);
             return;
         }
 
-        if (mbr[510] != 0x55 || mbr[511] != 0xAA) {
-             showDialogPrompt(L"No MBR found! Wii U Formatted?", L"OK");
-        }
 
         uint8_t* backupMbr = (uint8_t*)memalign(0x40, deviceInfo.deviceSectorSize);
         if (backupMbr) {
             if ((FSStatus)rawRead(fsaHandle, "/dev/sdcard01", 1, 1, backupMbr, deviceInfo.deviceSectorSize) == FS_STATUS_OK) {
                 if (backupMbr[510] == 0x55 && backupMbr[511] == 0xAA) {
-                    uint8_t restoreChoice = showDialogPrompt(L"Backup MBR found at sector 1. Do you want to restore it?", L"Yes", L"No", nullptr, 1);
+                    uint8_t restoreChoice = showDialogPrompt(L"Backup MBR found at sector 1. Do you want to restore it?", L"Yes", L"No", nullptr, nullptr, 1);
                     if (restoreChoice == 0) {
                         WHBLogPrint("Restoring MBR from backup...");
                         WHBLogFreetypeDraw();
@@ -310,7 +333,7 @@ void formatAndPartitionMenu() {
                             showErrorPrompt(L"OK");
                         }
                     } else {
-                        if (showDialogPrompt(L"Do you want to delete the backup MBR?", L"Yes", L"No", nullptr, 1) == 0) {
+                        if (showDialogPrompt(L"Do you want to delete the backup MBR?", L"Yes", L"No", nullptr, nullptr, 1) == 0) {
                              WHBLogPrint("Clearing backup sector...");
                              WHBLogFreetypeDraw();
                              memset(backupMbr, 0, deviceInfo.deviceSectorSize);
@@ -330,12 +353,13 @@ void formatAndPartitionMenu() {
             if (type != 0) {
                 partitionCount++;
                 uint32_t sectors = read32LE(&mbr[446 + i * 16 + 12]);
-                double sizeGB = (double)sectors * (double)deviceInfo.deviceSectorSize / (1024.0 * 1024.0 * 1024.0);
+                double sizeMB = (double)sectors * (double)deviceInfo.deviceSectorSize / (1024.0 * 1024.0);
+                double sizeGB = sizeMB / 1024.0;
 
                 ss << L"Partition " << (i + 1) << L": " << toWstring(getPartitionTypeName(type));
-                ss << std::fixed << std::setprecision(2);
-                if (sizeGB < 1.0) {
-                    ss << L" (" << (sizeGB * 1024.0) << L" MB)";
+                ss << std::fixed << std::setprecision(0);
+                if (sizeMB < 1024.0) {
+                    ss << L" (" << sizeMB << L" MB)";
                 } else {
                     ss << L" (" << sizeGB << L" GB)";
                 }
@@ -346,14 +370,21 @@ void formatAndPartitionMenu() {
         std::wstring partitionList = ss.str();
 
         uint8_t formatChoice;
+        uint8_t cancelIndex = (partitionCount > 1) ? 3 : 2;
         if (partitionCount > 1) {
-            formatChoice = showDialogPrompt(partitionList.c_str(), L"Format whole drive to FAT32", L"Partition drive", L"Only format Partition 1");
+            formatChoice = showDialogPrompt(partitionList.c_str(), L"Format whole drive to FAT32", L"Partition drive", L"Only format Partition 1", L"Cancel");
         } else {
-            formatChoice = showDialogPrompt(partitionList.c_str(), L"Format whole drive to FAT32", L"Partition drive");
+            formatChoice = showDialogPrompt(partitionList.c_str(), L"Format whole drive to FAT32", L"Partition drive", L"Cancel");
+        }
+
+        if (formatChoice == cancelIndex) {
+            free(mbr);
+            FSADelClient(fsaHandle);
+            return;
         }
 
         if (formatChoice == 0) { // Format whole drive to FAT32
-            if (showDialogPrompt(L"WARNING: This will format the whole device and DELETE ALL DATA on it.\nDo you want to continue?", L"Yes", L"No", nullptr, 1) != 0) {
+            if (showDialogPrompt(L"WARNING: This will format the whole device and DELETE ALL DATA on it.\nDo you want to continue?", L"Yes", L"No", nullptr, nullptr, 1) != 0) {
                 free(mbr);
                 FSADelClient(fsaHandle);
                 return;
@@ -427,7 +458,7 @@ void formatAndPartitionMenu() {
                 }
             }
 
-            if (showDialogPrompt(L"WARNING: This will RE-PARTITION the whole device and DELETE ALL DATA on it.\nDo you want to continue?", L"Yes", L"No", nullptr, 1) != 0) {
+            if (showDialogPrompt(L"WARNING: This will RE-PARTITION the whole device and DELETE ALL DATA on it.\nDo you want to continue?", L"Yes", L"No", nullptr, nullptr, 1) != 0) {
                 free(mbr);
                 FSADelClient(fsaHandle);
                 return;
@@ -474,7 +505,7 @@ void formatAndPartitionMenu() {
             }
             free(mbr);
         } else if (formatChoice == 2) { // Only format Partition 1
-            if (showDialogPrompt(L"WARNING: This will format the first partition and DELETE ALL DATA on it.\nOther partitions will be preserved.\nDo you want to continue?", L"Yes", L"No", nullptr, 1) != 0) {
+            if (showDialogPrompt(L"WARNING: This will format the first partition and DELETE ALL DATA on it.\nOther partitions will be preserved.\nDo you want to continue?", L"Yes", L"No", nullptr, nullptr, 1) != 0) {
                 free(mbr);
                 FSADelClient(fsaHandle);
                 return;
