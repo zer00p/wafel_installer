@@ -10,6 +10,7 @@
 #include <string>
 #include <sstream>
 #include <iomanip>
+#include <vector>
 #include <coreinit/ios.h>
 #include <coreinit/filesystem_fsa.h>
 #include <coreinit/time.h>
@@ -147,6 +148,21 @@ static FSError rawWrite(FSAClientHandle fsaHandle, const char* device, uint32_t 
 
     res = FSAEx_RawWriteEx(fsaHandle, (void*)buffer, sectorSize, count, sector, handle);
     FSAEx_RawCloseEx(fsaHandle, handle);
+    return res;
+}
+
+static FSError writeMbrSignature(FSAClientHandle fsaHandle, const char* device, uint32_t sector, uint32_t sectorSize) {
+    uint8_t* buf = (uint8_t*)memalign(0x40, sectorSize);
+    if (!buf) return (FSError)-1;
+    memset(buf, 0, sectorSize);
+
+    FSError res = rawRead(fsaHandle, device, sector, 1, buf, sectorSize);
+    if (res == FS_STATUS_OK) {
+        buf[510] = 0x55;
+        buf[511] = 0xAA;
+        res = rawWrite(fsaHandle, device, sector, 1, buf, sectorSize);
+    }
+    free(buf);
     return res;
 }
 
@@ -348,20 +364,25 @@ void formatAndPartitionMenu() {
         std::wstringstream ss;
         ss << L"Existing partitions:\n";
         int partitionCount = 0;
+        uint32_t lastOccupiedSector = 1;
         for (int i = 0; i < 4; i++) {
             uint8_t type = mbr[446 + i * 16 + 4];
             if (type != 0) {
                 partitionCount++;
+                uint32_t start = read32LE(&mbr[446 + i * 16 + 8]);
                 uint32_t sectors = read32LE(&mbr[446 + i * 16 + 12]);
-                double sizeMB = (double)sectors * (double)deviceInfo.deviceSectorSize / (1024.0 * 1024.0);
-                double sizeGB = sizeMB / 1024.0;
+                if (start + sectors > lastOccupiedSector) {
+                    lastOccupiedSector = start + sectors;
+                }
 
+                double partSizeMB = (double)sectors * (double)deviceInfo.deviceSectorSize / (1024.0 * 1024.0);
+                double partSizeGB = partSizeMB / 1024.0;
                 ss << L"Partition " << (i + 1) << L": " << toWstring(getPartitionTypeName(type));
                 ss << std::fixed << std::setprecision(0);
-                if (sizeMB < 1024.0) {
-                    ss << L" (" << sizeMB << L" MB)";
+                if (partSizeMB < 1024.0) {
+                    ss << L" (" << partSizeMB << L" MB)";
                 } else {
-                    ss << L" (" << sizeGB << L" GB)";
+                    ss << L" (" << partSizeGB << L" GB)";
                 }
                 ss << L"\n";
             }
@@ -369,21 +390,44 @@ void formatAndPartitionMenu() {
         ss << L"\nWhat do you want to do?";
         std::wstring partitionList = ss.str();
 
-        uint8_t formatChoice;
-        uint8_t cancelIndex = (partitionCount > 1) ? 3 : 2;
-        if (partitionCount > 1) {
-            formatChoice = showDialogPrompt(partitionList.c_str(), L"Format whole drive to FAT32", L"Partition drive", L"Only format Partition 1", L"Cancel");
-        } else {
-            formatChoice = showDialogPrompt(partitionList.c_str(), L"Format whole drive to FAT32", L"Partition drive", L"Cancel");
-        }
+        uint64_t unallocatedSpaceEnd = (uint64_t)(deviceInfo.deviceSizeInSectors - lastOccupiedSector) * deviceInfo.deviceSectorSize;
+        bool canCreateWiiUPartition = (unallocatedSpaceEnd > 4ULL * 1024 * 1024 * 1024) && (partitionCount < 4);
+        bool hasMbr = (mbrReadSuccess && mbr[510] == 0x55 && mbr[511] == 0xAA);
 
-        if (formatChoice == cancelIndex) {
+        std::vector<std::wstring> buttons;
+        buttons.push_back(L"Format whole drive to FAT32");
+        buttons.push_back(L"Partition drive");
+        int optFormatWhole = 0;
+        int optPartition = 1;
+        int optOnlyFormatP1 = -1;
+        int optCreateWiiU = -1;
+        int optDeleteMbr = -1;
+        int optCancel = -1;
+
+        if (partitionCount > 1) {
+            optOnlyFormatP1 = buttons.size();
+            buttons.push_back(L"Only format Partition 1");
+        }
+        if (canCreateWiiUPartition) {
+            optCreateWiiU = buttons.size();
+            buttons.push_back(L"Create Wii U partition");
+        }
+        if (hasMbr) {
+            optDeleteMbr = buttons.size();
+            buttons.push_back(L"Delete MBR");
+        }
+        optCancel = buttons.size();
+        buttons.push_back(L"Cancel");
+
+        uint8_t formatChoice = showDialogPrompt(partitionList.c_str(), buttons, optCancel);
+
+        if (formatChoice == optCancel) {
             free(mbr);
             FSADelClient(fsaHandle);
             return;
         }
 
-        if (formatChoice == 0) { // Format whole drive to FAT32
+        if (formatChoice == optFormatWhole) { // Format whole drive to FAT32
             if (showDialogPrompt(L"WARNING: This will format the whole device and DELETE ALL DATA on it.\nDo you want to continue?", L"Yes", L"No", nullptr, nullptr, 1) != 0) {
                 free(mbr);
                 FSADelClient(fsaHandle);
@@ -402,7 +446,7 @@ void formatAndPartitionMenu() {
                 FSADelClient(fsaHandle);
                 return;
             }
-        } else if (formatChoice == 1) { // Partition drive
+        } else if (formatChoice == optPartition) { // Partition drive
             double totalGB = (double)deviceInfo.deviceSizeInSectors * (double)deviceInfo.deviceSectorSize / (1024.0 * 1024.0 * 1024.0);
             int fatPercent = 80;
             if (totalGB < 1.0) fatPercent = 100;
@@ -464,7 +508,7 @@ void formatAndPartitionMenu() {
                 return;
             }
 
-            uint32_t alignSectors = (16 * 1024 * 1024) / deviceInfo.deviceSectorSize;
+            uint32_t alignSectors = (64 * 1024 * 1024) / deviceInfo.deviceSectorSize;
             uint32_t p1_size = (uint32_t)(deviceInfo.deviceSizeInSectors * fatPercent / 100);
 
             WHBLogPrint("Formatting FAT32 partition...");
@@ -490,21 +534,23 @@ void formatAndPartitionMenu() {
                 if (p2_start < deviceInfo.deviceSizeInSectors) {
                     uint32_t p2_size = (uint32_t)(deviceInfo.deviceSizeInSectors - p2_start);
 
-                    uint8_t* pte2 = &mbr[446 + 16];
+                    uint8_t* pte2 = &mbr[446 + 3 * 16];
                     pte2[4] = 0x07;
                     write32LE(&pte2[8], p2_start);
                     write32LE(&pte2[12], p2_size);
 
                     WHBLogPrint("Adding second partition to MBR...");
                     WHBLogFreetypeDraw();
-                    if ((FSStatus)rawWrite(fsaHandle, "/dev/sdcard01", 0, 1, mbr, deviceInfo.deviceSectorSize) != FS_STATUS_OK) {
+                    if ((FSStatus)rawWrite(fsaHandle, "/dev/sdcard01", 0, 1, mbr, deviceInfo.deviceSectorSize) == FS_STATUS_OK) {
+                        writeMbrSignature(fsaHandle, "/dev/sdcard01", p2_start, deviceInfo.deviceSectorSize);
+                    } else {
                         setErrorPrompt(L"Failed to write second partition to MBR!");
                         showErrorPrompt(L"OK");
                     }
                 }
             }
             free(mbr);
-        } else if (formatChoice == 2) { // Only format Partition 1
+        } else if (optOnlyFormatP1 != -1 && formatChoice == optOnlyFormatP1) { // Only format Partition 1
             if (showDialogPrompt(L"WARNING: This will format the first partition and DELETE ALL DATA on it.\nOther partitions will be preserved.\nDo you want to continue?", L"Yes", L"No", nullptr, nullptr, 1) != 0) {
                 free(mbr);
                 FSADelClient(fsaHandle);
@@ -562,6 +608,61 @@ void formatAndPartitionMenu() {
             rawWrite(fsaHandle, "/dev/sdcard01", 1, 1, mbr, deviceInfo.deviceSectorSize);
 
             free(newMbr);
+            free(mbr);
+        } else if (optCreateWiiU != -1 && formatChoice == optCreateWiiU) {
+            struct Partition {
+                uint8_t data[16];
+            };
+            std::vector<Partition> partitions;
+            for (int i = 0; i < 4; i++) {
+                if (mbr[446 + i * 16 + 4] != 0) {
+                    Partition p;
+                    memcpy(p.data, &mbr[446 + i * 16], 16);
+                    partitions.push_back(p);
+                }
+            }
+
+            memset(&mbr[446], 0, 64);
+            for (size_t i = 0; i < partitions.size(); i++) {
+                memcpy(&mbr[446 + i * 16], partitions[i].data, 16);
+            }
+
+            uint32_t alignSectors = (64 * 1024 * 1024) / deviceInfo.deviceSectorSize;
+            uint32_t p2_start = ((lastOccupiedSector + alignSectors - 1) / alignSectors) * alignSectors;
+            if (p2_start < deviceInfo.deviceSizeInSectors) {
+                uint32_t p2_size = deviceInfo.deviceSizeInSectors - p2_start;
+                uint8_t* pte = &mbr[446 + 3 * 16];
+                pte[4] = 0x07; // NTFS/WFS
+                write32LE(&pte[8], p2_start);
+                write32LE(&pte[12], p2_size);
+
+                WHBLogPrint("Adding Wii U partition to MBR...");
+                WHBLogFreetypeDraw();
+                if ((FSStatus)rawWrite(fsaHandle, "/dev/sdcard01", 0, 1, mbr, deviceInfo.deviceSectorSize) == FS_STATUS_OK) {
+                     writeMbrSignature(fsaHandle, "/dev/sdcard01", p2_start, deviceInfo.deviceSectorSize);
+                     showDialogPrompt(L"Wii U partition created successfully!", L"OK");
+                } else {
+                     setErrorPrompt(L"Failed to write MBR!");
+                     showErrorPrompt(L"OK");
+                }
+            }
+            free(mbr);
+        } else if (optDeleteMbr != -1 && formatChoice == optDeleteMbr) {
+            if (showDialogPrompt(L"WARNING: This will DELETE the MBR and ALL partition information.\nDo you want to continue?", L"Yes", L"No", nullptr, nullptr, 1) == 0) {
+                uint8_t* zeroSector = (uint8_t*)memalign(0x40, deviceInfo.deviceSectorSize);
+                if (zeroSector) {
+                    memset(zeroSector, 0, deviceInfo.deviceSectorSize);
+                    WHBLogPrint("Deleting MBR...");
+                    WHBLogFreetypeDraw();
+                    if ((FSStatus)rawWrite(fsaHandle, "/dev/sdcard01", 0, 1, zeroSector, deviceInfo.deviceSectorSize) == FS_STATUS_OK) {
+                        showDialogPrompt(L"MBR deleted successfully!", L"OK");
+                    } else {
+                        setErrorPrompt(L"Failed to delete MBR!");
+                        showErrorPrompt(L"OK");
+                    }
+                    free(zeroSector);
+                }
+            }
             free(mbr);
         }
     }

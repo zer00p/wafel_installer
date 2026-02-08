@@ -166,17 +166,12 @@ void showMainMenu() {
 
 // Helper functions
 
-uint8_t showDialogPrompt(const wchar_t* message, const wchar_t* button1, const wchar_t* button2, const wchar_t* button3, const wchar_t* button4, uint8_t defaultOption) {
+uint8_t showDialogPrompt(const wchar_t* message, const std::vector<std::wstring>& buttons, uint8_t defaultOption) {
     sleep_for(100ms);
     uint8_t selectedOption = defaultOption;
-    uint8_t numButtons = 1;
-    if (button4 != nullptr) numButtons = 4;
-    else if (button3 != nullptr) numButtons = 3;
-    else if (button2 != nullptr) numButtons = 2;
+    uint8_t numButtons = buttons.size();
 
     while(true) {
-        //WHBLogFreetypeStartScreen();
-
         // Print each line
         std::wistringstream messageStream(message);
         std::wstring line;
@@ -186,10 +181,9 @@ uint8_t showDialogPrompt(const wchar_t* message, const wchar_t* button1, const w
         }
 
         WHBLogFreetypePrint(L"");
-        WHBLogFreetypePrintf(L"%C [%S]", OPTION(0), button1);
-        if (button2 != nullptr) WHBLogFreetypePrintf(L"%C [%S]", OPTION(1), button2);
-        if (button3 != nullptr) WHBLogFreetypePrintf(L"%C [%S]", OPTION(2), button3);
-        if (button4 != nullptr) WHBLogFreetypePrintf(L"%C [%S]", OPTION(3), button4);
+        for (uint8_t i = 0; i < numButtons; i++) {
+            WHBLogFreetypePrintf(L"%C [%S]", OPTION(i), buttons[i].c_str());
+        }
         WHBLogFreetypePrint(L"");
         WHBLogFreetypeScreenPrintBottom(L"===============================");
         WHBLogFreetypeScreenPrintBottom(L"\uE000 Button = Select Option");
@@ -218,6 +212,17 @@ uint8_t showDialogPrompt(const wchar_t* message, const wchar_t* button1, const w
             sleep_for(50ms);
         }
     }
+}
+
+uint8_t showDialogPrompt(const wchar_t* message, const wchar_t* button1, const wchar_t* button2, const wchar_t* button3, const wchar_t* button4, const wchar_t* button5, const wchar_t* button6, uint8_t defaultOption) {
+    std::vector<std::wstring> buttons;
+    buttons.push_back(button1);
+    if (button2) buttons.push_back(button2);
+    if (button3) buttons.push_back(button3);
+    if (button4) buttons.push_back(button4);
+    if (button5) buttons.push_back(button5);
+    if (button6) buttons.push_back(button6);
+    return showDialogPrompt(message, buttons, defaultOption);
 }
 
 void showDialogPrompt(const wchar_t* message, const wchar_t* button) {
