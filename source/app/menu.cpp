@@ -172,6 +172,8 @@ uint8_t showDialogPrompt(const wchar_t* message, const std::vector<std::wstring>
     uint8_t numButtons = buttons.size();
 
     while(true) {
+        WHBLogFreetypeStartScreen();
+
         // Print each line
         std::wistringstream messageStream(message);
         std::wstring line;
@@ -186,7 +188,7 @@ uint8_t showDialogPrompt(const wchar_t* message, const std::vector<std::wstring>
         }
         WHBLogFreetypePrint(L"");
         WHBLogFreetypeScreenPrintBottom(L"===============================");
-        WHBLogFreetypeScreenPrintBottom(L"\uE000 Button = Select Option");
+        WHBLogFreetypeScreenPrintBottom(L"\u2191/\u2193 = Change Option, \uE000 = Select Option");
         WHBLogFreetypeDrawScreen();
 
         // Input loop

@@ -650,6 +650,7 @@ void formatAndPartitionMenu() {
                 WHBLogFreetypeDraw();
                 if ((FSStatus)rawWrite(fsaHandle, "/dev/sdcard01", 0, 1, mbr, deviceInfo.deviceSectorSize) == FS_STATUS_OK) {
                      writeMbrSignature(fsaHandle, "/dev/sdcard01", p2_start, deviceInfo.deviceSectorSize);
+                     showDialogPrompt(L"Wii U partition created successfully!", L"OK");
                 } else {
                      setErrorPrompt(L"Failed to write MBR!");
                      showErrorPrompt(L"OK");
@@ -663,7 +664,9 @@ void formatAndPartitionMenu() {
                     memset(zeroSector, 0, deviceInfo.deviceSectorSize);
                     WHBLogPrint("Deleting MBR...");
                     WHBLogFreetypeDraw();
-                    if ((FSStatus)rawWrite(fsaHandle, "/dev/sdcard01", 0, 1, zeroSector, deviceInfo.deviceSectorSize) != FS_STATUS_OK) {
+                    if ((FSStatus)rawWrite(fsaHandle, "/dev/sdcard01", 0, 1, zeroSector, deviceInfo.deviceSectorSize) == FS_STATUS_OK) {
+                        showDialogPrompt(L"MBR deleted successfully!", L"OK");
+                    } else {
                         setErrorPrompt(L"Failed to delete MBR!");
                         showErrorPrompt(L"OK");
                     }
@@ -686,7 +689,5 @@ void formatAndPartitionMenu() {
         } else {
             showDialogPrompt(L"Formatting complete!", L"OK");
         }
-    } else {
-        showDialogPrompt(L"Operation completed successfully!", L"OK");
     }
 }
