@@ -43,7 +43,6 @@ BUILD		:=	build
 SOURCES		:=	source/app \
 				source/app/interfaces \
 				source/utils \
-				source/utils/fatfs \
 				source/utils/libschrift
 DATA		:=	data
 INCLUDES	:=	include
