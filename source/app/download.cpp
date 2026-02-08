@@ -32,59 +32,64 @@ static size_t write_data_posix(void *ptr, size_t size, size_t nmemb, void *strea
 }
 
 static bool downloadFile(const std::string& url, const std::string& path) {
-    WHBLogFreetypePrintf(L"Downloading %S...", toWstring(url).c_str());
-    WHBLogFreetypeDrawScreen();
-
-    CURL *curl_handle = curl_easy_init();
-    if (!curl_handle) {
-        WHBLogFreetypePrintf(L"Failed to initialize curl!");
+    while (true) {
+        WHBLogFreetypePrintf(L"Downloading %S...", toWstring(url).c_str());
         WHBLogFreetypeDrawScreen();
-        setErrorPrompt(L"Failed to initialize curl!");
-        return false;
-    }
 
-    int fd = open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
-    if (fd < 0) {
-        WHBLogFreetypePrintf(L"Failed to open %S for writing! Errno: %d", toWstring(path).c_str(), errno);
-        WHBLogFreetypeDrawScreen();
-        std::wstring error = L"Failed to open " + toWstring(path) + L" for writing! Errno: " + std::to_wstring(errno);
-        setErrorPrompt(error);
-        curl_easy_cleanup(curl_handle);
-        return false;
-    }
-
-    curl_easy_setopt(curl_handle, CURLOPT_URL, url.c_str());
-    curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, write_data_posix);
-    curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &fd);
-    curl_easy_setopt(curl_handle, CURLOPT_FAILONERROR, 1L);
-    curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "ISFShaxLoader/1.0");
-    curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
-
-    // set cert
-    curl_blob blob;
-    blob.data  = (void *) cacert_pem;
-    blob.len   = cacert_pem_size;
-    blob.flags = CURL_BLOB_COPY;
-    curl_easy_setopt(curl_handle, CURLOPT_CAINFO_BLOB, &blob);
-
-    CURLcode res = curl_easy_perform(curl_handle);
-    close(fd);
-    curl_easy_cleanup(curl_handle);
-
-    if (res != CURLE_OK) {
-        WHBLogFreetypePrintf(L"Curl failed: %S", toWstring(curl_easy_strerror(res)).c_str());
-        WHBLogFreetypeDrawScreen();
-        std::wstring error = L"Curl failed: " + toWstring(curl_easy_strerror(res));
-        if (res == CURLE_PEER_FAILED_VERIFICATION || res == CURLE_SSL_CONNECT_ERROR) {
-            error += L"\nPlease check if your system date and time are correct!";
+        CURL *curl_handle = curl_easy_init();
+        if (!curl_handle) {
+            WHBLogFreetypePrintf(L"Failed to initialize curl!");
+            WHBLogFreetypeDrawScreen();
+            setErrorPrompt(L"Failed to initialize curl!");
+            if (showErrorPrompt(L"Cancel", true)) continue;
+            return false;
         }
-        setErrorPrompt(error);
-        return false;
-    }
 
-    WHBLogFreetypePrintf(L"Successfully downloaded %S", toWstring(url).c_str());
-    WHBLogFreetypeDrawScreen();
-    return true;
+        int fd = open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+        if (fd < 0) {
+            WHBLogFreetypePrintf(L"Failed to open %S for writing! Errno: %d", toWstring(path).c_str(), errno);
+            WHBLogFreetypeDrawScreen();
+            std::wstring error = L"Failed to open " + toWstring(path) + L" for writing! Errno: " + std::to_wstring(errno);
+            setErrorPrompt(error);
+            curl_easy_cleanup(curl_handle);
+            if (showErrorPrompt(L"Cancel", true)) continue;
+            return false;
+        }
+
+        curl_easy_setopt(curl_handle, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, write_data_posix);
+        curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &fd);
+        curl_easy_setopt(curl_handle, CURLOPT_FAILONERROR, 1L);
+        curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "ISFShaxLoader/1.0");
+        curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
+
+        // set cert
+        curl_blob blob;
+        blob.data  = (void *) cacert_pem;
+        blob.len   = cacert_pem_size;
+        blob.flags = CURL_BLOB_COPY;
+        curl_easy_setopt(curl_handle, CURLOPT_CAINFO_BLOB, &blob);
+
+        CURLcode res = curl_easy_perform(curl_handle);
+        close(fd);
+        curl_easy_cleanup(curl_handle);
+
+        if (res != CURLE_OK) {
+            WHBLogFreetypePrintf(L"Curl failed: %S", toWstring(curl_easy_strerror(res)).c_str());
+            WHBLogFreetypeDrawScreen();
+            std::wstring error = L"Curl failed: " + toWstring(curl_easy_strerror(res));
+            if (res == CURLE_PEER_FAILED_VERIFICATION || res == CURLE_SSL_CONNECT_ERROR) {
+                error += L"\nPlease check if your system date and time are correct!";
+            }
+            setErrorPrompt(error);
+            if (showErrorPrompt(L"Cancel", true)) continue;
+            return false;
+        }
+
+        WHBLogFreetypePrintf(L"Successfully downloaded %S", toWstring(url).c_str());
+        WHBLogFreetypeDrawScreen();
+        return true;
+    }
 }
 
 static bool createHaxDirectories() {
@@ -121,7 +126,6 @@ bool downloadHaxFiles() {
     // Stroopwafel
     if (!downloadFile("https://github.com/StroopwafelCFW/stroopwafel/releases/latest/download/00core.ipx", convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/00core.ipx")) ||
         !downloadFile("https://github.com/isfshax/wafel_isfshax_patch/releases/latest/download/5isfshax.ipx", convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/5payldr.ipx")) ||
-        !downloadFile("https://github.com/StroopwafelCFW/wafel_usb_partition/releases/latest/download/5upartsd.ipx", convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/5upartsd.ipx")) ||
         !downloadFile("https://github.com/StroopwafelCFW/wafel_payloader/releases/latest/download/5payldr.ipx", convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/5isfshax.ipx")) ||
         // minute
         !downloadFile("https://github.com/StroopwafelCFW/minute_minute/releases/latest/download/fw_fastboot.img", convertToPosixPath("/vol/storage_slc/sys/hax/fw.img")) ||
@@ -136,6 +140,41 @@ bool downloadHaxFiles() {
     return true;
 }
 
+bool downloadHaxFilesToSD() {
+    std::string sdPluginPath = "fs:/vol/external01/wiiu/ios_plugins/";
+    fs::create_directories(sdPluginPath);
+
+    if (!downloadFile("https://github.com/StroopwafelCFW/stroopwafel/releases/latest/download/00core.ipx", sdPluginPath + "00core.ipx") ||
+        !downloadFile("https://github.com/isfshax/wafel_isfshax_patch/releases/latest/download/5isfshax.ipx", sdPluginPath + "5payldr.ipx") ||
+        !downloadFile("https://github.com/StroopwafelCFW/wafel_payloader/releases/latest/download/5payldr.ipx", sdPluginPath + "5isfshax.ipx"))
+    {
+        return false;
+    }
+    return true;
+}
+
+bool download5sdusb(bool toSLC, bool toSD) {
+    bool success = true;
+    if (toSLC) {
+        if (!createHaxDirectories()) return false;
+        success &= downloadFile("https://github.com/StroopwafelCFW/wafel_sd_usb/releases/latest/download/5sdusb.ipx", convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/5sdusb.ipx"));
+    }
+    if (toSD) {
+        std::string sdPluginPath = "fs:/vol/external01/wiiu/ios_plugins/";
+        fs::create_directories(sdPluginPath);
+        success &= downloadFile("https://github.com/StroopwafelCFW/wafel_sd_usb/releases/latest/download/5sdusb.ipx", sdPluginPath + "5sdusb.ipx");
+    }
+    return success;
+}
+
+bool download5upartsd(bool toSLC) {
+    if (toSLC) {
+        if (!createHaxDirectories()) return false;
+        return downloadFile("https://github.com/StroopwafelCFW/wafel_usb_partition/releases/latest/download/5upartsd.ipx", convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/5upartsd.ipx"));
+    }
+    return true;
+}
+
 static size_t write_data_buffer(void *ptr, size_t size, size_t nmemb, void *stream) {
     std::string* buffer = (std::string*)stream;
     buffer->append((char*)ptr, size * nmemb);
@@ -143,37 +182,44 @@ static size_t write_data_buffer(void *ptr, size_t size, size_t nmemb, void *stre
 }
 
 static bool downloadToBuffer(const std::string& url, std::string& buffer) {
-    WHBLogFreetypePrintf(L"Downloading %S...", toWstring(url).c_str());
-    WHBLogFreetypeDrawScreen();
+    while (true) {
+        WHBLogFreetypePrintf(L"Downloading %S...", toWstring(url).c_str());
+        WHBLogFreetypeDrawScreen();
 
-    CURL *curl_handle = curl_easy_init();
-    if (!curl_handle) {
-        setErrorPrompt(L"Failed to initialize curl!");
-        return false;
+        CURL *curl_handle = curl_easy_init();
+        if (!curl_handle) {
+            setErrorPrompt(L"Failed to initialize curl!");
+            if (showErrorPrompt(L"Cancel", true)) continue;
+            return false;
+        }
+
+        curl_easy_setopt(curl_handle, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, write_data_buffer);
+        curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &buffer);
+        curl_easy_setopt(curl_handle, CURLOPT_FAILONERROR, 1L);
+        curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "ISFShaxLoader/1.0");
+        curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
+
+        curl_blob blob;
+        blob.data  = (void *) cacert_pem;
+        blob.len   = cacert_pem_size;
+        blob.flags = CURL_BLOB_COPY;
+        curl_easy_setopt(curl_handle, CURLOPT_CAINFO_BLOB, &blob);
+
+        CURLcode res = curl_easy_perform(curl_handle);
+        curl_easy_cleanup(curl_handle);
+
+        if (res != CURLE_OK) {
+            setErrorPrompt(L"Curl failed for " + toWstring(url) + L":\n" + toWstring(curl_easy_strerror(res)));
+            if (showErrorPrompt(L"Cancel", true)) {
+                buffer.clear();
+                continue;
+            }
+            return false;
+        }
+
+        return true;
     }
-
-    curl_easy_setopt(curl_handle, CURLOPT_URL, url.c_str());
-    curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, write_data_buffer);
-    curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &buffer);
-    curl_easy_setopt(curl_handle, CURLOPT_FAILONERROR, 1L);
-    curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "ISFShaxLoader/1.0");
-    curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
-
-    curl_blob blob;
-    blob.data  = (void *) cacert_pem;
-    blob.len   = cacert_pem_size;
-    blob.flags = CURL_BLOB_COPY;
-    curl_easy_setopt(curl_handle, CURLOPT_CAINFO_BLOB, &blob);
-
-    CURLcode res = curl_easy_perform(curl_handle);
-    curl_easy_cleanup(curl_handle);
-
-    if (res != CURLE_OK) {
-        setErrorPrompt(L"Curl failed for " + toWstring(url) + L":\n" + toWstring(curl_easy_strerror(res)));
-        return false;
-    }
-
-    return true;
 }
 
 static std::string getLatestReleaseAssetUrl(const std::string& repo, const std::string& pattern) {

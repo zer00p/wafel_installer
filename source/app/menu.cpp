@@ -7,8 +7,6 @@
 #include "cfw.h"
 #include "fw_img_loader.h"
 #include "download.h"
-#include <dirent.h>
-#include <algorithm>
 #include <vector>
 #include <string>
 
@@ -26,7 +24,17 @@ void showLoadingScreen() {
 
 #define OPTION(n) (selectedOption == (n) ? L'>' : L' ')
 
+static bool checkSystemAccess() {
+    if (!isSlcMounted()) {
+        showDialogPrompt(L"Cannot access the SLC!\nPlease make sure to disable 'System Access' in ftpiiu if you have it running.", L"OK");
+        return false;
+    }
+    return true;
+}
+
 void installISFShax() {
+    if (!checkSystemAccess()) return;
+
     while (true) {
         if (downloadHaxFiles()) {
             sleep_for(2s);
@@ -51,6 +59,8 @@ void redownloadFiles() {
 }
 
 void bootInstaller() {
+    if (!checkSystemAccess()) return;
+
     std::string fwImgPath = convertToPosixPath("/vol/storage_slc/sys/hax/installer/fw.img");
     bool downloaded = true;
     if (!fileExist(fwImgPath.c_str())) {
@@ -227,6 +237,11 @@ uint8_t showDialogPrompt(const wchar_t* message, const std::vector<std::wstring>
             if (pressedOk()) {
                 WHBLogFreetypeStartScreen();
                 return selectedOption;
+            }
+
+            if (pressedBack()) {
+                WHBLogFreetypeStartScreen();
+                return 255;
             }
 
             sleep_for(50ms);

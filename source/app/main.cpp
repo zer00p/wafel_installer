@@ -1,4 +1,5 @@
 #include "menu.h"
+#include "startup_checks.h"
 #include "navigation.h"
 #include "cfw.h"
 #include "filesystem.h"
@@ -33,7 +34,8 @@ int main() {
         WHBLogFreetypePrint(L"");
         WHBLogPrint("Finished loading!");
         WHBLogFreetypeDraw();
-        sleep_for(3s);
+        sleep_for(2s);
+        performStartupChecks();
         showMainMenu();
     }
 
