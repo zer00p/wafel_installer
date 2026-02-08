@@ -170,7 +170,6 @@ void formatAndPartitionMenu() {
     uint8_t deviceChoice = showDialogPrompt(L"Which device do you want to format?", L"SD", L"USB");
     bool use_usb = (deviceChoice == 1);
     const wchar_t* deviceName = use_usb ? L"USB drive" : L"SD card";
-    const char* logDeviceName = use_usb ? "USB drive" : "SD card";
 
     usbAsSd(use_usb);
 
@@ -305,18 +304,23 @@ void formatAndPartitionMenu() {
             return;
         }
 
-        WHBLogFreetypePrintf(L"Formatting %ls to FAT16...", deviceName);
-        WHBLogFreetypeDraw();
-        setCustomFormatSize(0);
-        status = (FSStatus)FSA_Format(fsaHandle, "/dev/sdcard01", "fat", 0, 0, 0);
-        if (status != FS_STATUS_OK) {
-            WHBLogPrintf("Format failed (status: %d)!\n", status);
+        while (true) {
+            WHBLogFreetypePrintf(L"Formatting %ls to FAT16...", deviceName);
             WHBLogFreetypeDraw();
-            setErrorPrompt(L"Failed to format device!");
-            showErrorPrompt(L"OK");
-            free(mbr);
-            FSADelClient(fsaHandle);
-            return;
+            setCustomFormatSize(0);
+            status = (FSStatus)FSA_Format(fsaHandle, "/dev/sdcard01", "fat", 0, 0, 0);
+            if (status != FS_STATUS_OK) {
+                WHBLogPrintf("Format failed (status: %d)!\n", status);
+                WHBLogFreetypeDraw();
+                setErrorPrompt(L"Failed to format device!");
+                if (!showErrorPrompt(L"Cancel", true)) {
+                    free(mbr);
+                    FSADelClient(fsaHandle);
+                    return;
+                }
+            } else {
+                break;
+            }
         }
         shouldDownloadAroma = true;
         free(mbr);
@@ -437,17 +441,22 @@ void formatAndPartitionMenu() {
                 return;
             }
             free(mbr);
-            setCustomFormatSize(0);
-            WHBLogFreetypePrintf(L"Formatting whole %ls...", deviceName);
-            WHBLogFreetypeDraw();
-            status = (FSStatus)FSA_Format(fsaHandle, "/dev/sdcard01", "fat", 0, 0, 0);
-            if (status != FS_STATUS_OK) {
-                WHBLogPrintf("Format failed (status: %d)!\n", status);
+            while (true) {
+                setCustomFormatSize(0);
+                WHBLogFreetypePrintf(L"Formatting whole %ls...", deviceName);
                 WHBLogFreetypeDraw();
-                setErrorPrompt(L"Failed to format device!");
-                showErrorPrompt(L"OK");
-                FSADelClient(fsaHandle);
-                return;
+                status = (FSStatus)FSA_Format(fsaHandle, "/dev/sdcard01", "fat", 0, 0, 0);
+                if (status != FS_STATUS_OK) {
+                    WHBLogPrintf("Format failed (status: %d)!\n", status);
+                    WHBLogFreetypeDraw();
+                    setErrorPrompt(L"Failed to format device!");
+                    if (!showErrorPrompt(L"Cancel", true)) {
+                        FSADelClient(fsaHandle);
+                        return;
+                    }
+                } else {
+                    break;
+                }
             }
             shouldDownloadAroma = true;
         } else if (formatChoice == optPartition) { // Partition drive
@@ -515,18 +524,23 @@ void formatAndPartitionMenu() {
             uint32_t alignSectors = (64 * 1024 * 1024) / deviceInfo.deviceSectorSize;
             uint32_t p1_size = (uint32_t)(deviceInfo.deviceSizeInSectors * fatPercent / 100);
 
-            WHBLogPrint("Formatting FAT32 partition...");
-            WHBLogFreetypeDraw();
-            setCustomFormatSize(p1_size);
-            status = (FSStatus)FSA_Format(fsaHandle, "/dev/sdcard01", "fat", 0, 0, 0);
-            if (status != FS_STATUS_OK) {
-                WHBLogPrintf("Format failed (status: %d)!\n", status);
+            while (true) {
+                WHBLogPrint("Formatting FAT32 partition...");
                 WHBLogFreetypeDraw();
-                setErrorPrompt(L"Failed to format FAT32 partition!");
-                showErrorPrompt(L"OK");
-                free(mbr);
-                FSADelClient(fsaHandle);
-                return;
+                setCustomFormatSize(p1_size);
+                status = (FSStatus)FSA_Format(fsaHandle, "/dev/sdcard01", "fat", 0, 0, 0);
+                if (status != FS_STATUS_OK) {
+                    WHBLogPrintf("Format failed (status: %d)!\n", status);
+                    WHBLogFreetypeDraw();
+                    setErrorPrompt(L"Failed to format FAT32 partition!");
+                    if (!showErrorPrompt(L"Cancel", true)) {
+                        free(mbr);
+                        FSADelClient(fsaHandle);
+                        return;
+                    }
+                } else {
+                    break;
+                }
             }
             shouldDownloadAroma = true;
 
@@ -573,18 +587,23 @@ void formatAndPartitionMenu() {
             }
 
             uint32_t p1_size = read32LE(&mbr[446 + 12]);
-            WHBLogPrintf("Formatting Partition 1 (size: %u sectors)...", p1_size);
-            WHBLogFreetypeDraw();
-            setCustomFormatSize(p1_size);
-            status = (FSStatus)FSA_Format(fsaHandle, "/dev/sdcard01", "fat", 0, 0, 0);
-            if (status != FS_STATUS_OK) {
-                WHBLogPrintf("Format failed (status: %d)!\n", status);
+            while (true) {
+                WHBLogPrintf("Formatting Partition 1 (size: %u sectors)...", p1_size);
                 WHBLogFreetypeDraw();
-                setErrorPrompt(L"Failed to format Partition 1!");
-                showErrorPrompt(L"OK");
-                free(mbr);
-                FSADelClient(fsaHandle);
-                return;
+                setCustomFormatSize(p1_size);
+                status = (FSStatus)FSA_Format(fsaHandle, "/dev/sdcard01", "fat", 0, 0, 0);
+                if (status != FS_STATUS_OK) {
+                    WHBLogPrintf("Format failed (status: %d)!\n", status);
+                    WHBLogFreetypeDraw();
+                    setErrorPrompt(L"Failed to format Partition 1!");
+                    if (!showErrorPrompt(L"Cancel", true)) {
+                        free(mbr);
+                        FSADelClient(fsaHandle);
+                        return;
+                    }
+                } else {
+                    break;
+                }
             }
             shouldDownloadAroma = true;
 
@@ -680,14 +699,18 @@ void formatAndPartitionMenu() {
     FSADelClient(fsaHandle);
 
     if (shouldDownloadAroma) {
+        sleep_for(2s);
         if (showDialogPrompt(L"Device formatted successfully!\nDo you want to download Aroma now?", L"Yes", L"No") == 0) {
-            if (downloadAroma("fs:/vol/external01/")) {
-                showDialogPrompt(L"Aroma downloaded successfully!", L"OK");
-            } else {
-                showErrorPrompt(L"OK");
+            while (true) {
+                if (downloadAroma("fs:/vol/external01/")) {
+                    showSuccessPrompt(L"Aroma downloaded successfully!");
+                    break;
+                } else {
+                    if (!showErrorPrompt(L"Cancel", true)) break;
+                }
             }
         } else {
-            showDialogPrompt(L"Formatting complete!", L"OK");
+            showSuccessPrompt(L"Formatting complete!");
         }
     }
 }

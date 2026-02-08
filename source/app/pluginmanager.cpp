@@ -76,7 +76,7 @@ static void managePlugins(std::string posixPath) {
                         if (fullPath.back() != '/') fullPath += "/";
                         fullPath += pluginName;
                         if (remove(fullPath.c_str()) == 0) {
-                            showDialogPrompt(L"Plugin deleted successfully!", L"OK");
+                            showSuccessPrompt(L"Plugin deleted successfully!");
                             if (selectedOption > 0 && selectedOption == plugins.size() - 1) {
                                 selectedOption--;
                             }

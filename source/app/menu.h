@@ -12,4 +12,5 @@ void showDialogPrompt(const wchar_t* message, const wchar_t* button);
 bool showOptionMenu(dumpingConfig& config, bool showAccountOption);
 void setErrorPrompt(const wchar_t* message);
 void setErrorPrompt(std::wstring message);
-void showErrorPrompt(const wchar_t* button);
+bool showErrorPrompt(const wchar_t* button, bool retryAllowed = false);
+void showSuccessPrompt(const wchar_t* message);

@@ -27,19 +27,26 @@ void showLoadingScreen() {
 #define OPTION(n) (selectedOption == (n) ? L'>' : L' ')
 
 void installISFShax() {
-    if (downloadHaxFiles()) {
-        showDialogPrompt(L"The ISFShax installer is controlled with the buttons on the main console.\nPOWER: moves the curser\nEJECT: confirm\nPress A to launch into the ISFShax Installer", L"Continue");
-        loadFwImg();
-    } else {
-        showErrorPrompt(L"OK");
+    while (true) {
+        if (downloadHaxFiles()) {
+            sleep_for(2s);
+            showDialogPrompt(L"The ISFShax installer is controlled with the buttons on the main console.\nPOWER: moves the curser\nEJECT: confirm\nPress A to launch into the ISFShax Installer", L"Continue");
+            loadFwImg();
+            break;
+        } else {
+            if (!showErrorPrompt(L"Cancel", true)) break;
+        }
     }
 }
 
 void redownloadFiles() {
-    if (downloadHaxFiles()) {
-        showDialogPrompt(L"All hax files downloaded successfully!", L"OK");
-    } else {
-        showErrorPrompt(L"OK");
+    while (true) {
+        if (downloadHaxFiles()) {
+            showSuccessPrompt(L"All hax files downloaded successfully!");
+            break;
+        } else {
+            if (!showErrorPrompt(L"Cancel", true)) break;
+        }
     }
 }
 
@@ -47,30 +54,39 @@ void bootInstaller() {
     std::string fwImgPath = convertToPosixPath("/vol/storage_slc/sys/hax/installer/fw.img");
     bool downloaded = true;
     if (!fileExist(fwImgPath.c_str())) {
-        uint8_t choice = showDialogPrompt(L"The ISFShax installer (fw.img) is missing.\nDo you want to download everything or just the installer?", L"Everything", L"Just installer");
-        if (choice == 0) {
-            downloaded = downloadHaxFiles();
-        } else {
-            downloaded = downloadInstallerOnly();
-        }
+        while (true) {
+            uint8_t choice = showDialogPrompt(L"The ISFShax installer (fw.img) is missing.\nDo you want to download everything or just the installer?", L"Everything", L"Just installer", L"Cancel");
+            if (choice == 2) return;
 
-        if (!downloaded) {
-             showErrorPrompt(L"OK");
-             return;
+            if (choice == 0) {
+                downloaded = downloadHaxFiles();
+            } else {
+                downloaded = downloadInstallerOnly();
+            }
+
+            if (!downloaded) {
+                if (!showErrorPrompt(L"Cancel", true)) return;
+            } else {
+                break;
+            }
         }
     }
 
     if (downloaded) {
+        sleep_for(2s);
         showDialogPrompt(L"The ISFShax installer is controlled with the buttons on the main console.\nPOWER: moves the curser\nEJECT: confirm\nPress A to launch into the ISFShax Installer", L"Continue");
         loadFwImg();
     }
 }
 
 void installAromaMenu() {
-    if (downloadAroma()) {
-        showDialogPrompt(L"Aroma and tools downloaded and extracted successfully!", L"OK");
-    } else {
-        showErrorPrompt(L"OK");
+    while (true) {
+        if (downloadAroma()) {
+            showSuccessPrompt(L"Aroma and tools downloaded and extracted successfully!");
+            break;
+        } else {
+            if (!showErrorPrompt(L"Cancel", true)) break;
+        }
     }
 }
 
@@ -251,9 +267,30 @@ void setErrorPrompt(std::wstring message) {
     setErrorPrompt(messageCopy.c_str());
 }
 
-void showErrorPrompt(const wchar_t* button) {
+bool showErrorPrompt(const wchar_t* button, bool retryAllowed) {
+    WHBLogFreetypeScreenPrintBottom(L"An error occurred! Press A to continue.");
+    WHBLogFreetypeDraw();
+
+    // Wait for A
+    while(true) {
+        updateInputs();
+        if (pressedOk()) break;
+        sleep_for(50ms);
+    }
+
     std::wstring promptMessage(L"An error occurred:\n");
     if (errorMessage) promptMessage += errorMessage;
     else promptMessage += L"No error was specified!";
-    showDialogPrompt(promptMessage.c_str(), button);
+
+    if (retryAllowed) {
+        return showDialogPrompt(promptMessage.c_str(), L"Retry", L"Cancel") == 0;
+    } else {
+        showDialogPrompt(promptMessage.c_str(), button);
+        return false;
+    }
+}
+
+void showSuccessPrompt(const wchar_t* message) {
+    sleep_for(2s);
+    showDialogPrompt(message, L"OK");
 }

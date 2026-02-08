@@ -116,9 +116,8 @@ void loadFwImg() {
         WHBLogFreetypePrint(L"Applying fw_path...");
         WHBLogFreetypeDrawScreen();
         // Patches from unencrypted_cfw_booter - sd_path
-        uint32_t target_address = 0x050663B4;
 
-        for (int i = 0; i < sizeof(path); i+=sizeof(uint32_t)) {
+        for (size_t i = 0; i < sizeof(path); i+=sizeof(uint32_t)) {
             status = Mocha_IOSUKernelWrite32(0x050663B4 + i, *(uint32_t*)(path+i));
             if (status != MOCHA_RESULT_SUCCESS) {
                 WHBLogFreetypeClear();

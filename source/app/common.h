@@ -132,7 +132,15 @@ static inline void replaceAll(std::wstring& str, const std::wstring& oldSubstr, 
 
 [[maybe_unused]]
 static inline std::wstring toWstring(const std::string& stringToConvert) {
-    return std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(stringToConvert);
+    if (stringToConvert.empty()) return std::wstring();
+    std::wstring wide(stringToConvert.length(), L'\0');
+    size_t outSize = std::mbstowcs(&wide[0], stringToConvert.c_str(), stringToConvert.length());
+    if (outSize == (size_t)-1) {
+        wide.assign(stringToConvert.begin(), stringToConvert.end());
+    } else {
+        wide.resize(outSize);
+    }
+    return wide;
 }
 
 // Enums and Structs
