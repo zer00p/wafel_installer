@@ -394,7 +394,7 @@ void formatAndPartitionMenu() {
         std::wstring partitionList = ss.str();
 
         uint64_t unallocatedSpaceEnd = (uint64_t)(deviceInfo.deviceSizeInSectors - lastOccupiedSector) * deviceInfo.deviceSectorSize;
-        bool canCreateWiiUPartition = (unallocatedSpaceEnd > 4ULL * 1024 * 1024 * 1024) && (partitionCount < 4);
+        bool canCreateWiiUPartition = (unallocatedSpaceEnd > 4ULL * 1024 * 1024 * 1024) && (partitionCount < 4) && (partitionCount > 0);
         bool hasMbr = (mbrReadSuccess && mbr[510] == 0x55 && mbr[511] == 0xAA);
 
         std::vector<std::wstring> buttons;
@@ -650,7 +650,6 @@ void formatAndPartitionMenu() {
                 WHBLogFreetypeDraw();
                 if ((FSStatus)rawWrite(fsaHandle, "/dev/sdcard01", 0, 1, mbr, deviceInfo.deviceSectorSize) == FS_STATUS_OK) {
                      writeMbrSignature(fsaHandle, "/dev/sdcard01", p2_start, deviceInfo.deviceSectorSize);
-                     showDialogPrompt(L"Wii U partition created successfully!", L"OK");
                 } else {
                      setErrorPrompt(L"Failed to write MBR!");
                      showErrorPrompt(L"OK");
@@ -664,9 +663,7 @@ void formatAndPartitionMenu() {
                     memset(zeroSector, 0, deviceInfo.deviceSectorSize);
                     WHBLogPrint("Deleting MBR...");
                     WHBLogFreetypeDraw();
-                    if ((FSStatus)rawWrite(fsaHandle, "/dev/sdcard01", 0, 1, zeroSector, deviceInfo.deviceSectorSize) == FS_STATUS_OK) {
-                        showDialogPrompt(L"MBR deleted successfully!", L"OK");
-                    } else {
+                    if ((FSStatus)rawWrite(fsaHandle, "/dev/sdcard01", 0, 1, zeroSector, deviceInfo.deviceSectorSize) != FS_STATUS_OK) {
                         setErrorPrompt(L"Failed to delete MBR!");
                         showErrorPrompt(L"OK");
                     }
