@@ -342,6 +342,16 @@ uint32_t WHBLogFreetypeGetScreenPosition() {
     return newLines;
 }
 
+void WHBLogFreetypeSetScreenPosition(uint32_t position) {
+    DEBUG_THREADSAFE;
+    if (position > NUM_LINES) position = NUM_LINES;
+    newLines = position;
+    for (uint32_t i = position; i < NUM_LINES; i++) {
+        queueBuffer[i][0] = L'\0';
+    }
+    bottomLines = 0;
+}
+
 void WHBLogFreetypePrintfAtPosition(uint32_t position, const wchar_t *fmt, ...) {
     DEBUG_THREADSAFE;
     if (position < 0 || position > NUM_LINES) return;
