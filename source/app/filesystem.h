@@ -3,12 +3,8 @@
 // Functions related to devices
 bool mountSystemDrives();
 bool mountDisc();
-bool mountUsbFat();
 bool unmountSystemDrives();
 bool unmountDisc();
-void unmountUsbFat();
-
-bool formatUsbFat();
 
 bool isDiscMounted();
 bool isSlcMounted();
