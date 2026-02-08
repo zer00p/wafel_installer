@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include <cerrno>
 #include <mocha/mocha.h>
+#include <whb/sdcard.h>
 #include "cacert_pem.h"
 #include "../utils/zip_file.hpp"
 #include <filesystem>
@@ -252,6 +253,15 @@ static bool downloadAndExtractZip(const std::string& repo, const std::string& pa
 
 bool downloadAroma(const std::string& sdPath) {
     WHBLogFreetypeStartScreen();
+
+    if (sdPath == "fs:/vol/external01/") {
+        WHBLogPrint("Mounting SD card...");
+        WHBLogFreetypeDraw();
+        if (WHBMountSdCard() != 1) {
+            setErrorPrompt(L"Failed to mount SD card!");
+            return false;
+        }
+    }
 
     // 1. Environment Loader
     if (!downloadAndExtractZip("wiiu-env/EnvironmentLoader", "EnvironmentLoader", "Environment Loader", sdPath)) {

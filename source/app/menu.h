@@ -3,7 +3,7 @@
 void showLoadingScreen();
 void showMainMenu();
 
-uint8_t showDialogPrompt(const wchar_t* message, const wchar_t* button1, const wchar_t* button2);
+uint8_t showDialogPrompt(const wchar_t* message, const wchar_t* button1, const wchar_t* button2, const wchar_t* button3 = nullptr, uint8_t defaultOption = 0);
 void showDialogPrompt(const wchar_t* message, const wchar_t* button);
 bool showOptionMenu(dumpingConfig& config, bool showAccountOption);
 void setErrorPrompt(const wchar_t* message);

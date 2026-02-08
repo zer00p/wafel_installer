@@ -15,7 +15,7 @@ jobs:
       - name: build binary
         run: |
           docker build . -t builder
-          docker run --rm -v ${PWD}:/project builder make -j$(nproc)
+          docker run --rm -v ${PWD}:/project builder make
       - name: create distribution .zip
         run: |
           docker run --rm -v ${PWD}:/project builder make dist

@@ -1,0 +1,549 @@
+#include "partition_manager.h"
+#include "menu.h"
+#include "gui.h"
+#include "filesystem.h"
+#include "download.h"
+#include "common.h"
+#include "navigation.h"
+#include <malloc.h>
+#include <cstring>
+#include <string>
+#include <sstream>
+#include <iomanip>
+#include <coreinit/ios.h>
+#include <coreinit/filesystem_fsa.h>
+#include <coreinit/time.h>
+#include <mocha/mocha.h>
+#include <mocha/fsa.h>
+#include <whb/sdcard.h>
+
+typedef struct __attribute__((packed)) {
+    uint32_t unused;
+    char device[0x280];
+    char filesystem[8];
+    uint32_t flags;
+    uint32_t param_5;
+    uint32_t param_6;
+} FSAFormatRequest;
+
+typedef struct __attribute__((aligned(0x40))) {
+    union {
+        uint8_t inbuf[0x520];
+        FSAFormatRequest format;
+    };
+    uint8_t outbuf[0x293];
+    uint8_t padding[0x30];
+    uint32_t handle;
+    uint32_t command;
+    uint8_t unknown[0x3d];
+} FSAIpcData;
+
+static int32_t FSA_Format(FSAClientHandle handle, const char* device, const char* filesystem, uint32_t flags, uint32_t param_5, uint32_t param_6) {
+    FSAIpcData* data = (FSAIpcData*)memalign(0x40, sizeof(FSAIpcData));
+    if (!data) return -1;
+    memset(data, 0, sizeof(FSAIpcData));
+
+    data->handle = (uint32_t)handle;
+    data->command = 0x69;
+
+    strncpy(data->format.device, device, sizeof(data->format.device) - 1);
+    strncpy(data->format.filesystem, filesystem, sizeof(data->format.filesystem) - 1);
+
+    data->format.flags = flags;
+    data->format.param_5 = param_5;
+    data->format.param_6 = param_6;
+
+    int32_t ret = IOS_Ioctl((int)handle, 0x69, data, 0x520, data->outbuf, 0x293);
+
+    free(data);
+    return ret;
+}
+
+void usbAsSd(bool enable){
+    // Attach the USB device with SD type
+    if(enable) {
+        // Set device type to SD (0x6)
+        Mocha_IOSUKernelWrite32(0x1077eda0, 0xe3a03006); // mov r3,#0x6
+    } else {
+        // Set device type to USB (0x11) (original original ins)
+        Mocha_IOSUKernelWrite32(0x1077eda0, 0xe3a03011); // mov r3,#0x11
+    }
+}
+
+static void setCustomFormatSize(uint32_t custom_size) {
+    // skip cylinder alignment
+    //Mocha_IOSUKernelWrite32(0x1078e4fc, 0xe1530003);
+
+    // Remove 32GB check
+    if(!custom_size) {
+        Mocha_IOSUKernelWrite32(0x1078e354, 0xEA000075); // b 0x1078e530
+    } else {
+        // 1. Load the custom sector count from 0x1078e360 into R4
+        // Opcode: LDR R4, [PC, #8] -> PC is 0x35C, Target is 0x360
+        Mocha_IOSUKernelWrite32(0x1078e354, 0xE59F4010);
+
+        // 2. Store R4 into the FSFAT_BlockCount struct
+        // Opcode: STR R4, [R2, #0x14]
+        Mocha_IOSUKernelWrite32(0x1078e358, 0xE5824014);
+
+        // str r4, [sp, #0x88]  FStack_240.block_count_hi
+        Mocha_IOSUKernelWrite32(0x1078e35c, 0xE58D4088);
+
+        // 3. Jump to the FAT32 formatting logic (Original BLS target: 1078e530)
+        // Math: 0x1078e530 - (0x1078e35c + 8) = 0x1CC -> 0x1CC / 4 = 0x73
+        Mocha_IOSUKernelWrite32(0x1078e360, 0xEA000072); // b 0x1078e530
+
+        // 4. THE DATA: Your total sector count read by LDR
+        Mocha_IOSUKernelWrite32(0x1078e36c, custom_size);
+    }
+
+    // Patch SD Geometry Table
+    // last entry:
+    Mocha_IOSUKernelWrite32(0x1080bf20, 0xffffffff); //max size
+}
+
+static FSError rawRead(FSAClientHandle fsaHandle, const char* device, uint32_t sector, uint32_t count, void* buffer, uint32_t sectorSize) {
+    IOSHandle handle = -1;
+    FSError res = FSAEx_RawOpenEx(fsaHandle, device, &handle);
+    if (res < 0) return res;
+
+    res = FSAEx_RawReadEx(fsaHandle, buffer, sectorSize, count, sector, handle);
+    FSAEx_RawCloseEx(fsaHandle, handle);
+    return res;
+}
+
+static void write32LE(uint8_t* p, uint32_t v) {
+    p[0] = v & 0xFF;
+    p[1] = (v >> 8) & 0xFF;
+    p[2] = (v >> 16) & 0xFF;
+    p[3] = (v >> 24) & 0xFF;
+}
+
+static uint32_t read32LE(const uint8_t* p) {
+    return (uint32_t)p[0] | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);
+}
+
+static const char* getPartitionTypeName(uint8_t type) {
+    switch (type) {
+        case 0x01: return "FAT12";
+        case 0x04: return "FAT16 <32M";
+        case 0x06: return "FAT16";
+        case 0x0B: return "FAT32";
+        case 0x0C: return "FAT32 (LBA)";
+        case 0x07: return "NTFS/exFAT/WFS";
+        case 0x0E: return "FAT16 (LBA)";
+        case 0x0F: return "Extended (LBA)";
+        case 0x82: return "Linux Swap";
+        case 0x83: return "Linux";
+        case 0xEE: return "GPT/EFI";
+        default: return "Unknown";
+    }
+}
+
+static FSError rawWrite(FSAClientHandle fsaHandle, const char* device, uint32_t sector, uint32_t count, const void* buffer, uint32_t sectorSize) {
+    IOSHandle handle = -1;
+    FSError res = FSAEx_RawOpenEx(fsaHandle, device, &handle);
+    if (res < 0) return res;
+
+    res = FSAEx_RawWriteEx(fsaHandle, (void*)buffer, sectorSize, count, sector, handle);
+    FSAEx_RawCloseEx(fsaHandle, handle);
+    return res;
+}
+
+void formatAndPartitionMenu() {
+    uint8_t deviceChoice = showDialogPrompt(L"Which device do you want to format?", L"SD", L"USB");
+    bool use_usb = (deviceChoice == 1);
+    const wchar_t* deviceName = use_usb ? L"USB drive" : L"SD card";
+    const char* logDeviceName = use_usb ? "USB drive" : "SD card";
+
+    usbAsSd(use_usb);
+
+    WHBLogPrint("Opening /dev/fsa...");
+    WHBLogFreetypeDraw();
+    FSAClientHandle fsaHandle = FSAAddClient(NULL);
+    if (fsaHandle < 0) {
+        WHBLogPrintf("Failed to open /dev/fsa! Status: 0x%08X", fsaHandle);
+        WHBLogFreetypeDraw();
+        setErrorPrompt(L"Failed to open /dev/fsa!");
+        showErrorPrompt(L"OK");
+        return;
+    }
+
+    WHBLogFreetypePrintf(L"Unmounting %ls...", deviceName);
+    WHBLogFreetypeDrawScreen();
+    int status = WHBUnmountSdCard();
+    if (status != 1) {
+        WHBLogPrintf("Unmount failed (status: %d), ignoring...", status);
+        WHBLogFreetypeDraw();
+    }
+
+    while (true) {
+        if (showDialogPrompt(L"Remove all SD and USB Storage devices NOW!", L"OK", L"Cancel") != 0) {
+            FSADelClient(fsaHandle);
+            return;
+        }
+
+        FSADeviceInfo devInfo;
+        if ((FSStatus)FSAGetDeviceInfo(fsaHandle, "/dev/sdcard01", &devInfo) != FS_STATUS_OK) {
+            break;
+        }
+    }
+
+    std::wstring pluginMsg = L"Plugin the " + std::wstring(deviceName) + L" you want to format";
+    while (true) {
+        WHBLogFreetypeStartScreen();
+        WHBLogFreetypePrint(pluginMsg.c_str());
+        WHBLogFreetypePrint(L"");
+        WHBLogFreetypePrint(L"Waiting for device...");
+        WHBLogFreetypePrint(L"Press B to cancel");
+        WHBLogFreetypeDrawScreen();
+
+        FSADeviceInfo devInfo;
+        if ((FSStatus)FSAGetDeviceInfo(fsaHandle, "/dev/sdcard01", &devInfo) == FS_STATUS_OK) {
+            break;
+        }
+
+        updateInputs();
+        if (pressedBack()) {
+            FSADelClient(fsaHandle);
+            return;
+        }
+        OSSleepTicks(OSMillisecondsToTicks(100));
+    }
+
+    FSAVolumeInfo volumeInfo;
+    status = (int)FSAGetVolumeInfo(fsaHandle, "/dev/sdcard01", &volumeInfo);
+    if ((FSStatus)status == FS_STATUS_OK) {
+        WHBLogPrintf("Volume Info for %s:", logDeviceName);
+        WHBLogPrintf("  Flags: 0x%08X, State: %d", volumeInfo.flags, volumeInfo.mediaState);
+        WHBLogPrintf("  Label: %s", volumeInfo.volumeLabel);
+        WHBLogPrintf("  ID: %s", volumeInfo.volumeId);
+        WHBLogPrintf("  Device: %s", volumeInfo.devicePath);
+        WHBLogPrintf("  Mount: %s", volumeInfo.mountPath);
+    } else {
+        WHBLogPrintf("FSAGetVolumeInfo failed: %d", status);
+    }
+
+    FSADeviceInfo deviceInfo;
+    status = (int)FSAGetDeviceInfo(fsaHandle, "/dev/sdcard01", &deviceInfo);
+    if ((FSStatus)status != FS_STATUS_OK) {
+        WHBLogPrintf("FSAGetDeviceInfo failed: %d", status);
+        WHBLogFreetypeDraw();
+        setErrorPrompt(L"Failed to get device info!");
+        showErrorPrompt(L"OK");
+        FSADelClient(fsaHandle);
+        return;
+    }
+
+    WHBLogPrintf("Device Info for %s:", logDeviceName);
+    WHBLogPrintf("  Sectors: %llu, Sector Size: %u", deviceInfo.deviceSizeInSectors, deviceInfo.deviceSectorSize);
+    WHBLogFreetypeDraw();
+
+    if (showDialogPrompt(L"Is this the correct device?", L"Yes", L"No", nullptr, 1) != 0) {
+        FSADelClient(fsaHandle);
+        return;
+    }
+
+    uint64_t totalSize = deviceInfo.deviceSizeInSectors * deviceInfo.deviceSectorSize;
+    uint64_t twoGiB = 2ULL * 1024 * 1024 * 1024;
+
+    if (totalSize < twoGiB) {
+        showDialogPrompt(L"Device is smaller than 2GiB.\nPartitioning isn't supported.\nThe whole card will be formatted to FAT16.", L"OK");
+
+        if (showDialogPrompt(L"WARNING: This will format the whole device and DELETE ALL DATA on it.\nDo you want to continue?", L"Yes", L"No", nullptr, 1) != 0) {
+            FSADelClient(fsaHandle);
+            return;
+        }
+
+        WHBLogFreetypePrintf(L"Formatting %ls to FAT16...", deviceName);
+        WHBLogFreetypeDraw();
+        setCustomFormatSize(0);
+        status = (FSStatus)FSA_Format(fsaHandle, "/dev/sdcard01", "fat", 0, 0, 0);
+        if (status != FS_STATUS_OK) {
+            WHBLogPrintf("Format failed (status: %d)!\n", status);
+            WHBLogFreetypeDraw();
+            setErrorPrompt(L"Failed to format device!");
+            showErrorPrompt(L"OK");
+            FSADelClient(fsaHandle);
+            return;
+        }
+    } else {
+        uint8_t* mbr = (uint8_t*)memalign(0x40, deviceInfo.deviceSectorSize);
+        if (!mbr) {
+            setErrorPrompt(L"Failed to allocate memory for MBR!");
+            showErrorPrompt(L"OK");
+            FSADelClient(fsaHandle);
+            return;
+        }
+
+        if ((FSStatus)rawRead(fsaHandle, "/dev/sdcard01", 0, 1, mbr, deviceInfo.deviceSectorSize) != FS_STATUS_OK) {
+            free(mbr);
+            setErrorPrompt(L"Failed to read MBR!");
+            showErrorPrompt(L"OK");
+            FSADelClient(fsaHandle);
+            return;
+        }
+
+        if (mbr[510] != 0x55 || mbr[511] != 0xAA) {
+             showDialogPrompt(L"No MBR found! Wii U Formatted?", L"OK");
+        }
+
+        uint8_t* backupMbr = (uint8_t*)memalign(0x40, deviceInfo.deviceSectorSize);
+        if (backupMbr) {
+            if ((FSStatus)rawRead(fsaHandle, "/dev/sdcard01", 1, 1, backupMbr, deviceInfo.deviceSectorSize) == FS_STATUS_OK) {
+                if (backupMbr[510] == 0x55 && backupMbr[511] == 0xAA) {
+                    uint8_t restoreChoice = showDialogPrompt(L"Backup MBR found at sector 1. Do you want to restore it?", L"Yes", L"No", nullptr, 1);
+                    if (restoreChoice == 0) {
+                        WHBLogPrint("Restoring MBR from backup...");
+                        WHBLogFreetypeDraw();
+                        if ((FSStatus)rawWrite(fsaHandle, "/dev/sdcard01", 0, 1, backupMbr, deviceInfo.deviceSectorSize) == FS_STATUS_OK) {
+                            // Clear backup
+                            memset(backupMbr, 0, deviceInfo.deviceSectorSize);
+                            rawWrite(fsaHandle, "/dev/sdcard01", 1, 1, backupMbr, deviceInfo.deviceSectorSize);
+                            showDialogPrompt(L"MBR restored successfully!", L"OK");
+                            free(mbr);
+                            free(backupMbr);
+                            FSADelClient(fsaHandle);
+                            return;
+                        } else {
+                            setErrorPrompt(L"Failed to restore MBR!");
+                            showErrorPrompt(L"OK");
+                        }
+                    } else {
+                        if (showDialogPrompt(L"Do you want to delete the backup MBR?", L"Yes", L"No", nullptr, 1) == 0) {
+                             WHBLogPrint("Clearing backup sector...");
+                             WHBLogFreetypeDraw();
+                             memset(backupMbr, 0, deviceInfo.deviceSectorSize);
+                             rawWrite(fsaHandle, "/dev/sdcard01", 1, 1, backupMbr, deviceInfo.deviceSectorSize);
+                        }
+                    }
+                }
+            }
+            free(backupMbr);
+        }
+
+        std::wstringstream ss;
+        ss << L"Existing partitions:\n";
+        int partitionCount = 0;
+        for (int i = 0; i < 4; i++) {
+            uint8_t type = mbr[446 + i * 16 + 4];
+            if (type != 0) {
+                partitionCount++;
+                uint32_t sectors = read32LE(&mbr[446 + i * 16 + 12]);
+                double sizeGB = (double)sectors * (double)deviceInfo.deviceSectorSize / (1024.0 * 1024.0 * 1024.0);
+
+                ss << L"Partition " << (i + 1) << L": " << toWstring(getPartitionTypeName(type));
+                ss << std::fixed << std::setprecision(2);
+                if (sizeGB < 1.0) {
+                    ss << L" (" << (sizeGB * 1024.0) << L" MB)";
+                } else {
+                    ss << L" (" << sizeGB << L" GB)";
+                }
+                ss << L"\n";
+            }
+        }
+        ss << L"\nWhat do you want to do?";
+        std::wstring partitionList = ss.str();
+
+        uint8_t formatChoice;
+        if (partitionCount > 1) {
+            formatChoice = showDialogPrompt(partitionList.c_str(), L"Format whole drive to FAT32", L"Partition drive", L"Only format Partition 1");
+        } else {
+            formatChoice = showDialogPrompt(partitionList.c_str(), L"Format whole drive to FAT32", L"Partition drive");
+        }
+
+        if (formatChoice == 0) { // Format whole drive to FAT32
+            if (showDialogPrompt(L"WARNING: This will format the whole device and DELETE ALL DATA on it.\nDo you want to continue?", L"Yes", L"No", nullptr, 1) != 0) {
+                free(mbr);
+                FSADelClient(fsaHandle);
+                return;
+            }
+            free(mbr);
+            setCustomFormatSize(0);
+            WHBLogFreetypePrintf(L"Formatting whole %ls...", deviceName);
+            WHBLogFreetypeDraw();
+            status = (FSStatus)FSA_Format(fsaHandle, "/dev/sdcard01", "fat", 0, 0, 0);
+            if (status != FS_STATUS_OK) {
+                WHBLogPrintf("Format failed (status: %d)!\n", status);
+                WHBLogFreetypeDraw();
+                setErrorPrompt(L"Failed to format device!");
+                showErrorPrompt(L"OK");
+                FSADelClient(fsaHandle);
+                return;
+            }
+        } else if (formatChoice == 1) { // Partition drive
+            double totalGB = (double)deviceInfo.deviceSizeInSectors * (double)deviceInfo.deviceSectorSize / (1024.0 * 1024.0 * 1024.0);
+            int fatPercent = 80;
+            if (totalGB < 1.0) fatPercent = 100;
+
+            while(true) {
+                double fatGB = totalGB * fatPercent / 100.0;
+                double ntfsGB = totalGB * (100 - fatPercent) / 100.0;
+
+                WHBLogFreetypeStartScreen();
+                WHBLogFreetypePrintf(L"Partition %ls", deviceName);
+                WHBLogFreetypePrint(L"===============================");
+                WHBLogFreetypePrintf(L"FAT32: [ %d%% ] (%.2f GB)", fatPercent, fatGB);
+                WHBLogFreetypePrintf(L"WFS:   [ %d%% ] (%.2f GB)", 100 - fatPercent, ntfsGB);
+                WHBLogFreetypePrint(L"");
+                WHBLogFreetypePrint(L"Use Left/Right to adjust (10% increments)");
+                WHBLogFreetypePrint(L"Press A to confirm, B to cancel");
+                WHBLogFreetypeScreenPrintBottom(L"===============================");
+                WHBLogFreetypeDrawScreen();
+
+                OSSleepTicks(OSMillisecondsToTicks(100));
+                updateInputs();
+                bool confirmed = false;
+                bool cancelled = false;
+                while(true) {
+                    updateInputs();
+                    if (navigatedLeft() && fatPercent > 10) {
+                        if (totalGB >= 1.0) {
+                            if (totalGB * (fatPercent - 10) / 100.0 >= 1.0) {
+                                fatPercent -= 10;
+                            }
+                        }
+                        break;
+                    }
+                    if (navigatedRight() && fatPercent < 100) {
+                        fatPercent += 10;
+                        break;
+                    }
+                    if (pressedOk()) {
+                        confirmed = true;
+                        break;
+                    }
+                    if (pressedBack()) {
+                        cancelled = true;
+                        break;
+                    }
+                    OSSleepTicks(OSMillisecondsToTicks(50));
+                }
+                if (confirmed) break;
+                if (cancelled) {
+                    free(mbr);
+                    FSADelClient(fsaHandle);
+                    return;
+                }
+            }
+
+            if (showDialogPrompt(L"WARNING: This will RE-PARTITION the whole device and DELETE ALL DATA on it.\nDo you want to continue?", L"Yes", L"No", nullptr, 1) != 0) {
+                free(mbr);
+                FSADelClient(fsaHandle);
+                return;
+            }
+
+            uint32_t alignSectors = (16 * 1024 * 1024) / deviceInfo.deviceSectorSize;
+            uint32_t p1_size = (uint32_t)(deviceInfo.deviceSizeInSectors * fatPercent / 100);
+
+            WHBLogPrint("Formatting FAT32 partition...");
+            WHBLogFreetypeDraw();
+            setCustomFormatSize(p1_size);
+            status = (FSStatus)FSA_Format(fsaHandle, "/dev/sdcard01", "fat", 0, 0, 0);
+            if (status != FS_STATUS_OK) {
+                WHBLogPrintf("Format failed (status: %d)!\n", status);
+                WHBLogFreetypeDraw();
+                setErrorPrompt(L"Failed to format FAT32 partition!");
+                showErrorPrompt(L"OK");
+                free(mbr);
+                FSADelClient(fsaHandle);
+                return;
+            }
+
+            // Read the new MBR created by FSA_Format
+            if ((FSStatus)rawRead(fsaHandle, "/dev/sdcard01", 0, 1, mbr, deviceInfo.deviceSectorSize) == FS_STATUS_OK) {
+                uint32_t actual_p1_start = read32LE(&mbr[446 + 8]);
+                uint32_t actual_p1_size = read32LE(&mbr[446 + 12]);
+
+                uint32_t p2_start = ((actual_p1_start + actual_p1_size + alignSectors - 1) / alignSectors) * alignSectors;
+                if (p2_start < deviceInfo.deviceSizeInSectors) {
+                    uint32_t p2_size = (uint32_t)(deviceInfo.deviceSizeInSectors - p2_start);
+
+                    uint8_t* pte2 = &mbr[446 + 16];
+                    pte2[4] = 0x07;
+                    write32LE(&pte2[8], p2_start);
+                    write32LE(&pte2[12], p2_size);
+
+                    WHBLogPrint("Adding second partition to MBR...");
+                    WHBLogFreetypeDraw();
+                    if ((FSStatus)rawWrite(fsaHandle, "/dev/sdcard01", 0, 1, mbr, deviceInfo.deviceSectorSize) != FS_STATUS_OK) {
+                        setErrorPrompt(L"Failed to write second partition to MBR!");
+                        showErrorPrompt(L"OK");
+                    }
+                }
+            }
+            free(mbr);
+        } else if (formatChoice == 2) { // Only format Partition 1
+            if (showDialogPrompt(L"WARNING: This will format the first partition and DELETE ALL DATA on it.\nOther partitions will be preserved.\nDo you want to continue?", L"Yes", L"No", nullptr, 1) != 0) {
+                free(mbr);
+                FSADelClient(fsaHandle);
+                return;
+            }
+
+            WHBLogPrint("Backing up MBR to sector 1...");
+            WHBLogFreetypeDraw();
+            if ((FSStatus)rawWrite(fsaHandle, "/dev/sdcard01", 1, 1, mbr, deviceInfo.deviceSectorSize) != FS_STATUS_OK) {
+                setErrorPrompt(L"Failed to backup MBR!");
+                showErrorPrompt(L"OK");
+                free(mbr);
+                FSADelClient(fsaHandle);
+                return;
+            }
+
+            uint32_t p1_size = read32LE(&mbr[446 + 12]);
+            WHBLogPrintf("Formatting Partition 1 (size: %u sectors)...", p1_size);
+            WHBLogFreetypeDraw();
+            setCustomFormatSize(p1_size);
+            status = (FSStatus)FSA_Format(fsaHandle, "/dev/sdcard01", "fat", 0, 0, 0);
+            if (status != FS_STATUS_OK) {
+                WHBLogPrintf("Format failed (status: %d)!\n", status);
+                WHBLogFreetypeDraw();
+                setErrorPrompt(L"Failed to format Partition 1!");
+                showErrorPrompt(L"OK");
+                free(mbr);
+                FSADelClient(fsaHandle);
+                return;
+            }
+
+            // Read the new MBR
+            uint8_t* newMbr = (uint8_t*)memalign(0x40, deviceInfo.deviceSectorSize);
+            if (!newMbr) {
+                free(mbr);
+                FSADelClient(fsaHandle);
+                return;
+            }
+
+            if ((FSStatus)rawRead(fsaHandle, "/dev/sdcard01", 0, 1, newMbr, deviceInfo.deviceSectorSize) == FS_STATUS_OK) {
+                // Restore other partitions from backup MBR (stored in 'mbr' variable)
+                for (int i = 1; i < 4; i++) {
+                    memcpy(&newMbr[446 + i * 16], &mbr[446 + i * 16], 16);
+                }
+
+                WHBLogPrint("Restoring other partitions to MBR...");
+                WHBLogFreetypeDraw();
+                rawWrite(fsaHandle, "/dev/sdcard01", 0, 1, newMbr, deviceInfo.deviceSectorSize);
+            }
+
+            // Clear backup MBR
+            memset(mbr, 0, deviceInfo.deviceSectorSize);
+            WHBLogPrint("Clearing backup sector...");
+            WHBLogFreetypeDraw();
+            rawWrite(fsaHandle, "/dev/sdcard01", 1, 1, mbr, deviceInfo.deviceSectorSize);
+
+            free(newMbr);
+            free(mbr);
+        }
+    }
+
+    FSADelClient(fsaHandle);
+
+    if (showDialogPrompt(L"Device formatted successfully!\nDo you want to download Aroma now?", L"Yes", L"No") == 0) {
+        if (downloadAroma("fs:/vol/external01/")) {
+            showDialogPrompt(L"Aroma downloaded successfully!", L"OK");
+        } else {
+            showErrorPrompt(L"OK");
+        }
+    } else {
+        showDialogPrompt(L"Formatting complete!", L"OK");
+    }
+}

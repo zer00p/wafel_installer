@@ -1,5 +1,6 @@
 #include "menu.h"
 #include "pluginmanager.h"
+#include "partition_manager.h"
 #include "navigation.h"
 #include "filesystem.h"
 #include "gui.h"
@@ -73,32 +74,6 @@ void installAromaMenu() {
     }
 }
 
-void formatUsbAndDownloadAromaMenu() {
-    uint8_t choice = showDialogPrompt(L"WARNING: This will format the USB drive and DELETE ALL DATA on it.\nDo you want to continue?", L"Yes", L"No");
-    if (choice != 0) return;
-
-    if (!formatUsbFat()) {
-        setErrorPrompt(L"Failed to format USB drive!");
-        showErrorPrompt(L"OK");
-        return;
-    }
-
-    if (!mountUsbFat()) {
-        setErrorPrompt(L"Failed to mount USB drive after formatting!");
-        showErrorPrompt(L"OK");
-        return;
-    }
-
-    if (downloadAroma("usb:/")) {
-        showDialogPrompt(L"USB drive formatted and Aroma downloaded successfully!", L"OK");
-    } else {
-        showErrorPrompt(L"OK");
-    }
-
-    unmountUsbFat();
-}
-
-
 // Can get recursively called
 void showMainMenu() {
     uint8_t selectedOption = 0;
@@ -112,9 +87,9 @@ void showMainMenu() {
         WHBLogFreetypePrintf(L"%C Redownload files", OPTION(1));
         WHBLogFreetypePrintf(L"%C Boot Installer", OPTION(2));
         WHBLogFreetypePrintf(L"%C Download Aroma", OPTION(3));
-        WHBLogFreetypePrintf(L"%C Format USB and Download Aroma", OPTION(4));
+        WHBLogFreetypePrintf(L"%C Format and Partition", OPTION(4));
         WHBLogFreetypePrint(L"");
-        WHBLogFreetypePrintf(L"%C Stroopwafel Plugin Manager", OPTION(6));
+        WHBLogFreetypePrintf(L"%C Stroopwafel Plugin Manager", OPTION(5));
         WHBLogFreetypeScreenPrintBottom(L"===============================");
         WHBLogFreetypeScreenPrintBottom(L"\uE000 Button = Select Option \uE001 Button = Exit ISFShax Loader");
         WHBLogFreetypeScreenPrintBottom(L"");
@@ -127,7 +102,7 @@ void showMainMenu() {
             updateInputs();
             // Check each button state
             if (navigatedUp()) {
-                if (selectedOption == 6) {
+                if (selectedOption == 5) {
                     selectedOption = 4;
                     break;
                 } else if (selectedOption > 0) {
@@ -137,7 +112,7 @@ void showMainMenu() {
             }
             if (navigatedDown()) {
                 if (selectedOption == 4) {
-                    selectedOption = 6;
+                    selectedOption = 5;
                     break;
                 } else if (selectedOption < 4) {
                     selectedOption++;
@@ -149,7 +124,7 @@ void showMainMenu() {
                 break;
             }
             if (pressedBack()) {
-                uint8_t exitSelectedOption = showDialogPrompt(getCFWVersion() == MOCHA_FSCLIENT ? L"Do you really want to exit ISFShax Loader?" : L"Do you really want to exit ISFShax Loader?\nYour console will reboot to prevent compatibility issues!", L"Yes", L"No");
+                uint8_t exitSelectedOption = showDialogPrompt(getCFWVersion() == MOCHA_FSCLIENT ? L"Do you really want to exit ISFShax Loader?" : L"Do you really want to exit ISFShax Loader?\nYour console will reboot to prevent compatibility issues!", L"Yes", L"No", nullptr, 1);
                 if (exitSelectedOption == 0) {
                     WHBLogFreetypeClear();
                     return;
@@ -175,9 +150,9 @@ void showMainMenu() {
             installAromaMenu();
             break;
         case 4:
-            formatUsbAndDownloadAromaMenu();
+            formatAndPartitionMenu();
             break;
-        case 6:
+        case 5:
             showPluginManager();
             break;
         default:
@@ -191,11 +166,15 @@ void showMainMenu() {
 
 // Helper functions
 
-uint8_t showDialogPrompt(const wchar_t* message, const wchar_t* button1, const wchar_t* button2) {
+uint8_t showDialogPrompt(const wchar_t* message, const wchar_t* button1, const wchar_t* button2, const wchar_t* button3, uint8_t defaultOption) {
     sleep_for(100ms);
-    uint8_t selectedOption = 0;
+    uint8_t selectedOption = defaultOption;
+    uint8_t numButtons = 1;
+    if (button3 != nullptr) numButtons = 3;
+    else if (button2 != nullptr) numButtons = 2;
+
     while(true) {
-        WHBLogFreetypeStartScreen();
+        //WHBLogFreetypeStartScreen();
 
         // Print each line
         std::wistringstream messageStream(message);
@@ -208,6 +187,7 @@ uint8_t showDialogPrompt(const wchar_t* message, const wchar_t* button1, const w
         WHBLogFreetypePrint(L"");
         WHBLogFreetypePrintf(L"%C [%S]", OPTION(0), button1);
         if (button2 != nullptr) WHBLogFreetypePrintf(L"%C [%S]", OPTION(1), button2);
+        if (button3 != nullptr) WHBLogFreetypePrintf(L"%C [%S]", OPTION(2), button3);
         WHBLogFreetypePrint(L"");
         WHBLogFreetypeScreenPrintBottom(L"===============================");
         WHBLogFreetypeScreenPrintBottom(L"\uE000 Button = Select Option");
@@ -219,18 +199,17 @@ uint8_t showDialogPrompt(const wchar_t* message, const wchar_t* button1, const w
         while (true) {
             updateInputs();
             // Handle navigation between the buttons
-            if (button2 != nullptr) {
-                if (navigatedUp() && selectedOption == 1) {
-                    selectedOption = 0;
-                    break;
-                }
-                else if (navigatedDown() && selectedOption == 0) {
-                    selectedOption = 1;
-                    break;
-                }
+            if (navigatedUp() && selectedOption > 0) {
+                selectedOption--;
+                break;
+            }
+            if (navigatedDown() && selectedOption < numButtons - 1) {
+                selectedOption++;
+                break;
             }
 
             if (pressedOk()) {
+                WHBLogFreetypeStartScreen();
                 return selectedOption;
             }
 
