@@ -214,6 +214,15 @@ uint8_t showDialogPrompt(const wchar_t* message, const std::vector<std::wstring>
     }
 }
 
+uint8_t showDialogPrompt(const wchar_t* message, const wchar_t* button1, const wchar_t* button2, const wchar_t* button3, const wchar_t* button4, uint8_t defaultOption) {
+    std::vector<std::wstring> buttons;
+    buttons.push_back(button1);
+    if (button2) buttons.push_back(button2);
+    if (button3) buttons.push_back(button3);
+    if (button4) buttons.push_back(button4);
+    return showDialogPrompt(message, buttons, defaultOption);
+}
+
 uint8_t showDialogPrompt(const wchar_t* message, const wchar_t* button1, const wchar_t* button2, const wchar_t* button3, const wchar_t* button4, const wchar_t* button5, const wchar_t* button6, uint8_t defaultOption) {
     std::vector<std::wstring> buttons;
     buttons.push_back(button1);

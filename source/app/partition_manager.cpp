@@ -636,6 +636,10 @@ void formatAndPartitionMenu() {
                 write32LE(&pte[8], p2_start);
                 write32LE(&pte[12], p2_size);
 
+                // Ensure MBR signature is present
+                mbr[510] = 0x55;
+                mbr[511] = 0xAA;
+
                 WHBLogPrint("Adding Wii U partition to MBR...");
                 WHBLogFreetypeDraw();
                 if ((FSStatus)rawWrite(fsaHandle, "/dev/sdcard01", 0, 1, mbr, deviceInfo.deviceSectorSize) == FS_STATUS_OK) {
