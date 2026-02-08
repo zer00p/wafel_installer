@@ -294,6 +294,8 @@ void formatAndPartitionMenu() {
         return;
     }
 
+    bool shouldDownloadAroma = false;
+
     if (totalSize < twoGiB) {
         showDialogPrompt(L"Device is smaller than 2GiB.\nPartitioning isn't supported.\nThe whole card will be formatted to FAT16.", L"OK");
 
@@ -316,6 +318,7 @@ void formatAndPartitionMenu() {
             FSADelClient(fsaHandle);
             return;
         }
+        shouldDownloadAroma = true;
         free(mbr);
     } else {
         if (!mbrReadSuccess) {
@@ -446,6 +449,7 @@ void formatAndPartitionMenu() {
                 FSADelClient(fsaHandle);
                 return;
             }
+            shouldDownloadAroma = true;
         } else if (formatChoice == optPartition) { // Partition drive
             double totalGB = (double)deviceInfo.deviceSizeInSectors * (double)deviceInfo.deviceSectorSize / (1024.0 * 1024.0 * 1024.0);
             int fatPercent = 80;
@@ -524,6 +528,7 @@ void formatAndPartitionMenu() {
                 FSADelClient(fsaHandle);
                 return;
             }
+            shouldDownloadAroma = true;
 
             // Read the new MBR created by FSA_Format
             if ((FSStatus)rawRead(fsaHandle, "/dev/sdcard01", 0, 1, mbr, deviceInfo.deviceSectorSize) == FS_STATUS_OK) {
@@ -581,6 +586,7 @@ void formatAndPartitionMenu() {
                 FSADelClient(fsaHandle);
                 return;
             }
+            shouldDownloadAroma = true;
 
             // Read the new MBR
             uint8_t* newMbr = (uint8_t*)memalign(0x40, deviceInfo.deviceSectorSize);
@@ -673,13 +679,17 @@ void formatAndPartitionMenu() {
 
     FSADelClient(fsaHandle);
 
-    if (showDialogPrompt(L"Device formatted successfully!\nDo you want to download Aroma now?", L"Yes", L"No") == 0) {
-        if (downloadAroma("fs:/vol/external01/")) {
-            showDialogPrompt(L"Aroma downloaded successfully!", L"OK");
+    if (shouldDownloadAroma) {
+        if (showDialogPrompt(L"Device formatted successfully!\nDo you want to download Aroma now?", L"Yes", L"No") == 0) {
+            if (downloadAroma("fs:/vol/external01/")) {
+                showDialogPrompt(L"Aroma downloaded successfully!", L"OK");
+            } else {
+                showErrorPrompt(L"OK");
+            }
         } else {
-            showErrorPrompt(L"OK");
+            showDialogPrompt(L"Formatting complete!", L"OK");
         }
     } else {
-        showDialogPrompt(L"Formatting complete!", L"OK");
+        showDialogPrompt(L"Operation completed successfully!", L"OK");
     }
 }
