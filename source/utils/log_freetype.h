@@ -22,6 +22,7 @@ void WHBLogFreetypePrintAtPosition(uint32_t position, const wchar_t *line);
 void WHBLogFreetypeScreenPrintBottom(const wchar_t *line);
 uint32_t WHBLogFreetypeScreenSize();
 uint32_t WHBLogFreetypeGetScreenPosition();
+void WHBLogFreetypeSetScreenPosition(uint32_t position);
 void WHBLogFreetypeDrawScreen();
 
 // Rendering options

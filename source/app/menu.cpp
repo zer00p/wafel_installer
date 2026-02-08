@@ -182,13 +182,15 @@ void showMainMenu() {
 
 // Helper functions
 
-uint8_t showDialogPrompt(const wchar_t* message, const std::vector<std::wstring>& buttons, uint8_t defaultOption) {
+uint8_t showDialogPrompt(const wchar_t* message, const std::vector<std::wstring>& buttons, uint8_t defaultOption, bool clearScreen) {
     sleep_for(100ms);
     uint8_t selectedOption = defaultOption;
     uint8_t numButtons = buttons.size();
+    uint32_t startPos = clearScreen ? 0 : WHBLogFreetypeGetScreenPosition();
 
     while(true) {
-        WHBLogFreetypeStartScreen();
+        if (clearScreen) WHBLogFreetypeStartScreen();
+        else WHBLogFreetypeSetScreenPosition(startPos);
 
         // Print each line
         std::wistringstream messageStream(message);
@@ -232,16 +234,16 @@ uint8_t showDialogPrompt(const wchar_t* message, const std::vector<std::wstring>
     }
 }
 
-uint8_t showDialogPrompt(const wchar_t* message, const wchar_t* button1, const wchar_t* button2, const wchar_t* button3, const wchar_t* button4, uint8_t defaultOption) {
+uint8_t showDialogPrompt(const wchar_t* message, const wchar_t* button1, const wchar_t* button2, const wchar_t* button3, const wchar_t* button4, uint8_t defaultOption, bool clearScreen) {
     std::vector<std::wstring> buttons;
     buttons.push_back(button1);
     if (button2) buttons.push_back(button2);
     if (button3) buttons.push_back(button3);
     if (button4) buttons.push_back(button4);
-    return showDialogPrompt(message, buttons, defaultOption);
+    return showDialogPrompt(message, buttons, defaultOption, clearScreen);
 }
 
-uint8_t showDialogPrompt(const wchar_t* message, const wchar_t* button1, const wchar_t* button2, const wchar_t* button3, const wchar_t* button4, const wchar_t* button5, const wchar_t* button6, uint8_t defaultOption) {
+uint8_t showDialogPrompt(const wchar_t* message, const wchar_t* button1, const wchar_t* button2, const wchar_t* button3, const wchar_t* button4, const wchar_t* button5, const wchar_t* button6, uint8_t defaultOption, bool clearScreen) {
     std::vector<std::wstring> buttons;
     buttons.push_back(button1);
     if (button2) buttons.push_back(button2);
@@ -249,11 +251,11 @@ uint8_t showDialogPrompt(const wchar_t* message, const wchar_t* button1, const w
     if (button4) buttons.push_back(button4);
     if (button5) buttons.push_back(button5);
     if (button6) buttons.push_back(button6);
-    return showDialogPrompt(message, buttons, defaultOption);
+    return showDialogPrompt(message, buttons, defaultOption, clearScreen);
 }
 
-void showDialogPrompt(const wchar_t* message, const wchar_t* button) {
-    showDialogPrompt(message, button, nullptr);
+void showDialogPrompt(const wchar_t* message, const wchar_t* button, bool clearScreen) {
+    showDialogPrompt(message, button, nullptr, nullptr, nullptr, 0, clearScreen);
 }
 
 const wchar_t* errorMessage = nullptr;

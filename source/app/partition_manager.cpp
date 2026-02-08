@@ -287,7 +287,7 @@ void formatAndPartitionMenu() {
 
     WHBLogFreetypeDraw();
 
-    if (showDialogPrompt(L"Is this the correct device?", L"Yes", L"No", nullptr, nullptr, 1) != 0) {
+    if (showDialogPrompt(L"Is this the correct device?", L"Yes", L"No", nullptr, nullptr, 1, false) != 0) {
         free(mbr);
         FSADelClient(fsaHandle);
         return;
