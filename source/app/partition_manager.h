@@ -8,4 +8,6 @@ void setupSDUSBMenu();
 bool formatWholeDrive(FSAClientHandle fsaHandle, const char* device, const FSADeviceInfo& deviceInfo);
 bool partitionDevice(FSAClientHandle fsaHandle, const char* device, const FSADeviceInfo& deviceInfo);
 std::wstring getDeviceSummary(FSAClientHandle fsaHandle, const char* device, const FSADeviceInfo& deviceInfo);
+void showDeviceInfoScreen(FSAClientHandle fsaHandle, const char* device, const FSADeviceInfo& deviceInfo);
+bool waitForDevice(FSAClientHandle fsaHandle, const wchar_t* deviceName);
 void usbAsSd(bool enable);

@@ -211,12 +211,51 @@ std::wstring getDeviceSummary(FSAClientHandle fsaHandle, const char* device, con
     return ss.str();
 }
 
+void showDeviceInfoScreen(FSAClientHandle fsaHandle, const char* device, const FSADeviceInfo& deviceInfo) {
+    WHBLogFreetypeStartScreen();
+    WHBLogFreetypePrint(L"Device Info:");
+    WHBLogFreetypePrint(getDeviceSummary(fsaHandle, device, deviceInfo).c_str());
+    WHBLogFreetypeDraw();
+}
+
+bool waitForDevice(FSAClientHandle fsaHandle, const wchar_t* deviceName) {
+    while (true) {
+        uint8_t choice = showDialogPrompt(L"Remove ALL SD and USB storage devices NOW!\nOnly the target device should be plugged in later.", L"OK", L"Cancel");
+        if (choice != 0) return false;
+
+        FSADeviceInfo devInfo;
+        if ((FSStatus)FSAGetDeviceInfo(fsaHandle, "/dev/sdcard01", &devInfo) != FS_STATUS_OK) {
+            break;
+        }
+    }
+
+    std::wstring pluginMsg = L"Plug in ONLY the " + std::wstring(deviceName) + L" you want to work with.\nPlugging in other devices may lead to DATA LOSS!";
+    while (true) {
+        WHBLogFreetypeStartScreen();
+        WHBLogFreetypePrint(pluginMsg.c_str());
+        WHBLogFreetypePrint(L"");
+        WHBLogFreetypePrint(L"Waiting for device...");
+        WHBLogFreetypePrint(L"Press B to cancel");
+        WHBLogFreetypeDrawScreen();
+
+        FSADeviceInfo devInfo;
+        if ((FSStatus)FSAGetDeviceInfo(fsaHandle, "/dev/sdcard01", &devInfo) == FS_STATUS_OK) {
+            return true;
+        }
+
+        updateInputs();
+        if (pressedBack()) return false;
+        OSSleepTicks(OSMillisecondsToTicks(100));
+    }
+}
+
 bool formatWholeDrive(FSAClientHandle fsaHandle, const char* device, const FSADeviceInfo& deviceInfo) {
     uint64_t totalSize = (uint64_t)deviceInfo.deviceSizeInSectors * deviceInfo.deviceSectorSize;
     uint64_t twoGiB = 2ULL * 1024 * 1024 * 1024;
     const char* fsType = (totalSize < twoGiB) ? "fat" : "fat"; // FAT16 is used by system automatically if < 2GiB and we pass "fat"
 
-    if (showDialogPrompt(L"WARNING: This will format the whole device and DELETE ALL DATA on it.\nDo you want to continue?", L"Yes", L"No", nullptr, nullptr, 1) != 0) {
+    showDeviceInfoScreen(fsaHandle, device, deviceInfo);
+    if (showDialogPrompt(L"WARNING: This will format the whole device and DELETE ALL DATA on it.\nDo you want to continue?", L"Yes", L"No", nullptr, nullptr, 1, false) != 0) {
         return false;
     }
 
@@ -248,13 +287,14 @@ bool partitionDevice(FSAClientHandle fsaHandle, const char* device, const FSADev
         double fatGB = totalGB * fatPercent / 100.0;
         double ntfsGB = totalGB * (100 - fatPercent) / 100.0;
 
-        WHBLogFreetypeStartScreen();
+        showDeviceInfoScreen(fsaHandle, device, deviceInfo);
         WHBLogFreetypePrint((L"Partition " + toWstring(device)).c_str());
         WHBLogFreetypePrint(L"===============================");
         WHBLogFreetypePrintf(L"FAT32: [ %d%% ] (%.2f GB)", fatPercent, fatGB);
         WHBLogFreetypePrintf(L"WFS:   [ %d%% ] (%.2f GB)", 100 - fatPercent, ntfsGB);
         WHBLogFreetypePrint(L"");
-        WHBLogFreetypePrint(L"Use Left/Right to adjust (10% increments)");
+        WHBLogFreetypePrint(L"Use Left/Right to adjust (1% increments)");
+        WHBLogFreetypePrint(L"Use Up/Down to adjust (10% increments)");
         WHBLogFreetypePrint(L"Press A to confirm, B to cancel");
         WHBLogFreetypeScreenPrintBottom(L"===============================");
         WHBLogFreetypeDrawScreen();
@@ -265,16 +305,34 @@ bool partitionDevice(FSAClientHandle fsaHandle, const char* device, const FSADev
         bool cancelled = false;
         while(true) {
             updateInputs();
-            if (navigatedLeft() && fatPercent > 10) {
+            if (navigatedLeft() && fatPercent > 0) {
                 if (totalGB >= 1.0) {
-                    if (totalGB * (fatPercent - 10) / 100.0 >= 1.0) {
-                        fatPercent -= 10;
+                    if (totalGB * (fatPercent - 1) / 100.0 >= 1.0) {
+                        fatPercent -= 1;
                     }
+                } else {
+                    fatPercent -= 1;
                 }
                 break;
             }
             if (navigatedRight() && fatPercent < 100) {
-                fatPercent += 10;
+                fatPercent += 1;
+                break;
+            }
+            if (navigatedDown() && fatPercent > 0) {
+                if (totalGB >= 1.0) {
+                    if (totalGB * (fatPercent - 10) / 100.0 >= 1.0) {
+                        fatPercent -= 10;
+                    } else {
+                        fatPercent = (int)ceil(100.0 / totalGB);
+                    }
+                } else {
+                    fatPercent = (fatPercent >= 10) ? fatPercent - 10 : 0;
+                }
+                break;
+            }
+            if (navigatedUp() && fatPercent < 100) {
+                fatPercent = (fatPercent <= 90) ? fatPercent + 10 : 100;
                 break;
             }
             if (pressedOk()) {
@@ -293,7 +351,8 @@ bool partitionDevice(FSAClientHandle fsaHandle, const char* device, const FSADev
         }
     }
 
-    if (showDialogPrompt(L"WARNING: This will RE-PARTITION the whole device and DELETE ALL DATA on it.\nDo you want to continue?", L"Yes", L"No", nullptr, nullptr, 1) != 0) {
+    showDeviceInfoScreen(fsaHandle, device, deviceInfo);
+    if (showDialogPrompt(L"WARNING: This will RE-PARTITION the whole device and DELETE ALL DATA on it.\nDo you want to continue?", L"Yes", L"No", nullptr, nullptr, 1, false) != 0) {
         return false;
     }
 
@@ -380,39 +439,9 @@ void formatAndPartitionMenu() {
     bool shouldDownloadAroma = false;
 
     while (true) {
-        while (true) {
-            uint8_t choice = showDialogPrompt(L"Remove all SD and USB Storage devices NOW!", L"OK", L"Cancel");
-            if (choice != 0) {
-                FSADelClient(fsaHandle);
-                return;
-            }
-
-            FSADeviceInfo devInfo;
-            if ((FSStatus)FSAGetDeviceInfo(fsaHandle, "/dev/sdcard01", &devInfo) != FS_STATUS_OK) {
-                break;
-            }
-        }
-
-        std::wstring pluginMsg = L"Plugin the " + std::wstring(deviceName) + L" you want to format";
-        while (true) {
-            WHBLogFreetypeStartScreen();
-            WHBLogFreetypePrint(pluginMsg.c_str());
-            WHBLogFreetypePrint(L"");
-            WHBLogFreetypePrint(L"Waiting for device...");
-            WHBLogFreetypePrint(L"Press B to cancel");
-            WHBLogFreetypeDrawScreen();
-
-            FSADeviceInfo devInfo;
-            if ((FSStatus)FSAGetDeviceInfo(fsaHandle, "/dev/sdcard01", &devInfo) == FS_STATUS_OK) {
-                break;
-            }
-
-            updateInputs();
-            if (pressedBack()) {
-                FSADelClient(fsaHandle);
-                return;
-            }
-            OSSleepTicks(OSMillisecondsToTicks(100));
+        if (!waitForDevice(fsaHandle, deviceName)) {
+            FSADelClient(fsaHandle);
+            return;
         }
 
         FSADeviceInfo deviceInfo;
@@ -434,10 +463,7 @@ void formatAndPartitionMenu() {
             return;
         }
 
-        WHBLogFreetypeStartScreen();
-        WHBLogFreetypePrint(L"Device Info:");
-        WHBLogFreetypePrint(getDeviceSummary(fsaHandle, "/dev/sdcard01", deviceInfo).c_str());
-        WHBLogFreetypeDraw();
+        showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", deviceInfo);
 
         if (showDialogPrompt(L"Is this the correct device?", L"Yes", L"No", nullptr, nullptr, 1, false) != 0) {
             free(mbr);
@@ -448,7 +474,8 @@ void formatAndPartitionMenu() {
         uint64_t twoGiB = 2ULL * 1024 * 1024 * 1024;
 
         if (totalSize < twoGiB) {
-            showDialogPrompt(L"Device is smaller than 2GiB.\nPartitioning isn't supported.\nThe whole card will be formatted to FAT16.", L"OK");
+            showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", deviceInfo);
+            showDialogPrompt(L"Device is smaller than 2GiB.\nPartitioning isn't supported.\nThe whole card will be formatted to FAT16.", L"OK", false);
 
             if (formatWholeDrive(fsaHandle, "/dev/sdcard01", deviceInfo)) {
                 shouldDownloadAroma = true;
@@ -474,7 +501,8 @@ void formatAndPartitionMenu() {
             if (backupMbr) {
                 if ((FSStatus)rawRead(fsaHandle, "/dev/sdcard01", 1, 1, backupMbr, deviceInfo.deviceSectorSize) == FS_STATUS_OK) {
                     if (backupMbr[510] == 0x55 && backupMbr[511] == 0xAA) {
-                        uint8_t restoreChoice = showDialogPrompt(L"Backup MBR found at sector 1. Do you want to restore it?", L"Yes", L"No", nullptr, nullptr, 1);
+                        showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", deviceInfo);
+                        uint8_t restoreChoice = showDialogPrompt(L"Backup MBR found at sector 1. Do you want to restore it?", L"Yes", L"No", nullptr, nullptr, 1, false);
                         if (restoreChoice == 0) {
                             WHBLogPrint("Restoring MBR from backup...");
                             WHBLogFreetypeDraw();
@@ -492,7 +520,8 @@ void formatAndPartitionMenu() {
                                 showErrorPrompt(L"OK");
                             }
                         } else if (restoreChoice == 1) {
-                            if (showDialogPrompt(L"Do you want to delete the backup MBR?", L"Yes", L"No", nullptr, nullptr, 1) == 0) {
+                            showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", deviceInfo);
+                            if (showDialogPrompt(L"Do you want to delete the backup MBR?", L"Yes", L"No", nullptr, nullptr, 1, false) == 0) {
                                  WHBLogPrint("Clearing backup sector...");
                                  WHBLogFreetypeDraw();
                                  memset(backupMbr, 0, deviceInfo.deviceSectorSize);
@@ -503,9 +532,6 @@ void formatAndPartitionMenu() {
                 }
                 free(backupMbr);
             }
-
-            std::wstring summary = getDeviceSummary(fsaHandle, "/dev/sdcard01", deviceInfo);
-            std::wstring partitionList = summary + L"\nWhat do you want to do?";
 
             int partitionCount = 0;
             uint32_t lastOccupiedSector = 1;
@@ -551,7 +577,8 @@ void formatAndPartitionMenu() {
             optCancel = (int)buttons.size();
             buttons.push_back(L"Cancel");
 
-            uint8_t formatChoice = showDialogPrompt(partitionList.c_str(), buttons, optCancel);
+            showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", deviceInfo);
+            uint8_t formatChoice = showDialogPrompt(L"What do you want to do?", buttons, optCancel, false);
 
             if (formatChoice == optCancel || formatChoice == 255) {
                 free(mbr);
@@ -573,7 +600,8 @@ void formatAndPartitionMenu() {
                 }
                 free(mbr);
             } else if (optOnlyFormatP1 != -1 && formatChoice == optOnlyFormatP1) { // Only format Partition 1
-                if (showDialogPrompt(L"WARNING: This will format the first partition and DELETE ALL DATA on it.\nOther partitions will be preserved.\nDo you want to continue?", L"Yes", L"No", nullptr, nullptr, 1) != 0) {
+                showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", deviceInfo);
+                if (showDialogPrompt(L"WARNING: This will format the first partition and DELETE ALL DATA on it.\nOther partitions will be preserved.\nDo you want to continue?", L"Yes", L"No", nullptr, nullptr, 1, false) != 0) {
                     free(mbr);
                     continue;
                 }
@@ -683,7 +711,8 @@ void formatAndPartitionMenu() {
                 free(mbr);
                 break;
             } else if (optDeleteMbr != -1 && formatChoice == optDeleteMbr) {
-                if (showDialogPrompt(L"WARNING: This will DELETE the MBR and ALL partition information.\nDo you want to continue?", L"Yes", L"No", nullptr, nullptr, 1) == 0) {
+                showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", deviceInfo);
+                if (showDialogPrompt(L"WARNING: This will DELETE the MBR and ALL partition information.\nDo you want to continue?", L"Yes", L"No", nullptr, nullptr, 1, false) == 0) {
                     uint8_t* zeroSector = (uint8_t*)memalign(0x40, deviceInfo.deviceSectorSize);
                     if (zeroSector) {
                         memset(zeroSector, 0, deviceInfo.deviceSectorSize);
@@ -738,38 +767,9 @@ void setupSDUSBMenu() {
     }
 
     while (true) {
-        while (true) {
-            uint8_t choice = showDialogPrompt(L"Remove all SD and USB Storage devices NOW!", L"OK", L"Cancel");
-            if (choice != 0) {
-                FSADelClient(fsaHandle);
-                return;
-            }
-
-            FSADeviceInfo devInfo;
-            if ((FSStatus)FSAGetDeviceInfo(fsaHandle, "/dev/sdcard01", &devInfo) != FS_STATUS_OK) {
-                break;
-            }
-        }
-
-        while (true) {
-            WHBLogFreetypeStartScreen();
-            WHBLogFreetypePrint(L"Plug in the SD card you want to use for SDUSB");
-            WHBLogFreetypePrint(L"");
-            WHBLogFreetypePrint(L"Waiting for device...");
-            WHBLogFreetypePrint(L"Press B to cancel");
-            WHBLogFreetypeDrawScreen();
-
-            FSADeviceInfo devInfo;
-            if ((FSStatus)FSAGetDeviceInfo(fsaHandle, "/dev/sdcard01", &devInfo) == FS_STATUS_OK) {
-                break;
-            }
-
-            updateInputs();
-            if (pressedBack()) {
-                FSADelClient(fsaHandle);
-                return;
-            }
-            OSSleepTicks(OSMillisecondsToTicks(100));
+        if (!waitForDevice(fsaHandle, L"SD card")) {
+            FSADelClient(fsaHandle);
+            return;
         }
 
         FSADeviceInfo deviceInfo;
@@ -791,10 +791,7 @@ void setupSDUSBMenu() {
             return;
         }
 
-        WHBLogFreetypeStartScreen();
-        WHBLogFreetypePrint(L"Device Info:");
-        WHBLogFreetypePrint(getDeviceSummary(fsaHandle, "/dev/sdcard01", deviceInfo).c_str());
-        WHBLogFreetypeDraw();
+        showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", deviceInfo);
 
         if (showDialogPrompt(L"Is this the correct device?", L"Yes", L"No", nullptr, nullptr, 1, false) != 0) {
             free(mbr);
@@ -843,7 +840,8 @@ void setupSDUSBMenu() {
         optCancel = (int)buttons.size();
         buttons.push_back(L"Cancel");
 
-        uint8_t choice = showDialogPrompt(L"How do you want to partition the SD card?", buttons, 0);
+        showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", deviceInfo);
+        uint8_t choice = showDialogPrompt(L"How do you want to partition the SD card?", buttons, 0, false);
 
         bool partitionSuccess = false;
         if (choice == optKeep) {

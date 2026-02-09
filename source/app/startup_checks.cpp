@@ -32,11 +32,13 @@ void performStartupChecks() {
         bool sdExists = (fsaHandle >= 0) && ((FSStatus)FSAGetDeviceInfo(fsaHandle, "/dev/sdcard01", &devInfo) == FS_STATUS_OK);
 
         if (sdExists) {
-            if (showDialogPrompt(L"SD card cannot be accessed.\nDo you want to format it to use it on the Wii U?", L"Yes", L"No") == 0) {
+            showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", devInfo);
+            if (showDialogPrompt(L"SD card cannot be accessed.\nDo you want to format it to use it on the Wii U?", L"Yes", L"No", nullptr, nullptr, 0, false) == 0) {
                 uint64_t totalSize = (uint64_t)devInfo.deviceSizeInSectors * devInfo.deviceSectorSize;
                 uint64_t twoGiB = 2ULL * 1024 * 1024 * 1024;
 
-                if (totalSize >= twoGiB && showDialogPrompt(L"Do you also want to use the SD card to install Wii U games to?", L"Yes", L"No") == 0) {
+                showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", devInfo);
+                if (totalSize >= twoGiB && showDialogPrompt(L"Do you also want to use the SD card to install Wii U games to?", L"Yes", L"No", nullptr, nullptr, 0, false) == 0) {
                     wantsPartitionedStorage = true;
                     if (partitionDevice(fsaHandle, "/dev/sdcard01", devInfo)) {
                         WHBMountSdCard();
@@ -53,29 +55,11 @@ void performStartupChecks() {
             if (showDialogPrompt(L"No SD card detected.\nDo you want to use a USB device instead?", L"Yes", L"No") == 0) {
                 usingUSB = true;
                 usbAsSd(true);
-                showDialogPrompt(L"Please unplug and then plug the USB device in again.", L"OK");
 
-                // Wait for /dev/sdcard01
-                bool found = false;
-                while (true) {
-                    WHBLogFreetypeStartScreen();
-                    WHBLogPrint("Waiting for /dev/sdcard01 (USB as SD)...");
-                    WHBLogPrint("Press B to cancel");
-                    WHBLogFreetypeDrawScreen();
-                    if ((FSStatus)FSAGetDeviceInfo(fsaHandle, "/dev/sdcard01", &devInfo) == FS_STATUS_OK) {
-                        found = true;
-                        break;
-                    }
-                    updateInputs();
-                    if (pressedBack()) break;
-                    OSSleepTicks(OSMillisecondsToTicks(100));
-                }
-
-                if (found) {
+                if (waitForDevice(fsaHandle, L"USB device")) {
                     if (WHBMountSdCard() == 1) {
-                        std::wstring summary = getDeviceSummary(fsaHandle, "/dev/sdcard01", devInfo);
-                        std::wstring msg = L"USB device detected.\n" + summary + L"\nDo you want to repartition it to store Wii U games on or keep as is?";
-                        if (showDialogPrompt(msg.c_str(), L"Repartition", L"Keep as is") == 0) {
+                        showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", devInfo);
+                        if (showDialogPrompt(L"USB device detected.\nDo you want to repartition it to store Wii U games on or keep as is?", L"Repartition", L"Keep as is", nullptr, nullptr, 0, false) == 0) {
                             wantsPartitionedStorage = true;
                             if (partitionDevice(fsaHandle, "/dev/sdcard01", devInfo)) {
                                 WHBMountSdCard();
@@ -83,9 +67,8 @@ void performStartupChecks() {
                         }
                     } else {
                         // Cannot be mounted
-                        std::wstring summary = getDeviceSummary(fsaHandle, "/dev/sdcard01", devInfo);
-                        std::wstring msg = L"USB device cannot be mounted.\n" + summary + L"\nDo you want to use the full drive for homebrew or also store Wii U games on it?";
-                        if (showDialogPrompt(msg.c_str(), L"Homebrew only", L"Homebrew + Games") == 1) {
+                        showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", devInfo);
+                        if (showDialogPrompt(L"USB device cannot be mounted.\nDo you want to use the full drive for homebrew or also store Wii U games on it?", L"Homebrew only", L"Homebrew + Games", nullptr, nullptr, 0, false) == 1) {
                             wantsPartitionedStorage = true;
                             if (partitionDevice(fsaHandle, "/dev/sdcard01", devInfo)) {
                                 WHBMountSdCard();
