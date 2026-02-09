@@ -49,11 +49,10 @@ static void FreetypeSetLine(uint32_t position, const wchar_t *line) {
     queueBuffer[newLines - 1][length] = L'\0';
 }
 
-static void FreetypeAddLine(const char *line) {
+static void FreetypeAddSingleLine(const char *line, size_t length) {
     DEBUG_THREADSAFE;
-    size_t length = strlen(line);
 
-    if (length > LINE_LENGTH) {
+    if (length > LINE_LENGTH - 1) {
         length = LINE_LENGTH - 1;
     }
 
@@ -62,13 +61,21 @@ static void FreetypeAddLine(const char *line) {
             wmemcpy(queueBuffer[i], queueBuffer[i + 1], LINE_LENGTH);
         }
 
-        size_t wideLength = std::mbstowcs(queueBuffer[newLines - 1], line, length);
+        char temp[LINE_LENGTH];
+        memcpy(temp, line, length);
+        temp[length] = '\0';
+
+        size_t wideLength = std::mbstowcs(queueBuffer[newLines - 1], temp, length);
         if (wideLength != (size_t)-1) {
             queueBuffer[newLines - 1][wideLength] = L'\0';
         }
     }
     else {
-        size_t wideLength = std::mbstowcs(queueBuffer[newLines], line, length);
+        char temp[LINE_LENGTH];
+        memcpy(temp, line, length);
+        temp[length] = '\0';
+
+        size_t wideLength = std::mbstowcs(queueBuffer[newLines], temp, length);
         if (wideLength != (size_t)-1) {
             queueBuffer[newLines][wideLength] = L'\0';
             newLines++;
@@ -76,11 +83,25 @@ static void FreetypeAddLine(const char *line) {
     }
 }
 
-static void FreetypeAddLine(const wchar_t *line) {
-    DEBUG_THREADSAFE;
-    size_t length = wcslen(line);
+static void FreetypeAddLine(const char *line) {
+    const char* start = line;
+    const char* p = line;
+    while (*p != '\0') {
+        if (*p == '\n') {
+            FreetypeAddSingleLine(start, p - start);
+            start = p + 1;
+        }
+        p++;
+    }
+    if (p > start) {
+        FreetypeAddSingleLine(start, p - start);
+    }
+}
 
-    if (length > LINE_LENGTH) {
+static void FreetypeAddSingleLine(const wchar_t *line, size_t length) {
+    DEBUG_THREADSAFE;
+
+    if (length > LINE_LENGTH - 1) {
         length = LINE_LENGTH - 1;
     }
 
@@ -96,6 +117,21 @@ static void FreetypeAddLine(const wchar_t *line) {
         wmemcpy(queueBuffer[newLines], line, length);
         queueBuffer[newLines][length] = L'\0';
         newLines++;
+    }
+}
+
+static void FreetypeAddLine(const wchar_t *line) {
+    const wchar_t* start = line;
+    const wchar_t* p = line;
+    while (*p != L'\0') {
+        if (*p == L'\n') {
+            FreetypeAddSingleLine(start, p - start);
+            start = p + 1;
+        }
+        p++;
+    }
+    if (p > start) {
+        FreetypeAddSingleLine(start, p - start);
     }
 }
 
