@@ -136,16 +136,41 @@ static bool browsePlugins(std::string posixPath) {
             }
             if (pressedOk()) {
                 const auto& p = cachedPluginList[selectedOption];
-                std::wstring msg = L"Do you want to download " + toWstring(p.fileName) + L"?";
-                if (showDialogPrompt(msg.c_str(), L"Yes", L"No") == 0) {
-                    std::string fullPath = posixPath;
-                    if (fullPath.back() != '/') fullPath += "/";
-                    fullPath += p.fileName;
-                    if (downloadFile(p.downloadPath, fullPath)) {
-                        showSuccessPrompt(L"Plugin downloaded successfully!");
-                        return true;
+
+                // Check for incompatible plugins
+                if (!p.incompatiblePlugins.empty()) {
+                    std::stringstream ss(p.incompatiblePlugins);
+                    std::string incompatibleFile;
+                    while (std::getline(ss, incompatibleFile, ',')) {
+                        // trim whitespace
+                        incompatibleFile.erase(0, incompatibleFile.find_first_not_of(" "));
+                        incompatibleFile.erase(incompatibleFile.find_last_not_of(" ") + 1);
+
+                        std::string fullPath = posixPath;
+                        if (fullPath.back() != '/') fullPath += "/";
+                        fullPath += incompatibleFile;
+                        if (access(fullPath.c_str(), F_OK) == 0) {
+                            std::wstring msg = L"Warning: " + toWstring(incompatibleFile) + L" is already installed and is incompatible with " + toWstring(p.fileName) + L"!\nDo you want to continue and overwrite/keep both?";
+                            if (showDialogPrompt(msg.c_str(), L"No", L"Yes") != 1) {
+                                goto next_loop;
+                            }
+                        }
                     }
                 }
+
+                {
+                    std::wstring msg = L"Do you want to download " + toWstring(p.fileName) + L"?";
+                    if (showDialogPrompt(msg.c_str(), L"Yes", L"No") == 0) {
+                        std::string fullPath = posixPath;
+                        if (fullPath.back() != '/') fullPath += "/";
+                        fullPath += p.fileName;
+                        if (downloadFile(p.downloadPath, fullPath)) {
+                            showSuccessPrompt(L"Plugin downloaded successfully!");
+                            return true;
+                        }
+                    }
+                }
+                next_loop:
                 break;
             }
             sleep_for(50ms);
