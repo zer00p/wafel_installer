@@ -1,6 +1,18 @@
 #pragma once
 
 #include <string>
+#include <vector>
+
+struct Plugin {
+    std::string shortDescription;
+    std::string fileName;
+    std::string downloadPath;
+    std::string longDescription;
+    std::string incompatiblePlugins;
+};
+
+bool fetchPluginList(bool force = false);
+const std::vector<Plugin>& getCachedPluginList();
 
 bool downloadHaxFiles();
 bool downloadHaxFilesToSD();

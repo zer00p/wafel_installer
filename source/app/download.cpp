@@ -124,9 +124,9 @@ bool downloadHaxFiles() {
     if (!createHaxDirectories()) return false;
 
     // Stroopwafel
-    if (!downloadFile("https://github.com/StroopwafelCFW/stroopwafel/releases/latest/download/00core.ipx", convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/00core.ipx")) ||
-        !downloadFile("https://github.com/isfshax/wafel_isfshax_patch/releases/latest/download/5isfshax.ipx", convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/5isfshax.ipx")) ||
-        !downloadFile("https://github.com/StroopwafelCFW/wafel_payloader/releases/latest/download/5payldr.ipx", convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/5payldr.ipx")) ||
+    if (!downloadFile(getPluginUrl("00core.ipx"), convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/00core.ipx")) ||
+        !downloadFile(getPluginUrl("5isfshax.ipx"), convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/5isfshax.ipx")) ||
+        !downloadFile(getPluginUrl("5payldr.ipx"), convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/5payldr.ipx")) ||
         // minute
         !downloadFile("https://github.com/StroopwafelCFW/minute_minute/releases/latest/download/fw_fastboot.img", convertToPosixPath("/vol/storage_slc/sys/hax/fw.img")) ||
         // ISFShax
@@ -144,9 +144,9 @@ bool downloadHaxFilesToSD() {
     std::string sdPluginPath = "fs:/vol/external01/wiiu/ios_plugins/";
     fs::create_directories(sdPluginPath);
 
-    if (!downloadFile("https://github.com/StroopwafelCFW/stroopwafel/releases/latest/download/00core.ipx", sdPluginPath + "00core.ipx") ||
-        !downloadFile("https://github.com/isfshax/wafel_isfshax_patch/releases/latest/download/5isfshax.ipx", sdPluginPath + "5isfshax.ipx") ||
-        !downloadFile("https://github.com/StroopwafelCFW/wafel_payloader/releases/latest/download/5payldr.ipx", sdPluginPath + "5payldr.ipx"))
+    if (!downloadFile(getPluginUrl("00core.ipx"), sdPluginPath + "00core.ipx") ||
+        !downloadFile(getPluginUrl("5isfshax.ipx"), sdPluginPath + "5isfshax.ipx") ||
+        !downloadFile(getPluginUrl("5payldr.ipx"), sdPluginPath + "5payldr.ipx"))
     {
         return false;
     }
@@ -157,12 +157,12 @@ bool download5sdusb(bool toSLC, bool toSD) {
     bool success = true;
     if (toSLC) {
         if (!createHaxDirectories()) return false;
-        success &= downloadFile("https://github.com/StroopwafelCFW/wafel_sd_usb/releases/latest/download/5sdusb.ipx", convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/5sdusb.ipx"));
+        success &= downloadFile(getPluginUrl("5sdusb.ipx"), convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/5sdusb.ipx"));
     }
     if (toSD) {
         std::string sdPluginPath = "fs:/vol/external01/wiiu/ios_plugins/";
         fs::create_directories(sdPluginPath);
-        success &= downloadFile("https://github.com/StroopwafelCFW/wafel_sd_usb/releases/latest/download/5sdusb.ipx", sdPluginPath + "5sdusb.ipx");
+        success &= downloadFile(getPluginUrl("5sdusb.ipx"), sdPluginPath + "5sdusb.ipx");
     }
     return success;
 }
@@ -170,7 +170,7 @@ bool download5sdusb(bool toSLC, bool toSD) {
 bool download5upartsd(bool toSLC) {
     if (toSLC) {
         if (!createHaxDirectories()) return false;
-        return downloadFile("https://github.com/StroopwafelCFW/wafel_usb_partition/releases/latest/download/5upartsd.ipx", convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/5upartsd.ipx"));
+        return downloadFile(getPluginUrl("5upartsd.ipx"), convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/5upartsd.ipx"));
     }
     return true;
 }
@@ -179,6 +179,71 @@ static size_t write_data_buffer(void *ptr, size_t size, size_t nmemb, void *stre
     std::string* buffer = (std::string*)stream;
     buffer->append((char*)ptr, size * nmemb);
     return size * nmemb;
+}
+
+static std::vector<Plugin> cachedPluginList;
+static bool failedToFetch = false;
+
+const std::vector<Plugin>& getCachedPluginList() {
+    return cachedPluginList;
+}
+
+static std::string getPluginUrl(const std::string& fileName) {
+    fetchPluginList();
+    for (const auto& p : getCachedPluginList()) {
+        if (p.fileName == fileName) {
+            return p.downloadPath;
+        }
+    }
+    return "";
+}
+
+bool fetchPluginList(bool force) {
+    if (!cachedPluginList.empty() && !force) return true;
+    if (failedToFetch && !force) return false;
+
+    std::string csvData;
+    std::string url = "https://raw.githubusercontent.com/zer00p/isfshax-loader/refs/heads/master/plugins.csv";
+
+    if (!downloadToBuffer(url, csvData)) {
+        failedToFetch = true;
+        return false;
+    }
+    failedToFetch = false;
+
+    std::stringstream ss(csvData);
+    std::string line;
+    // skip header
+    if (!std::getline(ss, line)) return false;
+
+    cachedPluginList.clear();
+    while (std::getline(ss, line)) {
+        if (line.empty() || line == "\r") continue;
+        if (line.back() == '\r') line.pop_back(); // Handle Windows line endings
+
+        std::stringstream lineStream(line);
+        std::string cell;
+        std::vector<std::string> cells;
+        while (std::getline(lineStream, cell, ';')) {
+            cells.push_back(cell);
+        }
+        // Handle case where line ends with a semicolon
+        if (!line.empty() && line.back() == ';') {
+            cells.push_back("");
+        }
+
+        if (cells.size() >= 4) {
+            Plugin p;
+            p.shortDescription = cells[0];
+            p.fileName = cells[1];
+            p.downloadPath = cells[2];
+            p.longDescription = cells[3];
+            if (cells.size() >= 5) p.incompatiblePlugins = cells[4];
+            cachedPluginList.push_back(p);
+        }
+    }
+
+    return !cachedPluginList.empty();
 }
 
 bool downloadToBuffer(const std::string& url, std::string& buffer) {

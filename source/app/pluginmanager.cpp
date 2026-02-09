@@ -15,68 +15,10 @@
 
 #define OPTION(n) (selectedOption == (n) ? L'>' : L' ')
 
-struct Plugin {
-    std::string shortDescription;
-    std::string fileName;
-    std::string downloadPath;
-    std::string longDescription;
-    std::string incompatiblePlugins;
-};
-
-static std::vector<Plugin> cachedPluginList;
-static bool failedToFetch = false;
-
-static bool fetchPluginList(bool force = false) {
-    if (!cachedPluginList.empty()) return true;
-    if (failedToFetch && !force) return false;
-
-    std::string csvData;
-    std::string url = "https://raw.githubusercontent.com/zer00p/isfshax-loader/refs/heads/master/plugins.csv";
-
-    if (!downloadToBuffer(url, csvData)) {
-        // downloadToBuffer already handles retries/cancel internally via showErrorPrompt
-        failedToFetch = true;
-        return false;
-    }
-    failedToFetch = false;
-
-    std::stringstream ss(csvData);
-    std::string line;
-    // skip header
-    if (!std::getline(ss, line)) return false;
-
-    while (std::getline(ss, line)) {
-        if (line.empty() || line == "\r") continue;
-        if (line.back() == '\r') line.pop_back(); // Handle Windows line endings
-
-        std::stringstream lineStream(line);
-        std::string cell;
-        std::vector<std::string> cells;
-        while (std::getline(lineStream, cell, ';')) {
-            cells.push_back(cell);
-        }
-        // Handle case where line ends with a semicolon
-        if (!line.empty() && line.back() == ';') {
-            cells.push_back("");
-        }
-
-        if (cells.size() >= 4) {
-            Plugin p;
-            p.shortDescription = cells[0];
-            p.fileName = cells[1];
-            p.downloadPath = cells[2];
-            p.longDescription = cells[3];
-            if (cells.size() >= 5) p.incompatiblePlugins = cells[4];
-            cachedPluginList.push_back(p);
-        }
-    }
-
-    return !cachedPluginList.empty();
-}
-
 static bool browsePlugins(std::string posixPath) {
     if (!fetchPluginList(true)) return false;
 
+    const auto& cachedPluginList = getCachedPluginList();
     uint8_t selectedOption = 0;
     while (true) {
         WHBLogFreetypeStartScreen();
@@ -224,6 +166,7 @@ static void managePlugins(std::string posixPath) {
         if (plugins.empty()) {
             WHBLogFreetypePrint(L"No plugins found.");
         } else {
+            const auto& cachedPluginList = getCachedPluginList();
             for (size_t i = 0; i < plugins.size(); i++) {
                 std::wstring fileName = toWstring(plugins[i]);
                 std::wstring shortDesc = L"";
