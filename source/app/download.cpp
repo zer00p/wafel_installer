@@ -92,6 +92,118 @@ bool downloadFile(const std::string& url, const std::string& path) {
     }
 }
 
+static size_t write_data_buffer(void *ptr, size_t size, size_t nmemb, void *stream) {
+    std::string* buffer = (std::string*)stream;
+    buffer->append((char*)ptr, size * nmemb);
+    return size * nmemb;
+}
+
+bool downloadToBuffer(const std::string& url, std::string& buffer) {
+    while (true) {
+        WHBLogFreetypePrintf(L"Downloading %S...", toWstring(url).c_str());
+        WHBLogFreetypeDrawScreen();
+
+        CURL *curl_handle = curl_easy_init();
+        if (!curl_handle) {
+            setErrorPrompt(L"Failed to initialize curl!");
+            if (showErrorPrompt(L"Cancel", true)) continue;
+            return false;
+        }
+
+        curl_easy_setopt(curl_handle, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, write_data_buffer);
+        curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &buffer);
+        curl_easy_setopt(curl_handle, CURLOPT_FAILONERROR, 1L);
+        curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "ISFShaxLoader/1.0");
+        curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
+
+        curl_blob blob;
+        blob.data  = (void *) cacert_pem;
+        blob.len   = cacert_pem_size;
+        blob.flags = CURL_BLOB_COPY;
+        curl_easy_setopt(curl_handle, CURLOPT_CAINFO_BLOB, &blob);
+
+        CURLcode res = curl_easy_perform(curl_handle);
+        curl_easy_cleanup(curl_handle);
+
+        if (res != CURLE_OK) {
+            setErrorPrompt(L"Curl failed for " + toWstring(url) + L":\n" + toWstring(curl_easy_strerror(res)));
+            if (showErrorPrompt(L"Cancel", true)) {
+                buffer.clear();
+                continue;
+            }
+            return false;
+        }
+
+        return true;
+    }
+}
+
+static std::vector<Plugin> cachedPluginList;
+static bool failedToFetch = false;
+
+const std::vector<Plugin>& getCachedPluginList() {
+    return cachedPluginList;
+}
+
+bool fetchPluginList(bool force) {
+    if (!cachedPluginList.empty() && !force) return true;
+    if (failedToFetch && !force) return false;
+
+    std::string csvData;
+    std::string url = "https://raw.githubusercontent.com/zer00p/isfshax-loader/refs/heads/master/plugins.csv";
+
+    if (!downloadToBuffer(url, csvData)) {
+        failedToFetch = true;
+        return false;
+    }
+    failedToFetch = false;
+
+    std::stringstream ss(csvData);
+    std::string line;
+    // skip header
+    if (!std::getline(ss, line)) return false;
+
+    cachedPluginList.clear();
+    while (std::getline(ss, line)) {
+        if (line.empty() || line == "\r") continue;
+        if (line.back() == '\r') line.pop_back(); // Handle Windows line endings
+
+        std::stringstream lineStream(line);
+        std::string cell;
+        std::vector<std::string> cells;
+        while (std::getline(lineStream, cell, ';')) {
+            cells.push_back(cell);
+        }
+        // Handle case where line ends with a semicolon
+        if (!line.empty() && line.back() == ';') {
+            cells.push_back("");
+        }
+
+        if (cells.size() >= 4) {
+            Plugin p;
+            p.shortDescription = cells[0];
+            p.fileName = cells[1];
+            p.downloadPath = cells[2];
+            p.longDescription = cells[3];
+            if (cells.size() >= 5) p.incompatiblePlugins = cells[4];
+            cachedPluginList.push_back(p);
+        }
+    }
+
+    return !cachedPluginList.empty();
+}
+
+static std::string getPluginUrl(const std::string& fileName) {
+    fetchPluginList();
+    for (const auto& p : getCachedPluginList()) {
+        if (p.fileName == fileName) {
+            return p.downloadPath;
+        }
+    }
+    return "";
+}
+
 static bool createHaxDirectories() {
     if (!isSlcMounted()) {
         WHBLogFreetypePrintf(L"Failed to mount SLC! FTP system file access enabled?");
@@ -175,117 +287,6 @@ bool download5upartsd(bool toSLC) {
     return true;
 }
 
-static size_t write_data_buffer(void *ptr, size_t size, size_t nmemb, void *stream) {
-    std::string* buffer = (std::string*)stream;
-    buffer->append((char*)ptr, size * nmemb);
-    return size * nmemb;
-}
-
-static std::vector<Plugin> cachedPluginList;
-static bool failedToFetch = false;
-
-const std::vector<Plugin>& getCachedPluginList() {
-    return cachedPluginList;
-}
-
-static std::string getPluginUrl(const std::string& fileName) {
-    fetchPluginList();
-    for (const auto& p : getCachedPluginList()) {
-        if (p.fileName == fileName) {
-            return p.downloadPath;
-        }
-    }
-    return "";
-}
-
-bool fetchPluginList(bool force) {
-    if (!cachedPluginList.empty() && !force) return true;
-    if (failedToFetch && !force) return false;
-
-    std::string csvData;
-    std::string url = "https://raw.githubusercontent.com/zer00p/isfshax-loader/refs/heads/master/plugins.csv";
-
-    if (!downloadToBuffer(url, csvData)) {
-        failedToFetch = true;
-        return false;
-    }
-    failedToFetch = false;
-
-    std::stringstream ss(csvData);
-    std::string line;
-    // skip header
-    if (!std::getline(ss, line)) return false;
-
-    cachedPluginList.clear();
-    while (std::getline(ss, line)) {
-        if (line.empty() || line == "\r") continue;
-        if (line.back() == '\r') line.pop_back(); // Handle Windows line endings
-
-        std::stringstream lineStream(line);
-        std::string cell;
-        std::vector<std::string> cells;
-        while (std::getline(lineStream, cell, ';')) {
-            cells.push_back(cell);
-        }
-        // Handle case where line ends with a semicolon
-        if (!line.empty() && line.back() == ';') {
-            cells.push_back("");
-        }
-
-        if (cells.size() >= 4) {
-            Plugin p;
-            p.shortDescription = cells[0];
-            p.fileName = cells[1];
-            p.downloadPath = cells[2];
-            p.longDescription = cells[3];
-            if (cells.size() >= 5) p.incompatiblePlugins = cells[4];
-            cachedPluginList.push_back(p);
-        }
-    }
-
-    return !cachedPluginList.empty();
-}
-
-bool downloadToBuffer(const std::string& url, std::string& buffer) {
-    while (true) {
-        WHBLogFreetypePrintf(L"Downloading %S...", toWstring(url).c_str());
-        WHBLogFreetypeDrawScreen();
-
-        CURL *curl_handle = curl_easy_init();
-        if (!curl_handle) {
-            setErrorPrompt(L"Failed to initialize curl!");
-            if (showErrorPrompt(L"Cancel", true)) continue;
-            return false;
-        }
-
-        curl_easy_setopt(curl_handle, CURLOPT_URL, url.c_str());
-        curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, write_data_buffer);
-        curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &buffer);
-        curl_easy_setopt(curl_handle, CURLOPT_FAILONERROR, 1L);
-        curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "ISFShaxLoader/1.0");
-        curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
-
-        curl_blob blob;
-        blob.data  = (void *) cacert_pem;
-        blob.len   = cacert_pem_size;
-        blob.flags = CURL_BLOB_COPY;
-        curl_easy_setopt(curl_handle, CURLOPT_CAINFO_BLOB, &blob);
-
-        CURLcode res = curl_easy_perform(curl_handle);
-        curl_easy_cleanup(curl_handle);
-
-        if (res != CURLE_OK) {
-            setErrorPrompt(L"Curl failed for " + toWstring(url) + L":\n" + toWstring(curl_easy_strerror(res)));
-            if (showErrorPrompt(L"Cancel", true)) {
-                buffer.clear();
-                continue;
-            }
-            return false;
-        }
-
-        return true;
-    }
-}
 
 static std::string getLatestReleaseAssetUrl(const std::string& repo, const std::string& pattern) {
     std::string apiResponse;
