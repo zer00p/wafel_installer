@@ -31,7 +31,7 @@ static bool fetchPluginList(bool force = false) {
     if (failedToFetch && !force) return false;
 
     std::string csvData;
-    std::string url = "https://raw.githubusercontent.com/zer00p/isfshax-loader/master/plugins.csv";
+    std::string url = "https://raw.githubusercontent.com/zer00p/isfshax-loader/refs/heads/master/plugins.csv";
 
     if (!downloadToBuffer(url, csvData)) {
         // downloadToBuffer already handles retries/cancel internally via showErrorPrompt
