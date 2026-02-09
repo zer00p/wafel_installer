@@ -46,7 +46,7 @@ static bool fetchPluginList(bool force = false) {
     if (!std::getline(ss, line)) return false;
 
     while (std::getline(ss, line)) {
-        if (line.empty()) continue;
+        if (line.empty() || line == "\r") continue;
         if (line.back() == '\r') line.pop_back(); // Handle Windows line endings
 
         std::stringstream lineStream(line);
@@ -55,6 +55,11 @@ static bool fetchPluginList(bool force = false) {
         while (std::getline(lineStream, cell, ';')) {
             cells.push_back(cell);
         }
+        // Handle case where line ends with a semicolon
+        if (!line.empty() && line.back() == ';') {
+            cells.push_back("");
+        }
+
         if (cells.size() >= 4) {
             Plugin p;
             p.shortDescription = cells[0];
@@ -90,6 +95,7 @@ static bool browsePlugins(std::string posixPath) {
 
             std::wstring fileName = toWstring(p.fileName);
             if (fileName.length() < 16) fileName.append(16 - fileName.length(), L' ');
+            fileName += L" ";
 
             WHBLogFreetypePrintf(L"%C %S %S %S", OPTION(i), fileName.c_str(), toWstring(p.shortDescription).c_str(), installed ? L"(Installed)" : L"");
         }
@@ -143,15 +149,26 @@ static bool browsePlugins(std::string posixPath) {
                     std::string incompatibleFile;
                     while (std::getline(ss, incompatibleFile, ',')) {
                         // trim whitespace
-                        incompatibleFile.erase(0, incompatibleFile.find_first_not_of(" "));
-                        incompatibleFile.erase(incompatibleFile.find_last_not_of(" ") + 1);
+                        size_t first = incompatibleFile.find_first_not_of(" ");
+                        if (std::string::npos == first) continue;
+                        size_t last = incompatibleFile.find_last_not_of(" ");
+                        incompatibleFile = incompatibleFile.substr(first, (last - first + 1));
 
                         std::string fullPath = posixPath;
                         if (fullPath.back() != '/') fullPath += "/";
                         fullPath += incompatibleFile;
                         if (access(fullPath.c_str(), F_OK) == 0) {
-                            std::wstring msg = L"Warning: " + toWstring(incompatibleFile) + L" is already installed and is incompatible with " + toWstring(p.fileName) + L"!\nDo you want to continue and overwrite/keep both?";
-                            if (showDialogPrompt(msg.c_str(), L"No", L"Yes") != 1) {
+                            std::wstring msg = L"Warning: " + toWstring(incompatibleFile) + L" is already installed and is incompatible with " + toWstring(p.fileName) + L"!\nDo you want to delete the incompatible plugin first?";
+                            uint8_t res = showDialogPrompt(msg.c_str(), L"Delete", L"Keep both", L"Cancel");
+                            if (res == 0) { // Delete
+                                if (remove(fullPath.c_str()) == 0) {
+                                    showSuccessPrompt(L"Incompatible plugin deleted.");
+                                } else {
+                                    setErrorPrompt(L"Failed to delete incompatible plugin!");
+                                    showErrorPrompt(L"OK");
+                                    goto next_loop;
+                                }
+                            } else if (res == 2 || res == 255) { // Cancel or Back
                                 goto next_loop;
                             }
                         }
@@ -222,6 +239,7 @@ static void managePlugins(std::string posixPath) {
                     WHBLogFreetypePrintf(L"%C %S", OPTION(i), fileName.c_str());
                 } else {
                     if (fileName.length() < 16) fileName.append(16 - fileName.length(), L' ');
+                    fileName += L" ";
                     WHBLogFreetypePrintf(L"%C %S %S", OPTION(i), fileName.c_str(), shortDesc.c_str());
                 }
             }
