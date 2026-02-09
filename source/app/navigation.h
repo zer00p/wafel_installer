@@ -15,3 +15,4 @@ bool pressedOk();
 bool pressedStart();
 bool pressedBack();
 bool pressedX();
+bool pressedY();

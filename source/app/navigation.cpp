@@ -49,6 +49,22 @@ bool vpadButtonPressed(VPADButtons button) {
     return false;
 }
 
+
+
+bool pressedY() {
+    if (vpadError == VPAD_READ_SUCCESS && (vpadBuffer[0].trigger & VPAD_BUTTON_Y)) return true;
+    for (const auto& pad : KPADControllers) {
+        if (!pad.connected) continue;
+        if (pad.status.extensionType == KPADExtensionType::WPAD_EXT_CLASSIC || pad.status.extensionType == KPADExtensionType::WPAD_EXT_MPLUS_CLASSIC) {
+            if (pad.status.classic.trigger & WPAD_CLASSIC_BUTTON_Y) return true;
+        }
+        else if (pad.status.extensionType == KPADExtensionType::WPAD_EXT_PRO_CONTROLLER) {
+            if (pad.status.pro.trigger & WPAD_PRO_BUTTON_Y) return true;
+        }
+    }
+    return false;
+}
+
 // Check whether any KPAD controller is pressing the specified button
 bool kpadButtonPressed(WPADButton button) {
     for (const auto& pad : KPADControllers) {

@@ -31,7 +31,7 @@ static size_t write_data_posix(void *ptr, size_t size, size_t nmemb, void *strea
     return written;
 }
 
-static bool downloadFile(const std::string& url, const std::string& path) {
+bool downloadFile(const std::string& url, const std::string& path) {
     while (true) {
         WHBLogFreetypePrintf(L"Downloading %S...", toWstring(url).c_str());
         WHBLogFreetypeDrawScreen();
@@ -125,8 +125,8 @@ bool downloadHaxFiles() {
 
     // Stroopwafel
     if (!downloadFile("https://github.com/StroopwafelCFW/stroopwafel/releases/latest/download/00core.ipx", convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/00core.ipx")) ||
-        !downloadFile("https://github.com/isfshax/wafel_isfshax_patch/releases/latest/download/5isfshax.ipx", convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/5payldr.ipx")) ||
-        !downloadFile("https://github.com/StroopwafelCFW/wafel_payloader/releases/latest/download/5payldr.ipx", convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/5isfshax.ipx")) ||
+        !downloadFile("https://github.com/isfshax/wafel_isfshax_patch/releases/latest/download/5isfshax.ipx", convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/5isfshax.ipx")) ||
+        !downloadFile("https://github.com/StroopwafelCFW/wafel_payloader/releases/latest/download/5payldr.ipx", convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/5payldr.ipx")) ||
         // minute
         !downloadFile("https://github.com/StroopwafelCFW/minute_minute/releases/latest/download/fw_fastboot.img", convertToPosixPath("/vol/storage_slc/sys/hax/fw.img")) ||
         // ISFShax
@@ -145,8 +145,8 @@ bool downloadHaxFilesToSD() {
     fs::create_directories(sdPluginPath);
 
     if (!downloadFile("https://github.com/StroopwafelCFW/stroopwafel/releases/latest/download/00core.ipx", sdPluginPath + "00core.ipx") ||
-        !downloadFile("https://github.com/isfshax/wafel_isfshax_patch/releases/latest/download/5isfshax.ipx", sdPluginPath + "5payldr.ipx") ||
-        !downloadFile("https://github.com/StroopwafelCFW/wafel_payloader/releases/latest/download/5payldr.ipx", sdPluginPath + "5isfshax.ipx"))
+        !downloadFile("https://github.com/isfshax/wafel_isfshax_patch/releases/latest/download/5isfshax.ipx", sdPluginPath + "5isfshax.ipx") ||
+        !downloadFile("https://github.com/StroopwafelCFW/wafel_payloader/releases/latest/download/5payldr.ipx", sdPluginPath + "5payldr.ipx"))
     {
         return false;
     }
@@ -181,7 +181,7 @@ static size_t write_data_buffer(void *ptr, size_t size, size_t nmemb, void *stre
     return size * nmemb;
 }
 
-static bool downloadToBuffer(const std::string& url, std::string& buffer) {
+bool downloadToBuffer(const std::string& url, std::string& buffer) {
     while (true) {
         WHBLogFreetypePrintf(L"Downloading %S...", toWstring(url).c_str());
         WHBLogFreetypeDrawScreen();
