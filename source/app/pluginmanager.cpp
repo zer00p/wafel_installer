@@ -88,8 +88,10 @@ static bool browsePlugins(std::string posixPath) {
                 installed = true;
             }
 
-            WHBLogFreetypePrintf(L"%C %S %S", OPTION(i), toWstring(p.fileName).c_str(), installed ? L"(Installed)" : L"");
-            WHBLogFreetypePrintf(L"  %S", toWstring(p.shortDescription).c_str());
+            std::wstring fileName = toWstring(p.fileName);
+            if (fileName.length() < 16) fileName.append(16 - fileName.length(), L' ');
+
+            WHBLogFreetypePrintf(L"%C %S %S %S", OPTION(i), fileName.c_str(), toWstring(p.shortDescription).c_str(), installed ? L"(Installed)" : L"");
         }
 
         WHBLogFreetypePrint(L"");
@@ -177,19 +179,26 @@ static void managePlugins(std::string posixPath) {
         WHBLogFreetypePrintf(L"Managing: %S", toWstring(posixPath).c_str());
         WHBLogFreetypePrint(L"===============================");
 
-        fetchPluginList();
         if (plugins.empty()) {
             WHBLogFreetypePrint(L"No plugins found.");
         } else {
             for (size_t i = 0; i < plugins.size(); i++) {
-                std::string shortDesc = "";
-                for (const auto& p : cachedPluginList) {
-                    if (p.fileName == plugins[i]) {
-                        shortDesc = " - " + p.shortDescription;
-                        break;
+                std::wstring fileName = toWstring(plugins[i]);
+                std::wstring shortDesc = L"";
+                if (!cachedPluginList.empty()) {
+                    for (const auto& p : cachedPluginList) {
+                        if (p.fileName == plugins[i]) {
+                            shortDesc = toWstring(p.shortDescription);
+                            break;
+                        }
                     }
                 }
-                WHBLogFreetypePrintf(L"%C %S%S", OPTION(i), toWstring(plugins[i]).c_str(), toWstring(shortDesc).c_str());
+                if (shortDesc.empty()) {
+                    WHBLogFreetypePrintf(L"%C %S", OPTION(i), fileName.c_str());
+                } else {
+                    if (fileName.length() < 16) fileName.append(16 - fileName.length(), L' ');
+                    WHBLogFreetypePrintf(L"%C %S %S", OPTION(i), fileName.c_str(), shortDesc.c_str());
+                }
             }
         }
 
