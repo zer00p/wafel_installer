@@ -257,6 +257,13 @@ void loadFwImg() {
             return;
         }
 
+        // Undo ISFShax fallback relaod patch
+        uint32_t val = 0; 
+        Mocha_IOSUKernelRead32(0x0501f578, &val);
+        if (val == 0x32044bcc){
+            Mocha_IOSUKernelWrite32(0x0501f578, 0xe0914bcc);
+        }
+
         Mocha_DeInitLibrary();
     }
 
