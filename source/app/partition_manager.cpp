@@ -903,21 +903,20 @@ void setupSDUSBMenu() {
                     }
                 }
 
-                bool isfshaxInstalled = isIsfshaxInstalled();
                 bool stroopAvailable = isStroopwafelAvailable();
-
-                if (!isfshaxInstalled) {
-                    if (showDialogPrompt(L"ISFShax is not detected.\nDo you want to install it?\nThis is required for Stroopwafel.", L"Yes", L"No") == 0) {
-                        if (downloadIsfshaxFiles()) {
-                            // Since we are using SDUSB, always download Stroopwafel to SLC
-                            downloadStroopwafelFiles(false);
-                            bootInstaller();
-                        }
-                    }
-                } else if (!stroopAvailable) {
+                if (!stroopAvailable) {
                     if (showDialogPrompt(L"Stroopwafel is missing or outdated.\nDo you want to download it?", L"Yes", L"No") == 0) {
                         // Since we are using SDUSB, always download Stroopwafel to SLC
                         downloadStroopwafelFiles(false);
+                    }
+                }
+
+                bool isfshaxInstalled = isIsfshaxInstalled();
+                if (!isfshaxInstalled) {
+                    if (showDialogPrompt(L"ISFShax is not detected.\nDo you want to install it?\nThis is required for Stroopwafel.", L"Yes", L"No") == 0) {
+                        if (downloadIsfshaxFiles()) {
+                            bootInstaller();
+                        }
                     }
                 } else {
                     showSuccessPrompt(L"SDUSB setup complete!");
