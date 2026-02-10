@@ -35,22 +35,50 @@ static bool checkSystemAccess() {
 void installISFShax() {
     if (!checkSystemAccess()) return;
 
-    while (true) {
-        if (downloadHaxFiles()) {
-            sleep_for(2s);
-            showDialogPrompt(L"The ISFShax installer is controlled with the buttons on the main console.\nPOWER: moves the curser\nEJECT: confirm\nPress A to launch into the ISFShax Installer", L"Continue");
-            loadFwImg();
-            break;
-        } else {
-            if (!showErrorPrompt(L"Cancel", true)) break;
+    bool isfshaxInstalled = isIsfshaxInstalled();
+    bool stroopAvailable = isStroopwafelAvailable();
+
+    if (!isfshaxInstalled) {
+        if (downloadIsfshaxFiles()) {
+            bool downloadStroop = true;
+            if (stroopAvailable) {
+                downloadStroop = (showDialogPrompt(L"Stroopwafel is already running.\nDo you want to download it again?", L"Yes", L"No") == 0);
+            }
+
+            if (downloadStroop) {
+                bool toSD = (showDialogPrompt(L"Where do you want to download Stroopwafel?\nSD card is recommended.", L"SD Card", L"SLC") == 0);
+                downloadStroopwafelFiles(toSD);
+            }
+
+            bootInstaller();
         }
+    } else if (!stroopAvailable) {
+        uint8_t choice = showDialogPrompt(L"Stroopwafel is missing or outdated.\nDo you want to download it?", L"Yes", L"No");
+        if (choice == 0) {
+            bool toSD = (showDialogPrompt(L"Where do you want to download Stroopwafel?\nSD card is recommended.", L"SD Card", L"SLC") == 0);
+            downloadStroopwafelFiles(toSD);
+        }
+    } else {
+        showDialogPrompt(L"ISFShax and Stroopwafel are already installed and running!", L"OK");
     }
 }
 
 void redownloadFiles() {
     while (true) {
-        if (downloadHaxFiles()) {
-            showSuccessPrompt(L"All hax files downloaded successfully!");
+        uint8_t choice = showDialogPrompt(L"What files do you want to redownload?", L"Everything", L"Stroopwafel only", L"ISFShax only", L"Cancel");
+        if (choice == 3 || choice == 255) return;
+
+        bool success = true;
+        if (choice == 0 || choice == 1) {
+            bool toSD = (showDialogPrompt(L"Where do you want to download Stroopwafel?\nSD card is recommended.", L"SD Card", L"SLC") == 0);
+            success &= downloadStroopwafelFiles(toSD);
+        }
+        if (choice == 0 || choice == 2) {
+            success &= downloadIsfshaxFiles();
+        }
+
+        if (success) {
+            showSuccessPrompt(L"Files downloaded successfully!");
             break;
         } else {
             if (!showErrorPrompt(L"Cancel", true)) break;
@@ -83,9 +111,18 @@ void bootInstaller() {
     }
 
     if (downloaded) {
-        sleep_for(2s);
-        showDialogPrompt(L"The ISFShax installer is controlled with the buttons on the main console.\nPOWER: moves the curser\nEJECT: confirm\nPress A to launch into the ISFShax Installer", L"Continue");
-        loadFwImg();
+        while (true) {
+            sleep_for(1s);
+            uint8_t choice = showDialogPrompt(L"The ISFShax installer is controlled with the buttons on the main console.\nPOWER: moves the curser\nEJECT: confirm\nPress A to launch into the ISFShax Installer", L"Continue", L"Cancel");
+            if (choice == 0) {
+                loadFwImg();
+                break;
+            } else {
+                if (showDialogPrompt(L"Are you sure? ISFShax is required for stroopwafel", L"Yes, cancel", L"No, go back") == 0) {
+                    return;
+                }
+            }
+        }
     }
 }
 
