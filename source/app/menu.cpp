@@ -32,34 +32,36 @@ static bool checkSystemAccess() {
     return true;
 }
 
-void installISFShax() {
+void installStroopwafelMenu() {
+    bool toSD = (showDialogPrompt(L"Where do you want to download Stroopwafel?\nSD card is recommended.", L"SD Card", L"SLC") == 0);
+    if (downloadStroopwafelFiles(toSD)) {
+        showSuccessPrompt(L"Stroopwafel files downloaded successfully!");
+    }
+}
+
+void installIsfshaxMenu() {
     if (!checkSystemAccess()) return;
 
-    bool isfshaxInstalled = isIsfshaxInstalled();
-    bool stroopAvailable = isStroopwafelAvailable();
+    uint8_t downloadChoice = showDialogPrompt(L"Do you want to download the latest ISFShax files (installer and superblock)?", L"Yes", L"No", L"Cancel");
+    if (downloadChoice == 2 || downloadChoice == 255) return;
 
-    if (!isfshaxInstalled) {
-        if (downloadIsfshaxFiles()) {
-            bool downloadStroop = true;
-            if (stroopAvailable) {
-                downloadStroop = (showDialogPrompt(L"Stroopwafel is already running.\nDo you want to download it again?", L"Yes", L"No") == 0);
-            }
-
-            if (downloadStroop) {
-                bool toSD = (showDialogPrompt(L"Where do you want to download Stroopwafel?\nSD card is recommended.", L"SD Card", L"SLC") == 0);
-                downloadStroopwafelFiles(toSD);
-            }
-
-            bootInstaller();
-        }
-    } else if (!stroopAvailable) {
-        uint8_t choice = showDialogPrompt(L"Stroopwafel is missing or outdated.\nDo you want to download it?", L"Yes", L"No");
-        if (choice == 0) {
-            bool toSD = (showDialogPrompt(L"Where do you want to download Stroopwafel?\nSD card is recommended.", L"SD Card", L"SLC") == 0);
-            downloadStroopwafelFiles(toSD);
-        }
+    bool downloaded = true;
+    if (downloadChoice == 0) {
+        downloaded = downloadIsfshaxFiles();
     } else {
-        showDialogPrompt(L"ISFShax and Stroopwafel are already installed and running!", L"OK");
+        std::string fwImgPath = convertToPosixPath("/vol/storage_slc/sys/hax/installer/fw.img");
+        if (!fileExist(fwImgPath.c_str())) {
+            uint8_t missingChoice = showDialogPrompt(L"The ISFShax installer (fw.img) is missing.", L"Download", L"Cancel");
+            if (missingChoice == 0) {
+                downloaded = downloadIsfshaxFiles();
+            } else {
+                return;
+            }
+        }
+    }
+
+    if (downloaded) {
+        bootInstaller();
     }
 }
 
@@ -90,37 +92,21 @@ void bootInstaller() {
     if (!checkSystemAccess()) return;
 
     std::string fwImgPath = convertToPosixPath("/vol/storage_slc/sys/hax/installer/fw.img");
-    bool downloaded = true;
     if (!fileExist(fwImgPath.c_str())) {
-        while (true) {
-            uint8_t choice = showDialogPrompt(L"The ISFShax installer (fw.img) is missing.\nDo you want to download everything or just the installer?", L"Everything", L"Just installer", L"Cancel");
-            if (choice == 2) return;
-
-            if (choice == 0) {
-                downloaded = downloadHaxFiles();
-            } else {
-                downloaded = downloadInstallerOnly();
-            }
-
-            if (!downloaded) {
-                if (!showErrorPrompt(L"Cancel", true)) return;
-            } else {
-                break;
-            }
-        }
+        setErrorPrompt(L"ISFShax installer (fw.img) is missing!");
+        showErrorPrompt(L"OK");
+        return;
     }
 
-    if (downloaded) {
-        while (true) {
-            sleep_for(1s);
-            uint8_t choice = showDialogPrompt(L"The ISFShax installer is controlled with the buttons on the main console.\nPOWER: moves the curser\nEJECT: confirm\nPress A to launch into the ISFShax Installer", L"Continue", L"Cancel");
-            if (choice == 0) {
-                loadFwImg();
-                break;
-            } else {
-                if (showDialogPrompt(L"Are you sure? ISFShax is required for stroopwafel", L"Yes, cancel", L"No, go back") == 0) {
-                    return;
-                }
+    while (true) {
+        sleep_for(1s);
+        uint8_t choice = showDialogPrompt(L"The ISFShax installer is controlled with the buttons on the main console.\nPOWER: moves the curser\nEJECT: confirm\nPress A to launch into the ISFShax Installer", L"Continue", L"Cancel");
+        if (choice == 0) {
+            loadFwImg();
+            break;
+        } else {
+            if (showDialogPrompt(L"Are you sure? ISFShax is required for stroopwafel", L"Yes, cancel", L"No, go back") == 0) {
+                return;
             }
         }
     }
@@ -146,9 +132,9 @@ void showMainMenu() {
         WHBLogFreetypeStartScreen();
         WHBLogFreetypePrint(L"ISFShax Loader");
         WHBLogFreetypePrint(L"===============================");
-        WHBLogFreetypePrintf(L"%C Install ISFShax + sd emulation + payloadler", OPTION(0));
+        WHBLogFreetypePrintf(L"%C Install Stroopwafel", OPTION(0));
         WHBLogFreetypePrintf(L"%C Redownload files", OPTION(1));
-        WHBLogFreetypePrintf(L"%C Boot Installer", OPTION(2));
+        WHBLogFreetypePrintf(L"%C (Un)Install ISFShax", OPTION(2));
         WHBLogFreetypePrintf(L"%C Download Aroma", OPTION(3));
         WHBLogFreetypePrintf(L"%C Format and Partition", OPTION(4));
         WHBLogFreetypePrintf(L"%C Set up SDUSB", OPTION(5));
@@ -202,13 +188,13 @@ void showMainMenu() {
     // Go to the selected menu
     switch(selectedOption) {
         case 0:
-            installISFShax();
+            installStroopwafelMenu();
             break;
         case 1:
             redownloadFiles();
             break;
         case 2:
-            bootInstaller();
+            installIsfshaxMenu();
             break;
         case 3:
             installAromaMenu();
