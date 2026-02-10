@@ -1,13 +1,15 @@
 #include "fw_img_loader.h"
 #include "gui.h"
 #include "cfw.h"
+#include "menu.h"
 #include <mocha/mocha.h>
 #include <sysapp/title.h>
 #include <sysapp/launch.h>
 #include <stroopwafel/stroopwafel.h>
 
-
-
+#include <cstring>
+#include <sstream>
+#include <iomanip>
 
 /* from smealum's iosuhax: must be placed at 0x05059938
 	0x0000000005059938:  47 78    bx   pc
@@ -85,6 +87,25 @@ static uint32_t generate_bl_t(uint32_t from, uint32_t to)
 	return bl_insn;
 }
 
+static bool applyPatch(uint32_t addr, const void* data, size_t size, const wchar_t* description) {
+    WHBLogFreetypePrint(description);
+    WHBLogFreetypeDrawScreen();
+
+    for (size_t i = 0; i < size; i += 4) {
+        uint32_t word = 0;
+        std::memcpy(&word, (const uint8_t*)data + i, size - i < 4 ? size - i : 4);
+        MochaUtilsStatus status = Mocha_IOSUKernelWrite32(addr + i, word);
+        if (status != MOCHA_RESULT_SUCCESS) {
+            std::wstringstream ss;
+            ss << L"Failed to write patch at 0x" << std::hex << std::uppercase << std::setw(8) << std::setfill(L'0') << (addr + i) << L"!";
+            setErrorPrompt(ss.str());
+            showErrorPrompt(L"OK");
+            return false;
+        }
+    }
+    return true;
+}
+
 
 void loadFwImg() {
     WHBLogFreetypeStartScreen();
@@ -93,190 +114,61 @@ void loadFwImg() {
 
     if (stroopwafel_available) {
         WHBLogFreetypePrint(L"libstroopwafel is available. Using stroopwafel to change firmware path.");
-        // Assuming a function exists in stroopwafel to set the firmware path
-        // The exact function signature and path to set need to be confirmed by the user
-        // For now, using a placeholder path.
-        Stroopwafel_SetFwPath("/vol/system/hax/installer/fw.img"); // Placeholder path
+        Stroopwafel_SetFwPath("/vol/system/hax/installer/fw.img");
         WHBLogFreetypePrint(L"Path changed using libstroopwafel. Skipping patches.");
     } else {
         WHBLogFreetypePrint(L"libstroopwafel not available. Applying fw.img patches...");
 
-        MochaUtilsStatus status;
+        if (!applyPatch(0x050663B4, path, sizeof(path), L"Applying fw_path...")) return;
 
-        status = Mocha_InitLibrary();
-        if (status != MOCHA_RESULT_SUCCESS) {
-            WHBLogFreetypeClear();
-            WHBLogFreetypePrint(L"Failed to initialize Mocha!");
-            WHBLogFreetypePrintf(L"Error code: %d", status);
-            WHBLogFreetypeDraw();
-            sleep_for(5s);
-            return;
-        }
+        uint32_t p2 = 0xF031FB43;
+        if (!applyPatch(0x050282AE, &p2, 4, L"Applying patch 2 (launch_os_hook bl)...")) return;
 
-        WHBLogFreetypePrint(L"Applying fw_path...");
-        WHBLogFreetypeDrawScreen();
-        // Patches from unencrypted_cfw_booter - sd_path
+        uint32_t p3 = 0xE3A00000;
+        if (!applyPatch(0x05052C44, &p3, 4, L"Applying patch 3 (mov r0, #0)...")) return;
 
-        for (size_t i = 0; i < sizeof(path); i+=sizeof(uint32_t)) {
-            status = Mocha_IOSUKernelWrite32(0x050663B4 + i, *(uint32_t*)(path+i));
-            if (status != MOCHA_RESULT_SUCCESS) {
-                WHBLogFreetypeClear();
-                WHBLogFreetypePrintf(L"Failed to write word for sd_path patch at 0x%08X!", 0x050663B4 + i);
-                WHBLogFreetypePrintf(L"Error code: %d", status);
-                WHBLogFreetypeDraw();
-                sleep_for(5s);
-                Mocha_DeInitLibrary();
-                return;
-            }
-        }
+        uint32_t p4 = 0xE12FFF1E;
+        if (!applyPatch(0x05052C48, &p4, 4, L"Applying patch 4 (bx lr)...")) return;
 
-        WHBLogFreetypePrint(L"Applying patch 2 (launch_os_hook bl)...");
-        WHBLogFreetypeDrawScreen();
-        status = Mocha_IOSUKernelWrite32(0x050282AE, 0xF031FB43); // bl launch_os_hook
-        if (status != MOCHA_RESULT_SUCCESS) {
-            WHBLogFreetypeClear();
-            WHBLogFreetypePrintf(L"Failed to apply patch 2 at 0x%08X!", 0x050282AE);
-            WHBLogFreetypePrintf(L"Error code: %d", status);
-            WHBLogFreetypeDraw();
-            sleep_for(5s);
-            Mocha_DeInitLibrary();
-            return;
-        }
+        uint32_t p5 = 0x20002000;
+        if (!applyPatch(0x0500A818, &p5, 4, L"Applying patch 5 (mov r0, #0; mov r0, #0)...")) return;
 
-        WHBLogFreetypePrint(L"Applying patch 3 (mov r0, #0)...");
-        WHBLogFreetypeDrawScreen();
-        status = Mocha_IOSUKernelWrite32(0x05052C44, 0xE3A00000); // mov r0, #0
-        if (status != MOCHA_RESULT_SUCCESS) {
-            WHBLogFreetypeClear();
-            WHBLogFreetypePrintf(L"Failed to apply patch 3 at 0x%08X!", 0x05052C44);
-            WHBLogFreetypePrintf(L"Error code: %d", status);
-            WHBLogFreetypeDraw();
-            sleep_for(5s);
-            Mocha_DeInitLibrary();
-            return;
-        }
+        if (!applyPatch(0x05059938, os_launch_hook, sizeof(os_launch_hook), L"Applying os_launch_hook...")) return;
 
-        WHBLogFreetypePrint(L"Applying patch 4 (bx lr)...");
-        WHBLogFreetypeDrawScreen();
-        status = Mocha_IOSUKernelWrite32(0x05052C48, 0xE12FFF1E); // bx lr
-        if (status != MOCHA_RESULT_SUCCESS) {
-            WHBLogFreetypeClear();
-            WHBLogFreetypePrintf(L"Failed to apply patch 4 at 0x%08X!", 0x05052C48);
-            WHBLogFreetypePrintf(L"Error code: %d", status);
-            WHBLogFreetypeDraw();
-            sleep_for(5s);
-            Mocha_DeInitLibrary();
-            return;
-        }
-
-        WHBLogFreetypePrint(L"Applying patch 5 (mov r0, #0; mov r0, #0)...");
-        WHBLogFreetypeDrawScreen();
-        status = Mocha_IOSUKernelWrite32(0x0500A818, 0x20002000); // mov r0, #0; mov r0, #0
-        if (status != MOCHA_RESULT_SUCCESS) {
-            WHBLogFreetypeClear();
-            WHBLogFreetypePrintf(L"Failed to apply patch 5 at 0x%08X!", 0x0500A818);
-            WHBLogFreetypePrintf(L"Error code: %d", status);
-            WHBLogFreetypeDraw();
-            sleep_for(5s);
-            Mocha_DeInitLibrary();
-            return;
-        }
-
-        WHBLogFreetypePrint(L"Applying os_launch_hook...");
-        WHBLogFreetypeDrawScreen();
-        uint32_t os_launch_hook_target_addr = 0x05059938;
-        for (size_t i = 0; i < sizeof(os_launch_hook); i += 4) {
-            // Ensure that we are reading 4 bytes at a time
-            uint32_t word = *(uint32_t*)(os_launch_hook + i);
-            status = Mocha_IOSUKernelWrite32(os_launch_hook_target_addr + i, word);
-            if (status != MOCHA_RESULT_SUCCESS) {
-                WHBLogFreetypeClear();
-                WHBLogFreetypePrintf(L"Failed to write word for os_launch_hook at 0x%08X!", os_launch_hook_target_addr + i);
-                WHBLogFreetypePrintf(L"Error code: %d", status);
-                WHBLogFreetypeDraw();
-                sleep_for(5s);
-                Mocha_DeInitLibrary();
-                return;
-            }
-        }
-
-        WHBLogFreetypePrint(L"Applying ancast_decrypt_hook...");
-        WHBLogFreetypeDrawScreen();
         uint32_t ancast_hook_start = (0x05059938 + sizeof(os_launch_hook) + 3) & ~3;
-        uint32_t ancast_decrypt_hook_target_addr = ancast_hook_start;
-        for (size_t i = 0; i < sizeof(ancast_decrypt_hook); i += 4) {
-            // Ensure that we are reading 4 bytes at a time
-            uint32_t word = *(uint32_t*)(ancast_decrypt_hook + i);
-            status = Mocha_IOSUKernelWrite32(ancast_decrypt_hook_target_addr + i, word);
-            if (status != MOCHA_RESULT_SUCCESS) {
-                WHBLogFreetypeClear();
-                WHBLogFreetypePrintf(L"Failed to write word for ancast_decrypt_hook at 0x%08X!", ancast_decrypt_hook_target_addr + i);
-                WHBLogFreetypePrintf(L"Error code: %d", status);
-                WHBLogFreetypeDraw();
-                sleep_for(5s);
-                Mocha_DeInitLibrary();
-                return;
-            }
-        }
+        if (!applyPatch(ancast_hook_start, ancast_decrypt_hook, sizeof(ancast_decrypt_hook), L"Applying ancast_decrypt_hook...")) return;
 
-        WHBLogFreetypePrint(L"Applying patch 8 (generate_bl_t)...");
-        WHBLogFreetypeDrawScreen();
-        status = Mocha_IOSUKernelWrite32(0x0500A678, generate_bl_t(0x0500A678, ancast_hook_start));
-        if (status != MOCHA_RESULT_SUCCESS) {
-            WHBLogFreetypeClear();
-            WHBLogFreetypePrintf(L"Failed to apply patch 8 at 0x%08X!", 0x0500A678);
-            WHBLogFreetypePrintf(L"Error code: %d", status);
-            WHBLogFreetypeDraw();
-            sleep_for(5s);
-            Mocha_DeInitLibrary();
-            return;
-        }
+        uint32_t p8 = generate_bl_t(0x0500A678, ancast_hook_start);
+        if (!applyPatch(0x0500A678, &p8, 4, L"Applying patch 8 (generate_bl_t)...")) return;
 
-        WHBLogFreetypePrint(L"Applying patch 9 (Ancast header nop nop)...");
-        status = Mocha_IOSUKernelWrite32(0x0500A7C8, 0xe00fbf00); // b #0x500a7ea
-        if (status != MOCHA_RESULT_SUCCESS) {
-            WHBLogFreetypeClear();
-            WHBLogFreetypePrintf(L"Failed to apply patch 9 (second part) at 0x%08X!", 0x0500A7C8);
-            WHBLogFreetypePrintf(L"Error code: %d", status);
-            WHBLogFreetypeDraw();
-            sleep_for(5s);
-            Mocha_DeInitLibrary();
-            return;
-        }
+        uint32_t p9 = 0xe00fbf00;
+        if (!applyPatch(0x0500A7C8, &p9, 4, L"Applying patch 9 (Ancast header nop nop)...")) return;
 
-        WHBLogFreetypePrint(L"Applying patch 10 (movs r3, #2; b #0x500a800)...");
-        WHBLogFreetypeDrawScreen();
-        status = Mocha_IOSUKernelWrite32(0x0500a7f4, 0x2302e003); // movs r3, #2;  b #0x500a800
-        if (status != MOCHA_RESULT_SUCCESS) {
-            WHBLogFreetypeClear();
-            WHBLogFreetypePrintf(L"Failed to apply patch 10 at 0x%08X!", 0x0500a7f4);
-            WHBLogFreetypePrintf(L"Error code: %d", status);
-            WHBLogFreetypeDraw();
-            sleep_for(5s);
-            Mocha_DeInitLibrary();
-            return;
-        }
+        uint32_t p10 = 0x2302e003;
+        if (!applyPatch(0x0500a7f4, &p10, 4, L"Applying patch 10 (movs r3, #2; b #0x500a800)...")) return;
 
-        // Undo ISFShax fallback relaod patch
+        // Undo ISFShax fallback reload patch
         uint32_t val = 0; 
-        Mocha_IOSUKernelRead32(0x0501f578, &val);
-        if (val == 0x32044bcc){
-            Mocha_IOSUKernelWrite32(0x0501f578, 0xe0914bcc);
+        MochaUtilsStatus status = Mocha_IOSUKernelRead32(0x0501f578, &val);
+        if (status != MOCHA_RESULT_SUCCESS) {
+            WHBLogFreetypePrint(L"Warning: Failed to read ISFShax fallback patch!");
+            WHBLogFreetypeDrawScreen();
+        } else if (val == 0x32044bcc) {
+            uint32_t undo_val = 0xe0914bcc;
+            if (!applyPatch(0x0501f578, &undo_val, 4, L"Undoing ISFShax fallback reload patch...")) return;
         }
-
-        Mocha_DeInitLibrary();
     }
 
     WHBLogFreetypeClear();
-    WHBLogFreetypePrint(L"Patches applied. Launching system menu...");
+    WHBLogFreetypePrint(L"Patches applied. Launching ISFShax Installer...");
     WHBLogFreetypeDraw();
     sleep_for(3s);
+
+    shutdownCFW();
 
     OSForceFullRelaunch();
     SYSLaunchMenu();
 
     exitApplication(false);
     _Exit(0);
-
-    return;
 }
