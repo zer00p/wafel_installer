@@ -17,7 +17,7 @@ void showLoadingScreen() {
     WHBLogFreetypeSetFontColor(0xFFFFFFFF);
     WHBLogFreetypeSetFontSize(22);
     WHBLogPrint("ISFShax Loader");
-    WHBLogPrint("-- Made by Crementif, Emiyl and zer00p Hofmeier --");
+    WHBLogPrint("-- Based on dumpling made by Crementif, Emiyl --");
     WHBLogPrint("");
     WHBLogFreetypeDraw();
 }
