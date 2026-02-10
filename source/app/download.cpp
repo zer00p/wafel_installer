@@ -227,42 +227,72 @@ static bool createHaxDirectories() {
     return true;
 }
 
+bool downloadStroopwafelFiles(bool toSD) {
+    if (toSD) {
+        if (WHBMountSdCard() != 1) {
+            setErrorPrompt(L"Failed to mount SD card!");
+            return false;
+        }
+        std::string sdPluginPath = "fs:/vol/external01/wiiu/ios_plugins/";
+        fs::create_directories(sdPluginPath);
+
+        if (!downloadFile(getPluginUrl("00core.ipx"), sdPluginPath + "00core.ipx") ||
+            !downloadFile(getPluginUrl("5isfshax.ipx"), sdPluginPath + "5isfshax.ipx") ||
+            !downloadFile(getPluginUrl("5payldr.ipx"), sdPluginPath + "5payldr.ipx") ||
+            !downloadFile("https://github.com/StroopwafelCFW/minute_minute/releases/latest/download/fw_fastboot.img", "fs:/vol/external01/fw.img"))
+        {
+            return false;
+        }
+    } else {
+        if (!createHaxDirectories()) return false;
+        if (!downloadFile(getPluginUrl("00core.ipx"), convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/00core.ipx")) ||
+            !downloadFile(getPluginUrl("5isfshax.ipx"), convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/5isfshax.ipx")) ||
+            !downloadFile(getPluginUrl("5payldr.ipx"), convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/5payldr.ipx")) ||
+            !downloadFile("https://github.com/StroopwafelCFW/minute_minute/releases/latest/download/fw_fastboot.img", convertToPosixPath("/vol/storage_slc/sys/hax/fw.img")))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool downloadIsfshaxFiles() {
+    if (!createHaxDirectories()) return false;
+
+    // Check for superblock.img on SD
+    WHBMountSdCard();
+    if (fileExist("fs:/vol/external01/superblock.img")) {
+        if (showDialogPrompt(L"A superblock.img was found on the SD card.\nDo you want to remove it so the latest one gets used?", L"Yes", L"No") == 0) {
+            remove("fs:/vol/external01/superblock.img");
+        }
+    }
+
+    if (!downloadFile("https://github.com/isfshax/isfshax/releases/latest/download/superblock.img", convertToPosixPath("/vol/storage_slc/sys/hax/installer/sblock.img")) ||
+        !downloadFile("https://github.com/isfshax/isfshax/releases/latest/download/superblock.img.sha", convertToPosixPath("/vol/storage_slc/sys/hax/installer/sblock.sha")) ||
+        !downloadFile("https://github.com/isfshax/isfshax_installer/releases/latest/download/ios.img", convertToPosixPath("/vol/storage_slc/sys/hax/installer/fw.img")))
+    {
+        return false;
+    }
+
+    // Also download installer to SD root as ios.img if real SD exists
+    if (WHBMountSdCard() == 1) {
+        downloadFile("https://github.com/isfshax/isfshax_installer/releases/latest/download/ios.img", "fs:/vol/external01/ios.img");
+    }
+
+    return true;
+}
+
 bool downloadHaxFiles() {
     WHBLogFreetypeStartScreen();
     WHBLogFreetypePrint(L"Starting download of hax files...");
     WHBLogFreetypeDrawScreen();
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    if (!createHaxDirectories()) return false;
-
-    // Stroopwafel
-    if (!downloadFile(getPluginUrl("00core.ipx"), convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/00core.ipx")) ||
-        !downloadFile(getPluginUrl("5isfshax.ipx"), convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/5isfshax.ipx")) ||
-        !downloadFile(getPluginUrl("5payldr.ipx"), convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/5payldr.ipx")) ||
-        // minute
-        !downloadFile("https://github.com/StroopwafelCFW/minute_minute/releases/latest/download/fw_fastboot.img", convertToPosixPath("/vol/storage_slc/sys/hax/fw.img")) ||
-        // ISFShax
-        !downloadFile("https://github.com/isfshax/isfshax/releases/latest/download/superblock.img", convertToPosixPath("/vol/storage_slc/sys/hax/installer/sblock.img")) ||
-        !downloadFile("https://github.com/isfshax/isfshax/releases/latest/download/superblock.img.sha", convertToPosixPath("/vol/storage_slc/sys/hax/installer/sblock.sha")) ||
-        !downloadFile("https://github.com/isfshax/isfshax_installer/releases/latest/download/ios.img", convertToPosixPath("/vol/storage_slc/sys/hax/installer/fw.img"))) 
-    {
-        return false;
-    }
-
-    return true;
+    return downloadStroopwafelFiles(false) && downloadIsfshaxFiles();
 }
 
 bool downloadHaxFilesToSD() {
-    std::string sdPluginPath = "fs:/vol/external01/wiiu/ios_plugins/";
-    fs::create_directories(sdPluginPath);
-
-    if (!downloadFile(getPluginUrl("00core.ipx"), sdPluginPath + "00core.ipx") ||
-        !downloadFile(getPluginUrl("5isfshax.ipx"), sdPluginPath + "5isfshax.ipx") ||
-        !downloadFile(getPluginUrl("5payldr.ipx"), sdPluginPath + "5payldr.ipx"))
-    {
-        return false;
-    }
-    return true;
+    return downloadStroopwafelFiles(true);
 }
 
 bool download5sdusb(bool toSLC, bool toSD) {

@@ -110,21 +110,46 @@ void performStartupChecks() {
         }
     }
 
-    // 3. Stroopwafel check
-    if (!isStroopwafelAvailable()) {
-        uint8_t choice = showDialogPrompt(L"Stroopwafel (isfshax) is not detected.\nDo you want to setup isfshax files?", L"Yes", L"No");
+    // 3. Stroopwafel & ISFShax check
+    bool isfshaxInstalled = isIsfshaxInstalled();
+    bool stroopAvailable = isStroopwafelAvailable();
+
+    if (!isfshaxInstalled) {
+        uint8_t choice = showDialogPrompt(L"ISFShax is not detected.\nDo you want to install it?\nThis is required for Stroopwafel.", L"Yes", L"No");
         if (choice == 0) {
-            if (downloadHaxFiles()) {
-                if (!usingUSB) {
-                    downloadHaxFilesToSD();
+            if (downloadIsfshaxFiles()) {
+                bool downloadStroop = true;
+                if (stroopAvailable) {
+                    downloadStroop = (showDialogPrompt(L"Stroopwafel is already running.\nDo you want to download it again?", L"Yes", L"No") == 0);
                 }
-                showDialogPrompt(L"The ISFShax installer is controlled with the buttons on the main console.\nPOWER: moves the curser\nEJECT: confirm\nPress A to launch into the ISFShax Installer", L"Continue");
-                loadFwImg();
+
+                if (downloadStroop) {
+                    bool toSD = false;
+                    if (wantsPartitionedStorage) {
+                        toSD = false; // Only SLC for SD emulation
+                    } else {
+                        toSD = (showDialogPrompt(L"Where do you want to download Stroopwafel?\nSD card is recommended.", L"SD Card", L"SLC") == 0);
+                    }
+                    downloadStroopwafelFiles(toSD);
+                }
+
+                bootInstaller();
             }
         } else if (choice == 1 || choice == 255) {
             if (usingUSB || wantsPartitionedStorage) {
                 showDialogPrompt(L"You chose not to setup ISFShax.\nNote that USB-as-SD and partitioned storage REQUIRE Stroopwafel/ISFShax to work!", L"OK");
             }
+        }
+    } else if (!stroopAvailable) {
+        uint8_t choice = showDialogPrompt(L"Stroopwafel is missing or outdated.\nDo you want to download it?", L"Yes", L"No");
+        if (choice == 0) {
+            bool toSD = false;
+            if (wantsPartitionedStorage) {
+                toSD = false; // Only SLC for SD emulation
+            } else {
+                toSD = (showDialogPrompt(L"Where do you want to download Stroopwafel?\nSD card is recommended.", L"SD Card", L"SLC") == 0);
+            }
+            downloadStroopwafelFiles(toSD);
         }
     }
 }

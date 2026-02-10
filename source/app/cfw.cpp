@@ -149,3 +149,11 @@ CFWVersion getCFWVersion() {
 bool isStroopwafelAvailable() {
     return stroopwafel_available;
 }
+
+bool isIsfshaxInstalled() {
+    uint32_t val = 0;
+    if (Mocha_IOSUKernelRead32(0x1072272C, &val) != MOCHA_RESULT_SUCCESS) {
+        return false;
+    }
+    return val != 0xe3e05000;
+}

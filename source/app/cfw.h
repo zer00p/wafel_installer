@@ -16,3 +16,4 @@ bool initCFW();
 void shutdownCFW();
 CFWVersion getCFWVersion();
 bool isStroopwafelAvailable();
+bool isIsfshaxInstalled();
