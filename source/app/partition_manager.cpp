@@ -8,6 +8,7 @@
 #include "cfw.h"
 #include "fw_img_loader.h"
 #include <malloc.h>
+#include <cmath>
 #include <cstring>
 #include <string>
 #include <sstream>
@@ -324,7 +325,7 @@ bool partitionDevice(FSAClientHandle fsaHandle, const char* device, const FSADev
                     if (totalGB * (fatPercent - 10) / 100.0 >= 1.0) {
                         fatPercent -= 10;
                     } else {
-                        fatPercent = (int)ceil(100.0 / totalGB);
+                        fatPercent = (int)std::ceil(100.0 / totalGB);
                     }
                 } else {
                     fatPercent = (fatPercent >= 10) ? fatPercent - 10 : 0;
