@@ -838,22 +838,20 @@ void formatAndPartitionMenu() {
 
     FSADelClient(fsaHandle);
 
-    if (use_usb) {
-        setShutdownPending(true);
-        if (showDialogPrompt(L"Operation successful!\nIt is recommended to shutdown the console now\nand plug your SD card back in.\nDo you want to shutdown now?", L"Yes", L"No") == 0) {
-            setShutdownPending(true, true);
-            usbAsSd(false);
-            return;
-        }
-    }
-
     if (shouldDownloadAroma) {
         sleep_for(2s);
         if (showDialogPrompt(L"Device formatted successfully!\nDo you want to download Aroma now?", L"Yes", L"No") == 0) {
             downloadAroma("fs:/vol/external01/");
-        } else {
-            showSuccessPrompt(L"Formatting complete!");
         }
+    }
+
+    if (use_usb) {
+        setShutdownPending(true);
+        if (showDialogPrompt(L"Operation successful!\nIt is recommended to shutdown the console now\nand plug your SD card back in.\nDo you want to shutdown now?", L"Yes", L"No") == 0) {
+            setShutdownPending(true, true);
+        }
+    } else if (shouldDownloadAroma) {
+        showSuccessPrompt(L"Formatting complete!");
     }
 
     usbAsSd(false);
@@ -914,6 +912,7 @@ void setupSDUSBMenu() {
         }
 
         bool partitionSuccess = false;
+        bool userQuitActionMenu = false;
         while (!partitionSuccess) {
             bool hasNtfs = false;
             int partitionCount = 0;
@@ -1005,6 +1004,7 @@ void setupSDUSBMenu() {
             } else if (choice == optRepartition) {
                 partitionSuccess = partitionDevice(fsaHandle, "/dev/sdcard01", deviceInfo);
             } else if (choice == optCancel || choice == 255) {
+                userQuitActionMenu = true;
                 break;
             }
         }
@@ -1042,8 +1042,8 @@ void setupSDUSBMenu() {
             break;
         }
 
-        if (choice == optCancel || choice == 255) {
-            break;
+        if (userQuitActionMenu) {
+            continue;
         }
     }
 
@@ -1154,9 +1154,11 @@ void setupPartitionedUSBMenu() {
         }
 
         bool partitionSuccess = false;
+        bool userQuitActionMenu = false;
         while (!partitionSuccess) {
             if (!checkAndFixPartitionOrder(fsaHandle, "/dev/sdcard01", deviceInfo, partitionSuccess)) {
                 if (partitionSuccess) break;
+                userQuitActionMenu = true;
                 break;
             }
 
@@ -1257,6 +1259,7 @@ void setupPartitionedUSBMenu() {
             } else if (choice == optRepartition) {
                 partitionSuccess = partitionDevice(fsaHandle, "/dev/sdcard01", deviceInfo);
             } else if (choice == optCancel || choice == 255) {
+                userQuitActionMenu = true;
                 free(mbr);
                 break;
             }
@@ -1281,7 +1284,7 @@ void setupPartitionedUSBMenu() {
             break;
         }
 
-        if (choice == optCancel || choice == 255) break;
+        if (userQuitActionMenu) continue;
     }
 
     usbAsSd(false);
