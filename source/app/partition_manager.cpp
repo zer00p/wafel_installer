@@ -224,7 +224,7 @@ void showDeviceInfoScreen(FSAClientHandle fsaHandle, const char* device, const F
 
 bool waitForDevice(FSAClientHandle fsaHandle, const wchar_t* deviceName) {
     while (true) {
-        uint8_t choice = showDialogPrompt(L"Remove ALL SD and USB storage devices NOW!\nOnly the target device should be plugged in later.", L"OK", L"Cancel");
+        uint8_t choice = showDialogPrompt(L"Remove ALL SD and USB storage devices NOW!", L"OK", L"Cancel");
         if (choice != 0) return false;
 
         FSADeviceInfo devInfo;
