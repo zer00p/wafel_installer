@@ -11,6 +11,7 @@
 #include <string>
 #include <sstream>
 #include <unistd.h>
+#include <filesystem>
 #include <stroopwafel/stroopwafel.h>
 
 #define OPTION(n) (selectedOption == (n) ? L'>' : L' ')
@@ -138,11 +139,122 @@ static bool browsePlugins(std::string posixPath) {
     }
 }
 
+static bool syncPlugins(const std::string& sourcePosixPath) {
+    std::string slcPosix = convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins");
+    std::string sdPosix = convertToPosixPath("/vol/external01/wiiu/ios_plugins");
+    std::string destPosixPath;
+    std::string sourceFwImg;
+    std::string destFwImg;
+
+    if (sourcePosixPath == slcPosix) {
+        destPosixPath = sdPosix;
+        sourceFwImg = convertToPosixPath("/vol/storage_slc/sys/hax/fw.img");
+        destFwImg = convertToPosixPath("/vol/external01/fw.img");
+    } else if (sourcePosixPath == sdPosix) {
+        destPosixPath = slcPosix;
+        sourceFwImg = convertToPosixPath("/vol/external01/fw.img");
+        destFwImg = convertToPosixPath("/vol/storage_slc/sys/hax/fw.img");
+    } else {
+        return false;
+    }
+
+    std::wstring msg = L"Do you want to sync all plugins from\n" + toWstring(sourcePosixPath) + L"\nto\n" + toWstring(destPosixPath) + L"?\nExisting plugins will be overwritten and others deleted.";
+    if (showDialogPrompt(msg.c_str(), L"Yes", L"No") != 0) return false;
+
+    bool copyFwImg = false;
+    if (fileExist(sourceFwImg.c_str())) {
+        msg = L"Do you also want to copy the minute (fw.img)?\nSource: " + toWstring(sourceFwImg) + L"\nDestination: " + toWstring(destFwImg);
+        if (showDialogPrompt(msg.c_str(), L"Yes", L"No") == 0) {
+            copyFwImg = true;
+        }
+    }
+
+    WHBLogFreetypeStartScreen();
+    WHBLogFreetypePrint(L"Syncing plugins...");
+    WHBLogFreetypeDrawScreen();
+
+    // Ensure destination directory exists
+    if (!dirExist(destPosixPath.c_str())) {
+        try {
+            std::filesystem::create_directories(destPosixPath);
+        } catch (...) {
+            setErrorPrompt(L"Failed to create destination directory!");
+            showErrorPrompt(L"OK");
+            return false;
+        }
+    }
+
+    // 1. Copy plugins from source to destination
+    DIR* dir = opendir(sourcePosixPath.c_str());
+    std::vector<std::string> sourceFiles;
+    if (dir) {
+        struct dirent* ent;
+        while ((ent = readdir(dir)) != nullptr) {
+            if (ent->d_type == DT_REG) {
+                std::string fileName = ent->d_name;
+                sourceFiles.push_back(fileName);
+                std::string srcFile = sourcePosixPath;
+                if (srcFile.back() != '/') srcFile += "/";
+                srcFile += fileName;
+                std::string destFile = destPosixPath;
+                if (destFile.back() != '/') destFile += "/";
+                destFile += fileName;
+
+                WHBLogFreetypePrintf(L"Copying %S...", toWstring(fileName).c_str());
+                WHBLogFreetypeDrawScreen();
+                if (!copyFile(srcFile, destFile)) {
+                     WHBLogFreetypePrintf(L"Failed to copy %S", toWstring(fileName).c_str());
+                     WHBLogFreetypeDrawScreen();
+                }
+            }
+        }
+        closedir(dir);
+    }
+
+    // 2. Delete plugins in destination that are not in source
+    dir = opendir(destPosixPath.c_str());
+    if (dir) {
+        struct dirent* ent;
+        while ((ent = readdir(dir)) != nullptr) {
+            if (ent->d_type == DT_REG) {
+                std::string fileName = ent->d_name;
+                if (std::find(sourceFiles.begin(), sourceFiles.end(), fileName) == sourceFiles.end()) {
+                    WHBLogFreetypePrintf(L"Deleting %S...", toWstring(fileName).c_str());
+                    WHBLogFreetypeDrawScreen();
+                    std::string destFile = destPosixPath;
+                    if (destFile.back() != '/') destFile += "/";
+                    destFile += fileName;
+                    remove(destFile.c_str());
+                }
+            }
+        }
+        closedir(dir);
+    }
+
+    // 3. Copy fw.img if requested
+    if (copyFwImg) {
+        WHBLogFreetypePrint(L"Copying fw.img...");
+        WHBLogFreetypeDrawScreen();
+        if (!copyFile(sourceFwImg, destFwImg)) {
+            WHBLogFreetypePrint(L"Failed to copy fw.img!");
+            WHBLogFreetypeDrawScreen();
+            sleep_for(2s);
+        }
+    }
+
+    showSuccessPrompt(L"Sync completed!");
+    return true;
+}
+
 static bool managePlugins(std::string posixPath) {
     uint8_t selectedOption = 0;
     bool refreshList = true;
     bool changed = false;
     std::vector<std::string> plugins;
+
+    std::string slcPosix = convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins");
+    std::string sdPosix = convertToPosixPath("/vol/external01/wiiu/ios_plugins");
+    bool isStandardPath = (posixPath == slcPosix || posixPath == sdPosix);
 
     while(true) {
         if (refreshList) {
@@ -191,7 +303,11 @@ static bool managePlugins(std::string posixPath) {
         }
 
         WHBLogFreetypeScreenPrintBottom(L"===============================");
-        WHBLogFreetypeScreenPrintBottom(L"\uE000 Select \uE001 Back \uE002 Delete \uE003 Get plugin");
+        if (isStandardPath) {
+            WHBLogFreetypeScreenPrintBottom(L"\uE000 Select \uE001 Back \uE002 Delete \uE003 Get plugin \u002B Sync All");
+        } else {
+            WHBLogFreetypeScreenPrintBottom(L"\uE000 Select \uE001 Back \uE002 Delete \uE003 Get plugin");
+        }
         WHBLogFreetypeDrawScreen();
 
         sleep_for(100ms);
@@ -215,6 +331,13 @@ static bool managePlugins(std::string posixPath) {
                     changed = true;
                 }
                 break;
+            }
+            if (pressedStart() && isStandardPath) {
+                if (syncPlugins(posixPath)) {
+                    refreshList = true;
+                    changed = true;
+                    break;
+                }
             }
             if (pressedX() && !plugins.empty()) {
                 std::string pluginName = plugins[selectedOption];

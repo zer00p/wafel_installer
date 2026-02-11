@@ -14,6 +14,7 @@ bool testStorage(TITLE_LOCATION location);
 std::string convertToPosixPath(const char* volPath);
 bool fileExist(const char* path);
 bool dirExist(const char* path);
+bool copyFile(const std::string& src, const std::string& dest);
 
 TITLE_LOCATION deviceToLocation(const char* device);
 TITLE_LOCATION pathToLocation(const char* device);

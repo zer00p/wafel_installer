@@ -184,6 +184,14 @@ bool dirExist(const char* path) {
     return false;
 }
 
+bool copyFile(const std::string& src, const std::string& dest) {
+    try {
+        return std::filesystem::copy_file(src, dest, std::filesystem::copy_options::overwrite_existing);
+    } catch (...) {
+        return false;
+    }
+}
+
 bool isDirEmpty(const char* path) {
     DIR* dirHandle;
     if ((dirHandle = opendir(path)) == nullptr) return true;
