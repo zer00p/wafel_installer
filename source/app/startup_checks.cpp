@@ -24,7 +24,17 @@ void performStartupChecks() {
     // 1. SD Card accessibility check
     bool sdAccessible = (WHBMountSdCard() == 1);
 
-    if (!sdAccessible) {
+    if (sdAccessible) {
+        FSAClientHandle fsaHandle = FSAAddClient(NULL);
+        if (fsaHandle >= 0) {
+            FSADeviceInfo devInfo;
+            if ((FSStatus)FSAGetDeviceInfo(fsaHandle, "/dev/sdcard01", &devInfo) == FS_STATUS_OK) {
+                bool dummy = false;
+                checkAndFixPartitionOrder(fsaHandle, "/dev/sdcard01", devInfo, dummy);
+            }
+            FSADelClient(fsaHandle);
+        }
+    } else {
         WHBLogPrint("SD card not accessible.");
         WHBLogFreetypeDraw();
         FSAClientHandle fsaHandle = FSAAddClient(NULL);
@@ -32,8 +42,16 @@ void performStartupChecks() {
         bool sdExists = (fsaHandle >= 0) && ((FSStatus)FSAGetDeviceInfo(fsaHandle, "/dev/sdcard01", &devInfo) == FS_STATUS_OK);
 
         if (sdExists) {
-            showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", devInfo);
-            if (showDialogPrompt(L"SD card cannot be accessed.\nDo you want to format it to use it on the Wii U?", L"Yes", L"No", nullptr, nullptr, 0, false) == 0) {
+            bool dummy = false;
+            if (checkAndFixPartitionOrder(fsaHandle, "/dev/sdcard01", devInfo, dummy)) {
+                if (WHBMountSdCard() == 1) {
+                    sdAccessible = true;
+                }
+            }
+
+            if (!sdAccessible) {
+                showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", devInfo);
+                if (showDialogPrompt(L"SD card cannot be accessed.\nDo you want to format it to use it on the Wii U?", L"Yes", L"No", nullptr, nullptr, 0, false) == 0) {
                 uint64_t totalSize = (uint64_t)devInfo.deviceSizeInSectors * devInfo.deviceSectorSize;
                 uint64_t twoGiB = 2ULL * 1024 * 1024 * 1024;
 
@@ -57,6 +75,12 @@ void performStartupChecks() {
                 usbAsSd(true);
 
                 if (waitForDevice(fsaHandle, L"USB device")) {
+                    FSStatus res = (FSStatus)FSAGetDeviceInfo(fsaHandle, "/dev/sdcard01", &devInfo);
+                    if (res == FS_STATUS_OK) {
+                        bool dummy = false;
+                        checkAndFixPartitionOrder(fsaHandle, "/dev/sdcard01", devInfo, dummy);
+                    }
+
                     if (WHBMountSdCard() == 1) {
                         showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", devInfo);
                         if (showDialogPrompt(L"USB device detected.\nDo you want to repartition it to store Wii U games on or keep as is?", L"Repartition", L"Keep as is", nullptr, nullptr, 0, false) == 0) {

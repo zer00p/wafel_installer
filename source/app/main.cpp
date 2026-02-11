@@ -5,7 +5,10 @@
 #include "filesystem.h"
 #include "exploit.h"
 #include "gui.h"
+#include <coreinit/shutdown.h>
 #include <unistd.h> // For access function
+#include <chrono>
+#include <thread>
 
 // Initialize correct heaps for CustomRPXLoader
 extern "C" void __init_wut_malloc();
@@ -37,6 +40,15 @@ int main() {
         sleep_for(2s);
         performStartupChecks();
         showMainMenu();
+    }
+
+    if (isShutdownPending()) {
+        WHBLogFreetypeStartScreen();
+        WHBLogPrint("Shutting down now...");
+        WHBLogPrint("You can now plug your SD card back in.");
+        WHBLogFreetypeDraw();
+        std::this_thread::sleep_for(std::chrono::seconds(3));
+        OSShutdown(false);
     }
 
     WHBLogPrint("");

@@ -2,12 +2,15 @@
 #include "gui.h"
 #include "menu.h"
 #include "navigation.h"
+#include "filesystem.h"
 
 #include <mocha/mocha.h>
 #include <stroopwafel/stroopwafel.h> // Assuming this is the correct header
 
 CFWVersion currCFWVersion = CFWVersion::NONE;
 bool stroopwafel_available = false;
+std::string stroopwafel_plugin_posix_path = "";
+bool pending_shutdown = false;
 
 bool stopMochaServer() {
     WHBLogFreetypeClear();
@@ -41,6 +44,19 @@ CFWVersion testCFW() {
     if (Stroopwafel_InitLibrary() == STROOPWAFEL_RESULT_SUCCESS) {
         stroopwafel_available = true;
         WHBLogPrint("libstroopwafel initialized successfully.");
+
+        StroopwafelMinutePath currentPath = {0};
+        if (Stroopwafel_GetPluginPath(&currentPath) == STROOPWAFEL_RESULT_SUCCESS) {
+            std::string fullVolPath;
+            if (currentPath.device == STROOPWAFEL_MIN_DEV_SLC) {
+                fullVolPath = "/vol/storage_slc" + std::string(currentPath.path);
+            } else if (currentPath.device == STROOPWAFEL_MIN_DEV_SD) {
+                fullVolPath = "/vol/external01" + std::string(currentPath.path);
+            }
+            if (!fullVolPath.empty()) {
+                stroopwafel_plugin_posix_path = convertToPosixPath(fullVolPath.c_str());
+            }
+        }
     } else {
         WHBLogPrint("libstroopwafel initialization failed.");
     }
@@ -156,4 +172,20 @@ bool isIsfshaxInstalled() {
         return false;
     }
     return val != 0xe3e05000;
+}
+
+std::string getStroopwafelPluginPosixPath() {
+    return stroopwafel_plugin_posix_path;
+}
+
+void setStroopwafelPluginPosixPath(const std::string& path) {
+    stroopwafel_plugin_posix_path = path;
+}
+
+bool isShutdownPending() {
+    return pending_shutdown;
+}
+
+void setShutdownPending(bool pending) {
+    pending_shutdown = pending;
 }

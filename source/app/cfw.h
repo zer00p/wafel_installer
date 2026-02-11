@@ -1,5 +1,6 @@
 #include "common.h"
 #include <mocha/mocha.h>
+#include <string>
 
 
 enum CFWVersion {
@@ -17,3 +18,7 @@ void shutdownCFW();
 CFWVersion getCFWVersion();
 bool isStroopwafelAvailable();
 bool isIsfshaxInstalled();
+std::string getStroopwafelPluginPosixPath();
+void setStroopwafelPluginPosixPath(const std::string& path);
+bool isShutdownPending();
+void setShutdownPending(bool pending);

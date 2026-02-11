@@ -138,8 +138,9 @@ void showMainMenu() {
         WHBLogFreetypePrintf(L"%C Download Aroma", OPTION(3));
         WHBLogFreetypePrintf(L"%C Format and Partition", OPTION(4));
         WHBLogFreetypePrintf(L"%C Set up SDUSB", OPTION(5));
+        WHBLogFreetypePrintf(L"%C Set up USB Partition", OPTION(6));
         WHBLogFreetypePrint(L"");
-        WHBLogFreetypePrintf(L"%C Stroopwafel Plugin Manager", OPTION(6));
+        WHBLogFreetypePrintf(L"%C Stroopwafel Plugin Manager", OPTION(7));
         WHBLogFreetypeScreenPrintBottom(L"===============================");
         WHBLogFreetypeScreenPrintBottom(L"\uE000 Button = Select Option \uE001 Button = Exit ISFShax Loader");
         WHBLogFreetypeScreenPrintBottom(L"");
@@ -152,8 +153,8 @@ void showMainMenu() {
             updateInputs();
             // Check each button state
             if (navigatedUp()) {
-                if (selectedOption == 6) {
-                    selectedOption = 5;
+                if (selectedOption == 7) {
+                    selectedOption = 6;
                     break;
                 } else if (selectedOption > 0) {
                     selectedOption--;
@@ -161,10 +162,10 @@ void showMainMenu() {
                 }
             }
             if (navigatedDown()) {
-                if (selectedOption == 5) {
-                    selectedOption = 6;
+                if (selectedOption == 6) {
+                    selectedOption = 7;
                     break;
-                } else if (selectedOption < 5) {
+                } else if (selectedOption < 6) {
                     selectedOption++;
                     break;
                 }
@@ -206,6 +207,9 @@ void showMainMenu() {
             setupSDUSBMenu();
             break;
         case 6:
+            setupPartitionedUSBMenu();
+            break;
+        case 7:
             showPluginManager();
             break;
         default:

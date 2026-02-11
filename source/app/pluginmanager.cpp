@@ -243,43 +243,22 @@ static void managePlugins(std::string posixPath) {
 }
 
 void showPluginManager() {
-    StroopwafelMinutePath currentPath = {0};
-    bool stroopAvailable = isStroopwafelAvailable();
-    if (stroopAvailable) {
-        Stroopwafel_GetPluginPath(&currentPath);
-    }
-
-    std::string slcDefaultPath = "/sys/hax/ios_plugins";
-    std::string sdDefaultPath = "/wiiu/ios_plugins";
-
     std::string slcPosix = convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins");
     std::string sdPosix = convertToPosixPath("/vol/external01/wiiu/ios_plugins");
-
-    std::string currentPosix;
-    if (stroopAvailable) {
-        if (currentPath.device == STROOPWAFEL_MIN_DEV_SLC) {
-            currentPosix = convertToPosixPath(("/vol/storage_slc" + std::string(currentPath.path)).c_str());
-        } else if (currentPath.device == STROOPWAFEL_MIN_DEV_SD) {
-            currentPosix = convertToPosixPath(("/vol/external01" + std::string(currentPath.path)).c_str());
-        }
-    }
+    std::string currentPosix = getStroopwafelPluginPosixPath();
 
     std::vector<std::pair<std::wstring, std::string>> options;
     options.push_back({L"SLC Plugins (/sys/hax/ios_plugins)", slcPosix});
     options.push_back({L"SD Plugins (/wiiu/ios_plugins)", sdPosix});
 
     uint8_t selectedOption = 0;
-    if (stroopAvailable && !currentPosix.empty()) {
-        bool isSLCDefault = (currentPath.device == STROOPWAFEL_MIN_DEV_SLC && std::string(currentPath.path) == slcDefaultPath);
-        bool isSDDefault = (currentPath.device == STROOPWAFEL_MIN_DEV_SD && std::string(currentPath.path) == sdDefaultPath);
-
-        if (isSLCDefault) {
+    if (!currentPosix.empty()) {
+        if (currentPosix == slcPosix) {
             selectedOption = 0;
-        } else if (isSDDefault) {
+        } else if (currentPosix == sdPosix) {
             selectedOption = 1;
         } else {
-            std::wstring devName = (currentPath.device == STROOPWAFEL_MIN_DEV_SLC ? L"SLC" : L"SD");
-            options.push_back({L"Current Plugins (" + devName + L": " + toWstring(currentPath.path) + L")", currentPosix});
+            options.push_back({L"Current Plugins (" + toWstring(currentPosix) + L")", currentPosix});
             selectedOption = 2;
         }
     }

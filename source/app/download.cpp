@@ -1,6 +1,7 @@
 #include "download.h"
 #include "gui.h"
 #include "menu.h"
+#include "cfw.h"
 #include "filesystem.h"
 #include "common.h"
 #include <curl/curl.h>
@@ -194,7 +195,7 @@ bool fetchPluginList(bool force) {
     return !cachedPluginList.empty();
 }
 
-static std::string getPluginUrl(const std::string& fileName) {
+std::string getPluginUrl(const std::string& fileName) {
     fetchPluginList();
     for (const auto& p : getCachedPluginList()) {
         if (p.fileName == fileName) {
@@ -243,6 +244,7 @@ bool downloadStroopwafelFiles(bool toSD) {
         {
             return false;
         }
+        setStroopwafelPluginPosixPath(convertToPosixPath("/vol/external01/wiiu/ios_plugins"));
     } else {
         if (!createHaxDirectories()) return false;
         if (!downloadFile(getPluginUrl("00core.ipx"), convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/00core.ipx")) ||
@@ -252,6 +254,7 @@ bool downloadStroopwafelFiles(bool toSD) {
         {
             return false;
         }
+        setStroopwafelPluginPosixPath(convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins"));
     }
     return true;
 }
