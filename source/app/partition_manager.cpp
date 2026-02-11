@@ -219,6 +219,7 @@ void showDeviceInfoScreen(FSAClientHandle fsaHandle, const char* device, const F
     WHBLogFreetypeStartScreen();
     WHBLogFreetypePrint(L"Device Info:");
     WHBLogFreetypePrint(getDeviceSummary(fsaHandle, device, deviceInfo).c_str());
+    WHBLogFreetypePrint(L"");
     WHBLogFreetypeDraw();
 }
 
