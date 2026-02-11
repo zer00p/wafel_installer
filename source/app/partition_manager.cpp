@@ -266,7 +266,7 @@ bool formatWholeDrive(FSAClientHandle fsaHandle, const char* device, const FSADe
 
     while (true) {
         setCustomFormatSize(0);
-        WHBLogFreetypePrintf(L"Formatting whole %ls...", toWstring(device).c_str());
+        WHBLogFreetypePrint(L"Formatting whole Device with FAT32...");
         WHBLogFreetypeDraw();
         FSStatus status = (FSStatus)FSA_Format(fsaHandle, device, fsType, 0, 0, 0);
         if (status != FS_STATUS_OK) {
