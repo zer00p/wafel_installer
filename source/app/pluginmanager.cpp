@@ -303,11 +303,9 @@ void showPluginManager() {
             }
             if (pressedBack()) {
                 if (anyChanged) {
+                    setShutdownPending(true);
                     if (showDialogPrompt(L"You have changed plugins.\nDo you want to reboot now to apply changes?", L"Yes", L"No") == 0) {
-                        WHBLogPrint("Shutting down...");
-                        WHBLogFreetypeDraw();
-                        sleep_for(1s);
-                        OSShutdown();
+                        return;
                     }
                 }
                 return;

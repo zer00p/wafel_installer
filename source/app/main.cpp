@@ -48,12 +48,12 @@ int main() {
         WHBLogFreetypeDraw();
         sleep_for(3s);
         OSShutdown();
+    } else {
+        WHBLogPrint("");
+        WHBLogPrint(getCFWVersion() == MOCHA_FSCLIENT ? "Exiting ISFShax Loader..." : "Exiting ISFShax Loader and rebooting Wii U...");
+        WHBLogFreetypeDraw();
+        sleep_for(5s);
     }
-
-    WHBLogPrint("");
-    WHBLogPrint(getCFWVersion() == MOCHA_FSCLIENT ? "Exiting ISFShax Loader..." : "Exiting ISFShax Loader and rebooting Wii U...");
-    WHBLogFreetypeDraw();
-    sleep_for(5s);
 
     // Close application properly
     unmountSystemDrives();

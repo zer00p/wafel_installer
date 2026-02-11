@@ -1250,13 +1250,11 @@ void setupPartitionedUSBMenu() {
                     downloadAroma("fs:/vol/external01/");
                 }
             } else {
+                setShutdownPending(true);
                 if (showDialogPrompt(L"USB partitioned successfully!\nIt is recommended to shutdown the console now\nand plug your SD card back in.\nDo you want to shutdown now?", L"Yes", L"No") == 0) {
-                    WHBLogPrint("Shutting down...");
-                    WHBLogFreetypeDraw();
-                    sleep_for(1s);
-                    OSShutdown();
-                } else {
-                    setShutdownPending(true);
+                    usbAsSd(false);
+                    FSADelClient(fsaHandle);
+                    return;
                 }
             }
             break;
