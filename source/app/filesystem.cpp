@@ -142,6 +142,11 @@ std::string convertToPosixPath(const char* volPath) {
     if (strncmp("/vol/", volPath, 5) != 0) return "";
 
     if (USE_LIBMOCHA()) {
+        // For the SD card, we want to use the fs: prefix since it's not mounted via mocha
+        if (strncmp(volPath + 5, "external01", 10) == 0) {
+            return std::string("fs:") + volPath;
+        }
+
         // Get and append the mount path
         const char *drivePathEnd = strchr(volPath + 5, '/');
         if (drivePathEnd == nullptr) {
