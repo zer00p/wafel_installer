@@ -1197,7 +1197,7 @@ void setupPartitionedUSBMenu() {
         showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", deviceInfo);
         uint8_t choice = showDialogPrompt(L"How do you want to partition the USB device?", buttons, 0, false);
 
-        bool partitionSuccess = false;
+        partitionSuccess = false;
         if (choice == optKeep) {
             partitionSuccess = true;
         } else if (optCreate != -1 && choice == optCreate) {

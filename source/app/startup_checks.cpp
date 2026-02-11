@@ -52,19 +52,20 @@ void performStartupChecks() {
             if (!sdAccessible) {
                 showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", devInfo);
                 if (showDialogPrompt(L"SD card cannot be accessed.\nDo you want to format it to use it on the Wii U?", L"Yes", L"No", nullptr, nullptr, 0, false) == 0) {
-                uint64_t totalSize = (uint64_t)devInfo.deviceSizeInSectors * devInfo.deviceSectorSize;
-                uint64_t twoGiB = 2ULL * 1024 * 1024 * 1024;
+                    uint64_t totalSize = (uint64_t)devInfo.deviceSizeInSectors * devInfo.deviceSectorSize;
+                    uint64_t twoGiB = 2ULL * 1024 * 1024 * 1024;
 
-                showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", devInfo);
-                if (totalSize >= twoGiB && showDialogPrompt(L"Do you also want to use the SD card to install Wii U games to?", L"Yes", L"No", nullptr, nullptr, 0, false) == 0) {
-                    wantsPartitionedStorage = true;
-                    if (partitionDevice(fsaHandle, "/dev/sdcard01", devInfo)) {
-                        WHBMountSdCard();
-                        download5sdusb(true, true);
-                    }
-                } else {
-                    if (formatWholeDrive(fsaHandle, "/dev/sdcard01", devInfo)) {
-                        WHBMountSdCard();
+                    showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", devInfo);
+                    if (totalSize >= twoGiB && showDialogPrompt(L"Do you also want to use the SD card to install Wii U games to?", L"Yes", L"No", nullptr, nullptr, 0, false) == 0) {
+                        wantsPartitionedStorage = true;
+                        if (partitionDevice(fsaHandle, "/dev/sdcard01", devInfo)) {
+                            WHBMountSdCard();
+                            download5sdusb(true, true);
+                        }
+                    } else {
+                        if (formatWholeDrive(fsaHandle, "/dev/sdcard01", devInfo)) {
+                            WHBMountSdCard();
+                        }
                     }
                 }
             }
