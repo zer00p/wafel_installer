@@ -15,7 +15,6 @@
 #include <iomanip>
 #include <vector>
 #include <coreinit/ios.h>
-#include <coreinit/shutdown.h>
 #include <coreinit/filesystem_fsa.h>
 #include <coreinit/time.h>
 #include <coreinit/energysaver.h>
@@ -1257,8 +1256,8 @@ void setupPartitionedUSBMenu() {
                 if (showDialogPrompt(L"USB partitioned successfully!\nIt is recommended to shutdown the console now\nand plug your SD card back in.\nDo you want to shutdown now?", L"Yes", L"No") == 0) {
                     WHBLogPrint("Shutting down...");
                     WHBLogFreetypeDraw();
-                    std::this_thread::sleep_for(std::chrono::seconds(1));
-                    OSShutdown(false);
+                    sleep_for(1s);
+                    OSShutdown();
                 } else {
                     setShutdownPending(true);
                 }

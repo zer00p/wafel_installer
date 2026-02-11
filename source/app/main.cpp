@@ -5,7 +5,6 @@
 #include "filesystem.h"
 #include "exploit.h"
 #include "gui.h"
-#include <coreinit/shutdown.h>
 #include <unistd.h> // For access function
 #include <chrono>
 #include <thread>
@@ -45,10 +44,10 @@ int main() {
     if (isShutdownPending()) {
         WHBLogFreetypeStartScreen();
         WHBLogPrint("Shutting down now...");
-        WHBLogPrint("You can now plug your SD card back in.");
+        WHBLogPrint("So you can plug your SD card back in.");
         WHBLogFreetypeDraw();
-        std::this_thread::sleep_for(std::chrono::seconds(3));
-        OSShutdown(false);
+        sleep_for(3s);
+        OSShutdown();
     }
 
     WHBLogPrint("");
