@@ -33,7 +33,7 @@ int main() {
     showLoadingScreen();
     if (testCFW() != FAILED && ((getCFWVersion() == MOCHA_FSCLIENT || getCFWVersion() == CEMU || getCFWVersion() == CUSTOM_MOCHA) || installCFW()) && initCFW() ) {
         mountSystemDrives();
-        WHBLogFreetypePrint(L"");
+        WHBLogFreetypePrint(L" ");
         WHBLogPrint("Finished loading!");
         WHBLogFreetypeDraw();
         sleep_for(2s);

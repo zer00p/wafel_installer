@@ -43,7 +43,7 @@ static bool browsePlugins(std::string posixPath) {
             WHBLogFreetypePrintf(L"%C %S %S %S", OPTION(i), fileName.c_str(), toWstring(p.shortDescription).c_str(), installed ? L"(Installed)" : L"");
         }
 
-        WHBLogFreetypePrint(L"");
+        WHBLogFreetypePrint(L" ");
         WHBLogFreetypePrint(L"Description:");
         // Manually wrap long description
         std::string desc = cachedPluginList[selectedOption].longDescription;

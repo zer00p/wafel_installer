@@ -219,7 +219,7 @@ void showDeviceInfoScreen(FSAClientHandle fsaHandle, const char* device, const F
     WHBLogFreetypeStartScreen();
     WHBLogFreetypePrint(L"Device Info:");
     WHBLogFreetypePrint(getDeviceSummary(fsaHandle, device, deviceInfo).c_str());
-    WHBLogFreetypePrint(L"");
+    WHBLogFreetypePrint(L" ");
     WHBLogFreetypeDraw();
 }
 
@@ -238,7 +238,7 @@ bool waitForDevice(FSAClientHandle fsaHandle, const wchar_t* deviceName) {
     while (true) {
         WHBLogFreetypeStartScreen();
         WHBLogFreetypePrint(pluginMsg.c_str());
-        WHBLogFreetypePrint(L"");
+        WHBLogFreetypePrint(L" ");
         WHBLogFreetypePrint(L"Waiting for device...");
         WHBLogFreetypePrint(L"Press B to cancel");
         WHBLogFreetypeDrawScreen();
@@ -297,7 +297,7 @@ bool partitionDevice(FSAClientHandle fsaHandle, const char* device, const FSADev
         WHBLogFreetypePrint(L"===============================");
         WHBLogFreetypePrintf(L"FAT32:  [%3d%%] (%6.2f GB)    Homebrew and vWii USB Loader", fatPercent, fatGB);
         WHBLogFreetypePrintf(L"WFS:    [%3d%%] (%6.2f GB)    Wii U games and VC", 100 - fatPercent, ntfsGB);
-        WHBLogFreetypePrint(L"");
+        WHBLogFreetypePrint(L" ");
         WHBLogFreetypePrint(L"Use Left/Right to adjust (1% increments)");
         WHBLogFreetypePrint(L"Use Up/Down to adjust (10% increments)");
         WHBLogFreetypePrint(L"Press A to confirm, B to cancel");

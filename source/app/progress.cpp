@@ -59,17 +59,17 @@ void showCurrentProgress() {
         // Print general dumping message
         WHBLogFreetypeStartScreen();
         WHBLogFreetypePrint(L"Dumping In Progress:");
-        WHBLogFreetypePrint(L"");
+        WHBLogFreetypePrint(L" ");
         WHBLogFreetypePrint(dumpingMessage.c_str());
         if (totalQueueBytes != 0) printEstimateTime();
 
-        WHBLogFreetypePrint(L"");
+        WHBLogFreetypePrint(L" ");
         WHBLogFreetypePrint(L"Details:");
         WHBLogFreetypePrintf(L"File Name = %S", toWstring(currFilename).c_str());
         WHBLogFreetypePrintf(L"Current Speed = %.3fMB/s", (double)bytesCopiedSecond/1000000.0);
         if (totalQueueBytes != 0) WHBLogFreetypePrintf(L"Overall Progress = %.1f%% done - %S", calculatePercentage(copiedQueueBytes, totalQueueBytes), formatByteSizes(copiedQueueBytes, totalQueueBytes).c_str());
         else WHBLogFreetypePrintf(L"Overall Progress = %S written, %d files copied", formatByteSize(copiedQueueBytes).c_str(), filesCopied);
-        WHBLogFreetypePrint(L"");
+        WHBLogFreetypePrint(L" ");
         WHBLogFreetypePrintf(L"File Progress = %.1f%% done - %S", calculatePercentage(copiedFileBytes, totalFileBytes), formatByteSizes(copiedFileBytes, totalFileBytes).c_str());
 
 //        WHBLogFreetypePrintf("Total Fat32 Time Spent on %.0f files: %.0f ms", profile_getSegment("files"), profile_getSegment("total"));
@@ -79,7 +79,7 @@ void showCurrentProgress() {
 //        WHBLogFreetypePrintf("   - dir_find's time: %.0f ms", profile_getSegment("registerfinds"));
 //        WHBLogFreetypePrintf("   - dir_alloc: %.0f ms", profile_getSegment("dir_alloc"));
 
-        WHBLogFreetypePrint(L"");
+        WHBLogFreetypePrint(L" ");
         WHBLogFreetypeScreenPrintBottom(L"===============================");
         WHBLogFreetypeScreenPrintBottom(L"\uE001 Button = Cancel Dumping");
         WHBLogFreetypeDrawScreen();

@@ -140,7 +140,7 @@ void showMainMenu() {
             WHBLogFreetypePrintf(L"%C Format and Partition", OPTION(4));
             WHBLogFreetypePrintf(L"%C Set up SDUSB", OPTION(5));
             WHBLogFreetypePrintf(L"%C Set up USB Partition", OPTION(6));
-            WHBLogFreetypePrint(L"");
+            WHBLogFreetypePrint(L" ");
             WHBLogFreetypeScreenPrintBottom(L"===============================");
             WHBLogFreetypeScreenPrintBottom(L"\uE000 Button = Select Option \uE001 Button = Exit ISFShax Loader");
             WHBLogFreetypeScreenPrintBottom(L"");
@@ -233,11 +233,11 @@ uint8_t showDialogPrompt(const wchar_t* message, const std::vector<std::wstring>
             WHBLogFreetypePrint(line.c_str());
         }
 
-        WHBLogFreetypePrint(L"");
+        WHBLogFreetypePrint(L" ");
         for (uint8_t i = 0; i < numButtons; i++) {
             WHBLogFreetypePrintf(L"%C [%S]", OPTION(i), buttons[i].c_str());
         }
-        WHBLogFreetypePrint(L"");
+        WHBLogFreetypePrint(L" ");
         WHBLogFreetypeScreenPrintBottom(L"===============================");
         WHBLogFreetypeScreenPrintBottom(L"\u2191/\u2193 = Change Option, \uE000 = Select Option");
         WHBLogFreetypeDrawScreen();
