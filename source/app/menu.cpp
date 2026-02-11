@@ -130,7 +130,7 @@ void installAromaMenu() {
 void showMainMenu() {
     uint8_t selectedOption = 0;
     while(true) {
-        if (isShutdownPending()) return;
+        if (isShutdownForced()) return;
 
         bool startSelectedOption = false;
         while(!startSelectedOption) {
@@ -147,7 +147,18 @@ void showMainMenu() {
             WHBLogFreetypePrintf(L"%C Set up SDUSB", OPTION(6));
             WHBLogFreetypePrintf(L"%C Set up USB Partition", OPTION(7));
             WHBLogFreetypePrint(L" ");
+
             WHBLogFreetypeScreenPrintBottom(L"===============================");
+            if (!isStroopwafelAvailable()) {
+                WHBLogFreetypeScreenPrintBottom(L"Stroopwafel: Not active");
+            } else {
+                std::wstring path = toWstring(getStroopwafelPluginPosixPath());
+                if (path.empty()) {
+                    WHBLogFreetypeScreenPrintBottom(L"Stroopwafel: Active (Path unknown)");
+                } else {
+                    WHBLogFreetypeScreenPrintBottom((L"Plugins: " + path).c_str());
+                }
+            }
             WHBLogFreetypeScreenPrintBottom(L"\uE000 Button = Select Option \uE001 Button = Exit ISFShax Loader");
             WHBLogFreetypeScreenPrintBottom(L"");
             WHBLogFreetypeDrawScreen();
@@ -156,7 +167,7 @@ void showMainMenu() {
             sleep_for(200ms); // Cooldown between each button press
             updateInputs();
             while(!startSelectedOption) {
-                if (isShutdownPending()) return;
+                if (isShutdownForced()) return;
                 updateInputs();
                 // Check each button state
                 if (navigatedUp()) {

@@ -608,6 +608,7 @@ void showPluginManager() {
                 if (anyChanged) {
                     setShutdownPending(true);
                     if (showDialogPrompt(L"You have changed plugins.\nDo you want to reboot now to apply changes?", L"Yes", L"No") == 0) {
+                        setShutdownPending(true, true);
                         return;
                     }
                 }

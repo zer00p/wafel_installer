@@ -22,4 +22,5 @@ bool isSdEmulated();
 std::string getStroopwafelPluginPosixPath();
 void setStroopwafelPluginPosixPath(const std::string& path);
 bool isShutdownPending();
-void setShutdownPending(bool pending);
+void setShutdownPending(bool pending, bool forced = false);
+bool isShutdownForced();

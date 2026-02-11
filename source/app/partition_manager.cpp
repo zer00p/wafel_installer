@@ -544,6 +544,7 @@ void formatAndPartitionMenu() {
     while (true) {
         if (!waitForDevice(fsaHandle, deviceName)) {
             FSADelClient(fsaHandle);
+            usbAsSd(false);
             return;
         }
 
@@ -555,6 +556,7 @@ void formatAndPartitionMenu() {
             setErrorPrompt(L"Failed to get device info!");
             showErrorPrompt(L"OK");
             FSADelClient(fsaHandle);
+            usbAsSd(false);
             return;
         }
 
@@ -563,6 +565,7 @@ void formatAndPartitionMenu() {
             setErrorPrompt(L"Failed to allocate memory for MBR!");
             showErrorPrompt(L"OK");
             FSADelClient(fsaHandle);
+            usbAsSd(false);
             return;
         }
 
@@ -838,6 +841,15 @@ void formatAndPartitionMenu() {
 
     FSADelClient(fsaHandle);
 
+    if (use_usb) {
+        setShutdownPending(true);
+        if (showDialogPrompt(L"Operation successful!\nIt is recommended to shutdown the console now\nand plug your SD card back in.\nDo you want to shutdown now?", L"Yes", L"No") == 0) {
+            setShutdownPending(true, true);
+            usbAsSd(false);
+            return;
+        }
+    }
+
     if (shouldDownloadAroma) {
         sleep_for(2s);
         if (showDialogPrompt(L"Device formatted successfully!\nDo you want to download Aroma now?", L"Yes", L"No") == 0) {
@@ -846,6 +858,8 @@ void formatAndPartitionMenu() {
             showSuccessPrompt(L"Formatting complete!");
         }
     }
+
+    usbAsSd(false);
 }
 
 void setupSDUSBMenu() {
@@ -1254,6 +1268,7 @@ void setupPartitionedUSBMenu() {
             } else {
                 setShutdownPending(true);
                 if (showDialogPrompt(L"USB partitioned successfully!\nIt is recommended to shutdown the console now\nand plug your SD card back in.\nDo you want to shutdown now?", L"Yes", L"No") == 0) {
+                    setShutdownPending(true, true);
                     usbAsSd(false);
                     FSADelClient(fsaHandle);
                     return;

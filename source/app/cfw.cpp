@@ -11,6 +11,7 @@ CFWVersion currCFWVersion = CFWVersion::NONE;
 bool stroopwafel_available = false;
 std::string stroopwafel_plugin_posix_path = "";
 bool pending_shutdown = false;
+bool forced_shutdown = false;
 
 bool stopMochaServer() {
     WHBLogFreetypeClear();
@@ -194,6 +195,11 @@ bool isShutdownPending() {
     return pending_shutdown;
 }
 
-void setShutdownPending(bool pending) {
+void setShutdownPending(bool pending, bool forced) {
     pending_shutdown = pending;
+    if (forced) forced_shutdown = true;
+}
+
+bool isShutdownForced() {
+    return forced_shutdown;
 }
