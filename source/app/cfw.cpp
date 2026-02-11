@@ -174,6 +174,14 @@ bool isIsfshaxInstalled() {
     return val != 0xe3e05000;
 }
 
+bool isSdEmulated() {
+    uint32_t val = 0;
+    if (Mocha_IOSUKernelRead32(0x1077eda0, &val) != MOCHA_RESULT_SUCCESS) {
+        return false;
+    }
+    return val == 0xe3a03006;
+}
+
 std::string getStroopwafelPluginPosixPath() {
     return stroopwafel_plugin_posix_path;
 }

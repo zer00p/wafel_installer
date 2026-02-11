@@ -18,6 +18,7 @@
 static bool browsePlugins(std::string posixPath) {
     if (!fetchPluginList(true)) return false;
 
+    bool changed = false;
     const auto& cachedPluginList = getCachedPluginList();
     uint8_t selectedOption = 0;
     while (true) {
@@ -80,7 +81,7 @@ static bool browsePlugins(std::string posixPath) {
                 break;
             }
             if (pressedBack()) {
-                return false;
+                return changed;
             }
             if (pressedOk()) {
                 const auto& p = cachedPluginList[selectedOption];
@@ -125,7 +126,7 @@ static bool browsePlugins(std::string posixPath) {
                         fullPath += p.fileName;
                         if (downloadFile(p.downloadPath, fullPath)) {
                             showSuccessPrompt(L"Plugin downloaded successfully!");
-                            return true;
+                            changed = true;
                         }
                     }
                 }
@@ -137,9 +138,10 @@ static bool browsePlugins(std::string posixPath) {
     }
 }
 
-static void managePlugins(std::string posixPath) {
+static bool managePlugins(std::string posixPath) {
     uint8_t selectedOption = 0;
     bool refreshList = true;
+    bool changed = false;
     std::vector<std::string> plugins;
 
     while(true) {
@@ -205,11 +207,12 @@ static void managePlugins(std::string posixPath) {
                 break;
             }
             if (pressedBack()) {
-                return;
+                return changed;
             }
             if (pressedY()) {
                 if (browsePlugins(posixPath)) {
                     refreshList = true;
+                    changed = true;
                 }
                 break;
             }
@@ -229,6 +232,7 @@ static void managePlugins(std::string posixPath) {
                                 selectedOption--;
                             }
                             refreshList = true;
+                            changed = true;
                         } else {
                             setErrorPrompt(L"Failed to delete plugin!");
                             showErrorPrompt(L"OK");
@@ -243,6 +247,7 @@ static void managePlugins(std::string posixPath) {
 }
 
 void showPluginManager() {
+    bool anyChanged = false;
     std::string slcPosix = convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins");
     std::string sdPosix = convertToPosixPath("/vol/external01/wiiu/ios_plugins");
     std::string currentPosix = getStroopwafelPluginPosixPath();
@@ -287,10 +292,24 @@ void showPluginManager() {
                 break;
             }
             if (pressedOk()) {
-                managePlugins(options[selectedOption].second);
+                bool slcSelected = (options[selectedOption].second == slcPosix);
+                if (slcSelected && !checkSystemAccess()) {
+                    break;
+                }
+                if (managePlugins(options[selectedOption].second)) {
+                    anyChanged = true;
+                }
                 break;
             }
             if (pressedBack()) {
+                if (anyChanged) {
+                    if (showDialogPrompt(L"You have changed plugins.\nDo you want to reboot now to apply changes?", L"Yes", L"No") == 0) {
+                        WHBLogPrint("Shutting down...");
+                        WHBLogFreetypeDraw();
+                        sleep_for(1s);
+                        OSShutdown();
+                    }
+                }
                 return;
             }
             sleep_for(50ms);

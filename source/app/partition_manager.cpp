@@ -1084,11 +1084,7 @@ void setupPartitionedUSBMenu() {
     WHBLogPrint("Downloading required plugin...");
     WHBLogFreetypeDraw();
     std::string pluginFile = sdEmulation ? "5upartsd.ipx" : "5usbpart.ipx";
-    std::string fullPluginPath = pluginTarget;
-    if (fullPluginPath.back() != '/') fullPluginPath += "/";
-    fullPluginPath += pluginFile;
-
-    if (!downloadFile(getPluginUrl(pluginFile), fullPluginPath)) {
+    if (!downloadUsbPartitionPlugin(pluginFile, pluginTarget)) {
         return;
     }
 

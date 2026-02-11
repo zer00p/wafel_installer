@@ -24,7 +24,7 @@ void showLoadingScreen() {
 
 #define OPTION(n) (selectedOption == (n) ? L'>' : L' ')
 
-static bool checkSystemAccess() {
+bool checkSystemAccess() {
     if (!isSlcMounted()) {
         showDialogPrompt(L"Cannot access the SLC!\nPlease make sure to disable 'System Access' in ftpiiu if you have it running.", L"OK");
         return false;
@@ -33,9 +33,31 @@ static bool checkSystemAccess() {
 }
 
 void installStroopwafelMenu() {
-    bool toSD = (showDialogPrompt(L"Where do you want to download Stroopwafel?\nSD card is recommended.", L"SD Card", L"SLC") == 0);
+    bool sdEmulated = isSdEmulated();
+    bool toSD = false;
+
+    if (sdEmulated) {
+        uint8_t choice = showDialogPrompt(L"Where do you want to download Stroopwafel?\nNote: Stroopwafel cannot be installed to the USB device, even when using SD emulation.", L"SLC", L"Cancel");
+        if (choice != 0) return;
+        toSD = false;
+    } else {
+        uint8_t choice = showDialogPrompt(L"Where do you want to download Stroopwafel?\nSD card is recommended.", L"SD Card", L"SLC", L"Cancel");
+        if (choice == 2 || choice == 255) return;
+        toSD = (choice == 0);
+    }
+
+    if (!toSD && !checkSystemAccess()) return;
+
     if (downloadStroopwafelFiles(toSD)) {
         showSuccessPrompt(L"Stroopwafel files downloaded successfully!");
+
+        if (!isIsfshaxInstalled()) {
+            if (showDialogPrompt(L"ISFShax is not detected.\nDo you want to download the ISFShax installer and superblock files now?", L"Yes", L"No") == 0) {
+                if (downloadIsfshaxFiles()) {
+                    bootInstaller();
+                }
+            }
+        }
     }
 }
 
@@ -62,29 +84,6 @@ void installIsfshaxMenu() {
 
     if (downloaded) {
         bootInstaller();
-    }
-}
-
-void redownloadFiles() {
-    while (true) {
-        uint8_t choice = showDialogPrompt(L"What files do you want to redownload?", L"Everything", L"Stroopwafel only", L"ISFShax only", L"Cancel");
-        if (choice == 3 || choice == 255) return;
-
-        bool success = true;
-        if (choice == 0 || choice == 1) {
-            bool toSD = (showDialogPrompt(L"Where do you want to download Stroopwafel?\nSD card is recommended.", L"SD Card", L"SLC") == 0);
-            success &= downloadStroopwafelFiles(toSD);
-        }
-        if (choice == 0 || choice == 2) {
-            success &= downloadIsfshaxFiles();
-        }
-
-        if (success) {
-            showSuccessPrompt(L"Files downloaded successfully!");
-            break;
-        } else {
-            if (!showErrorPrompt(L"Cancel", true)) break;
-        }
     }
 }
 
@@ -123,101 +122,94 @@ void installAromaMenu() {
     }
 }
 
-// Can get recursively called
 void showMainMenu() {
     uint8_t selectedOption = 0;
-    bool startSelectedOption = false;
-    while(!startSelectedOption) {
-        // Print menu text
-        WHBLogFreetypeStartScreen();
-        WHBLogFreetypePrint(L"ISFShax Loader");
-        WHBLogFreetypePrint(L"===============================");
-        WHBLogFreetypePrintf(L"%C Install Stroopwafel", OPTION(0));
-        WHBLogFreetypePrintf(L"%C Redownload files", OPTION(1));
-        WHBLogFreetypePrintf(L"%C (Un)Install ISFShax", OPTION(2));
-        WHBLogFreetypePrintf(L"%C Download Aroma", OPTION(3));
-        WHBLogFreetypePrintf(L"%C Format and Partition", OPTION(4));
-        WHBLogFreetypePrintf(L"%C Set up SDUSB", OPTION(5));
-        WHBLogFreetypePrintf(L"%C Set up USB Partition", OPTION(6));
-        WHBLogFreetypePrint(L"");
-        WHBLogFreetypePrintf(L"%C Stroopwafel Plugin Manager", OPTION(7));
-        WHBLogFreetypeScreenPrintBottom(L"===============================");
-        WHBLogFreetypeScreenPrintBottom(L"\uE000 Button = Select Option \uE001 Button = Exit ISFShax Loader");
-        WHBLogFreetypeScreenPrintBottom(L"");
-        WHBLogFreetypeDrawScreen();
+    while(true) {
+        if (isShutdownPending()) return;
 
-        // Loop until there's new input
-        sleep_for(200ms); // Cooldown between each button press
-        updateInputs();
+        bool startSelectedOption = false;
         while(!startSelectedOption) {
+            // Print menu text
+            WHBLogFreetypeStartScreen();
+            WHBLogFreetypePrint(L"ISFShax Loader");
+            WHBLogFreetypePrint(L"===============================");
+            WHBLogFreetypePrintf(L"%C Stroopwafel Plugin Manager", OPTION(0));
+            WHBLogFreetypePrintf(L"%C Install Stroopwafel", OPTION(1));
+            WHBLogFreetypePrintf(L"%C (Un)Install ISFShax", OPTION(2));
+            WHBLogFreetypePrintf(L"%C Download Aroma", OPTION(3));
+            WHBLogFreetypePrintf(L"%C Format and Partition", OPTION(4));
+            WHBLogFreetypePrintf(L"%C Set up SDUSB", OPTION(5));
+            WHBLogFreetypePrintf(L"%C Set up USB Partition", OPTION(6));
+            WHBLogFreetypePrint(L"");
+            WHBLogFreetypeScreenPrintBottom(L"===============================");
+            WHBLogFreetypeScreenPrintBottom(L"\uE000 Button = Select Option \uE001 Button = Exit ISFShax Loader");
+            WHBLogFreetypeScreenPrintBottom(L"");
+            WHBLogFreetypeDrawScreen();
+
+            // Loop until there's new input
+            sleep_for(200ms); // Cooldown between each button press
             updateInputs();
-            // Check each button state
-            if (navigatedUp()) {
-                if (selectedOption == 7) {
-                    selectedOption = 6;
-                    break;
-                } else if (selectedOption > 0) {
-                    selectedOption--;
+            while(!startSelectedOption) {
+                if (isShutdownPending()) return;
+                updateInputs();
+                // Check each button state
+                if (navigatedUp()) {
+                    if (selectedOption > 0) {
+                        selectedOption--;
+                        break;
+                    }
+                }
+                if (navigatedDown()) {
+                    if (selectedOption < 6) {
+                        selectedOption++;
+                        break;
+                    }
+                }
+                if (pressedOk()) {
+                    startSelectedOption = true;
                     break;
                 }
-            }
-            if (navigatedDown()) {
-                if (selectedOption == 6) {
-                    selectedOption = 7;
-                    break;
-                } else if (selectedOption < 6) {
-                    selectedOption++;
-                    break;
+                if (pressedBack()) {
+                    uint8_t exitSelectedOption = showDialogPrompt(getCFWVersion() == MOCHA_FSCLIENT ? L"Do you really want to exit ISFShax Loader?" : L"Do you really want to exit ISFShax Loader?\nYour console will reboot to prevent compatibility issues!", L"Yes", L"No", nullptr, nullptr, 1);
+                    if (exitSelectedOption == 0) {
+                        WHBLogFreetypeClear();
+                        return;
+                    }
+                    else break;
                 }
+                sleep_for(50ms);
             }
-            if (pressedOk()) {
-                startSelectedOption = true;
-                break;
-            }
-            if (pressedBack()) {
-                uint8_t exitSelectedOption = showDialogPrompt(getCFWVersion() == MOCHA_FSCLIENT ? L"Do you really want to exit ISFShax Loader?" : L"Do you really want to exit ISFShax Loader?\nYour console will reboot to prevent compatibility issues!", L"Yes", L"No", nullptr, nullptr, 1);
-                if (exitSelectedOption == 0) {
-                    WHBLogFreetypeClear();
-                    return;
-                }
-                else break;
-            }
-            sleep_for(50ms);
         }
-    }
 
-    // Go to the selected menu
-    switch(selectedOption) {
-        case 0:
-            installStroopwafelMenu();
-            break;
-        case 1:
-            redownloadFiles();
-            break;
-        case 2:
-            installIsfshaxMenu();
-            break;
-        case 3:
-            installAromaMenu();
-            break;
-        case 4:
-            formatAndPartitionMenu();
-            break;
-        case 5:
-            setupSDUSBMenu();
-            break;
-        case 6:
-            setupPartitionedUSBMenu();
-            break;
-        case 7:
-            showPluginManager();
-            break;
-        default:
-            break;
-    }
+        // Go to the selected menu
+        switch(selectedOption) {
+            case 0:
+                showPluginManager();
+                break;
+            case 1:
+                installStroopwafelMenu();
+                break;
+            case 2:
+                installIsfshaxMenu();
+                break;
+            case 3:
+                installAromaMenu();
+                break;
+            case 4:
+                formatAndPartitionMenu();
+                break;
+            case 5:
+                setupSDUSBMenu();
+                break;
+            case 6:
+                setupPartitionedUSBMenu();
+                break;
+            default:
+                break;
+        }
 
-    sleep_for(500ms);
-    showMainMenu();
+        sleep_for(500ms);
+    }
 }
 
 

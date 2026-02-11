@@ -18,6 +18,7 @@ void shutdownCFW();
 CFWVersion getCFWVersion();
 bool isStroopwafelAvailable();
 bool isIsfshaxInstalled();
+bool isSdEmulated();
 std::string getStroopwafelPluginPosixPath();
 void setStroopwafelPluginPosixPath(const std::string& path);
 bool isShutdownPending();

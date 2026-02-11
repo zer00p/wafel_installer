@@ -206,10 +206,7 @@ std::string getPluginUrl(const std::string& fileName) {
 }
 
 static bool createHaxDirectories() {
-    if (!isSlcMounted()) {
-        WHBLogFreetypePrintf(L"Failed to mount SLC! FTP system file access enabled?");
-        WHBLogFreetypeDrawScreen();
-        setErrorPrompt(L"Failed to mount SLC! FTP system file access enabled?");
+    if (!checkSystemAccess()) {
         return false;
     }
 
@@ -229,6 +226,9 @@ static bool createHaxDirectories() {
 }
 
 bool downloadStroopwafelFiles(bool toSD) {
+    WHBMountSdCard();
+    bool hasAroma = dirExist("fs:/vol/external01/wiiu/environments/aroma");
+
     if (toSD) {
         if (WHBMountSdCard() != 1) {
             setErrorPrompt(L"Failed to mount SD card!");
@@ -239,7 +239,7 @@ bool downloadStroopwafelFiles(bool toSD) {
 
         if (!downloadFile(getPluginUrl("00core.ipx"), sdPluginPath + "00core.ipx") ||
             !downloadFile(getPluginUrl("5isfshax.ipx"), sdPluginPath + "5isfshax.ipx") ||
-            !downloadFile(getPluginUrl("5payldr.ipx"), sdPluginPath + "5payldr.ipx") ||
+            (hasAroma && !downloadFile(getPluginUrl("5payldr.ipx"), sdPluginPath + "5payldr.ipx")) ||
             !downloadFile("https://github.com/StroopwafelCFW/minute_minute/releases/latest/download/fw_fastboot.img", "fs:/vol/external01/fw.img"))
         {
             return false;
@@ -249,7 +249,7 @@ bool downloadStroopwafelFiles(bool toSD) {
         if (!createHaxDirectories()) return false;
         if (!downloadFile(getPluginUrl("00core.ipx"), convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/00core.ipx")) ||
             !downloadFile(getPluginUrl("5isfshax.ipx"), convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/5isfshax.ipx")) ||
-            !downloadFile(getPluginUrl("5payldr.ipx"), convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/5payldr.ipx")) ||
+            (hasAroma && !downloadFile(getPluginUrl("5payldr.ipx"), convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/5payldr.ipx"))) ||
             !downloadFile("https://github.com/StroopwafelCFW/minute_minute/releases/latest/download/fw_fastboot.img", convertToPosixPath("/vol/storage_slc/sys/hax/fw.img")))
         {
             return false;
@@ -298,15 +298,34 @@ bool downloadHaxFilesToSD() {
     return downloadStroopwafelFiles(true);
 }
 
+static void removeCompetingPlugins(std::string posixPath) {
+    if (posixPath.empty()) return;
+    if (posixPath.back() != '/') posixPath += "/";
+    remove((posixPath + "5sdusb.ipx").c_str());
+    remove((posixPath + "5usbpart.ipx").c_str());
+    remove((posixPath + "5upartsd.ipx").c_str());
+}
+
+bool downloadUsbPartitionPlugin(const std::string& pluginFile, const std::string& targetPosixPath) {
+    removeCompetingPlugins(targetPosixPath);
+    std::string fullPath = targetPosixPath;
+    if (fullPath.back() != '/') fullPath += "/";
+    fullPath += pluginFile;
+    return downloadFile(getPluginUrl(pluginFile), fullPath);
+}
+
 bool download5sdusb(bool toSLC, bool toSD) {
     bool success = true;
     if (toSLC) {
         if (!createHaxDirectories()) return false;
-        success &= downloadFile(getPluginUrl("5sdusb.ipx"), convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/5sdusb.ipx"));
+        std::string slcPath = convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/");
+        removeCompetingPlugins(slcPath);
+        success &= downloadFile(getPluginUrl("5sdusb.ipx"), slcPath + "5sdusb.ipx");
     }
     if (toSD) {
         std::string sdPluginPath = "fs:/vol/external01/wiiu/ios_plugins/";
         fs::create_directories(sdPluginPath);
+        removeCompetingPlugins(sdPluginPath);
         success &= downloadFile(getPluginUrl("5sdusb.ipx"), sdPluginPath + "5sdusb.ipx");
     }
     return success;
@@ -315,7 +334,9 @@ bool download5sdusb(bool toSLC, bool toSD) {
 bool download5upartsd(bool toSLC) {
     if (toSLC) {
         if (!createHaxDirectories()) return false;
-        return downloadFile(getPluginUrl("5upartsd.ipx"), convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/5upartsd.ipx"));
+        std::string slcPath = convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/");
+        removeCompetingPlugins(slcPath);
+        return downloadFile(getPluginUrl("5upartsd.ipx"), slcPath + "5upartsd.ipx");
     }
     return true;
 }
@@ -444,6 +465,23 @@ bool downloadAroma(const std::string& sdPath) {
 
     WHBLogFreetypePrint(L"Aroma and tools installed successfully!");
     WHBLogFreetypeDrawScreen();
+
+    // Freshly downloaded Aroma, also download payloader plugin if Stroopwafel is present
+    std::string pluginPath = getStroopwafelPluginPosixPath();
+    if (!pluginPath.empty()) {
+        std::string target = pluginPath;
+        if (target.back() != '/') target += "/";
+        target += "5payldr.ipx";
+
+        if (pluginPath.find("storage_slc") != std::string::npos) {
+            if (checkSystemAccess()) {
+                downloadFile(getPluginUrl("5payldr.ipx"), target);
+            }
+        } else {
+            downloadFile(getPluginUrl("5payldr.ipx"), target);
+        }
+    }
+
     return true;
 }
 
