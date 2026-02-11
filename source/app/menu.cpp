@@ -141,10 +141,11 @@ void showMainMenu() {
             WHBLogFreetypePrintf(L"%C Stroopwafel Plugin Manager", OPTION(0));
             WHBLogFreetypePrintf(L"%C Install Stroopwafel", OPTION(1));
             WHBLogFreetypePrintf(L"%C (Un)Install ISFShax", OPTION(2));
-            WHBLogFreetypePrintf(L"%C Download Aroma", OPTION(3));
-            WHBLogFreetypePrintf(L"%C Format and Partition", OPTION(4));
-            WHBLogFreetypePrintf(L"%C Set up SDUSB", OPTION(5));
-            WHBLogFreetypePrintf(L"%C Set up USB Partition", OPTION(6));
+            WHBLogFreetypePrintf(L"%C Check for Updates", OPTION(3));
+            WHBLogFreetypePrintf(L"%C Download Aroma", OPTION(4));
+            WHBLogFreetypePrintf(L"%C Format and Partition", OPTION(5));
+            WHBLogFreetypePrintf(L"%C Set up SDUSB", OPTION(6));
+            WHBLogFreetypePrintf(L"%C Set up USB Partition", OPTION(7));
             WHBLogFreetypePrint(L" ");
             WHBLogFreetypeScreenPrintBottom(L"===============================");
             WHBLogFreetypeScreenPrintBottom(L"\uE000 Button = Select Option \uE001 Button = Exit ISFShax Loader");
@@ -165,7 +166,7 @@ void showMainMenu() {
                     }
                 }
                 if (navigatedDown()) {
-                    if (selectedOption < 6) {
+                    if (selectedOption < 7) {
                         selectedOption++;
                         break;
                     }
@@ -198,15 +199,18 @@ void showMainMenu() {
                 installIsfshaxMenu();
                 break;
             case 3:
-                installAromaMenu();
+                checkForUpdates();
                 break;
             case 4:
-                formatAndPartitionMenu();
+                installAromaMenu();
                 break;
             case 5:
-                setupSDUSBMenu();
+                formatAndPartitionMenu();
                 break;
             case 6:
+                setupSDUSBMenu();
+                break;
+            case 7:
                 setupPartitionedUSBMenu();
                 break;
             default:

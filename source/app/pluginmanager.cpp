@@ -5,10 +5,12 @@
 #include "filesystem.h"
 #include "cfw.h"
 #include "download.h"
+#include "../utils/sha256.h"
 #include <dirent.h>
 #include <algorithm>
 #include <vector>
 #include <string>
+#include <map>
 #include <sstream>
 #include <unistd.h>
 #include <filesystem>
@@ -365,6 +367,158 @@ static bool managePlugins(std::string posixPath) {
                 break;
             }
             sleep_for(50ms);
+        }
+    }
+}
+
+void checkForUpdates() {
+    std::string slcPosix = convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins");
+    std::string sdPosix = "fs:/vol/external01/wiiu/ios_plugins";
+    std::string currentPosix = getStroopwafelPluginPosixPath();
+
+    std::string targetPosix = "";
+    std::string minutePath = "";
+
+    if (currentPosix == slcPosix) {
+        targetPosix = slcPosix;
+        minutePath = convertToPosixPath("/vol/storage_slc/sys/hax/fw.img");
+    } else if (currentPosix == sdPosix || currentPosix == "fs:/vol/external01/wiiu/ios_plugins/") {
+        targetPosix = sdPosix;
+        minutePath = "fs:/vol/external01/fw.img";
+    } else {
+        uint8_t choice = showDialogPrompt(L"Which location do you want to check for updates?", L"SD", L"SLC", L"Cancel");
+        if (choice == 0) {
+            targetPosix = sdPosix;
+            minutePath = "fs:/vol/external01/fw.img";
+        } else if (choice == 1) {
+            if (!checkSystemAccess()) return;
+            targetPosix = slcPosix;
+            minutePath = convertToPosixPath("/vol/storage_slc/sys/hax/fw.img");
+        } else {
+            return;
+        }
+    }
+
+    WHBLogFreetypeStartScreen();
+    WHBLogFreetypePrint(L"Checking for updates...");
+    WHBLogFreetypeDrawScreen();
+
+    if (!fetchPluginList(true)) {
+        showErrorPrompt(L"OK");
+        return;
+    }
+
+    struct OutdatedFile {
+        std::string fileName;
+        std::string repo;
+        std::string downloadUrl;
+        std::string localPath;
+    };
+    std::vector<OutdatedFile> outdatedFiles;
+    std::map<std::string, std::string> repoCache;
+
+    auto getCachedResponse = [&](const std::string& repo) -> std::string {
+        if (repoCache.find(repo) == repoCache.end()) {
+            std::string response;
+            if (downloadToBuffer("https://api.github.com/repos/" + repo + "/releases/latest", response)) {
+                repoCache[repo] = response;
+            } else {
+                repoCache[repo] = "";
+            }
+        }
+        return repoCache[repo];
+    };
+
+    // Check plugins
+    DIR* dir = opendir(targetPosix.c_str());
+    if (dir) {
+        struct dirent* ent;
+        while ((ent = readdir(dir)) != nullptr) {
+            if (ent->d_type == DT_REG) {
+                std::string fileName = ent->d_name;
+                for (const auto& p : getCachedPluginList()) {
+                    if (p.fileName == fileName) {
+                        WHBLogFreetypePrintf(L"Checking %S...", toWstring(fileName).c_str());
+                        WHBLogFreetypeDrawScreen();
+
+                        std::string repo = getRepoFromUrl(p.downloadPath);
+                        if (repo.empty()) continue;
+
+                        std::string response = getCachedResponse(repo);
+                        if (response.empty()) continue;
+
+                        std::string remoteHash = getDigestFromResponse(response, fileName);
+                        if (remoteHash.empty()) continue;
+
+                        std::string fullPath = targetPosix;
+                        if (fullPath.back() != '/') fullPath += "/";
+                        fullPath += fileName;
+
+                        std::string localHash = calculateSHA256(fullPath);
+                        if (localHash != remoteHash) {
+                            outdatedFiles.push_back({fileName, repo, p.downloadPath, fullPath});
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+        closedir(dir);
+    }
+
+    // Check minute
+    if (fileExist(minutePath.c_str())) {
+        WHBLogFreetypePrint(L"Checking minute (fw.img)...");
+        WHBLogFreetypeDrawScreen();
+
+        std::string repo = "StroopwafelCFW/minute_minute";
+        std::string response = getCachedResponse(repo);
+        if (!response.empty()) {
+            std::string hashFastboot = getDigestFromResponse(response, "fw_fastboot.img");
+            std::string hashFull = getDigestFromResponse(response, "fw.img");
+
+            // If we found at least one hash on GitHub, perform the check.
+            // If both are empty, we assume up to date (no digest available).
+            if (!hashFastboot.empty() || !hashFull.empty()) {
+                std::string localHash = calculateSHA256(minutePath);
+                bool upToDate = false;
+                if (!hashFastboot.empty() && localHash == hashFastboot) {
+                    upToDate = true;
+                } else if (!hashFull.empty() && localHash == hashFull) {
+                    upToDate = true;
+                }
+
+                if (!upToDate) {
+                    std::string downloadUrl = "https://github.com/StroopwafelCFW/minute_minute/releases/latest/download/fw_fastboot.img";
+                    outdatedFiles.push_back({"fw.img", repo, downloadUrl, minutePath});
+                }
+            }
+        }
+    }
+
+    if (outdatedFiles.empty()) {
+        showSuccessPrompt(L"All files are up to date!");
+    } else {
+        std::wstring msg = L"Updates available for:\n";
+        for (const auto& f : outdatedFiles) {
+            msg += L"- " + toWstring(f.fileName) + L"\n";
+        }
+        msg += L"\nDo you want to update all?";
+
+        if (showDialogPrompt(msg.c_str(), L"Update All", L"Cancel") == 0) {
+            bool allSuccess = true;
+            for (const auto& f : outdatedFiles) {
+                if (!downloadFile(f.downloadUrl, f.localPath)) {
+                    allSuccess = false;
+                }
+            }
+            if (allSuccess) {
+                showSuccessPrompt(L"All files updated successfully!");
+                setShutdownPending(true);
+                showDialogPrompt(L"Updates applied.\nYour console will reboot when you exit.", L"OK");
+            } else {
+                showErrorPrompt(L"OK");
+            }
         }
     }
 }

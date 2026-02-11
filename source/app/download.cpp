@@ -370,6 +370,71 @@ static std::string getLatestReleaseAssetUrl(const std::string& repo, const std::
     return "";
 }
 
+std::string getLatestReleaseAssetDigest(const std::string& repo, const std::string& assetName) {
+    std::string apiResponse;
+    if (!downloadToBuffer("https://api.github.com/repos/" + repo + "/releases/latest", apiResponse)) {
+        return "";
+    }
+    return getDigestFromResponse(apiResponse, assetName);
+}
+
+std::string getDigestFromResponse(const std::string& apiResponse, const std::string& pattern) {
+    size_t pos = 0;
+    while ((pos = apiResponse.find("\"name\":", pos)) != std::string::npos) {
+        pos += 7;
+        size_t nameStart = apiResponse.find("\"", pos);
+        if (nameStart == std::string::npos) break;
+        nameStart++;
+        size_t nameEnd = apiResponse.find("\"", nameStart);
+        if (nameEnd == std::string::npos) break;
+        std::string assetName = apiResponse.substr(nameStart, nameEnd - nameStart);
+
+        bool match = false;
+        if (pattern.find(".") != std::string::npos) {
+            match = (assetName == pattern);
+        } else {
+            match = (assetName.find(pattern) != std::string::npos);
+        }
+
+        if (match) {
+            size_t digestPos = apiResponse.find("\"digest\":", nameEnd);
+            size_t nextNamePos = apiResponse.find("\"name\":", nameEnd);
+            if (digestPos != std::string::npos && (nextNamePos == std::string::npos || digestPos < nextNamePos)) {
+                digestPos += 9;
+                size_t valStart = apiResponse.find("\"", digestPos);
+                if (valStart != std::string::npos) {
+                    valStart++;
+                    size_t valEnd = apiResponse.find("\"", valStart);
+                    if (valEnd != std::string::npos) {
+                        std::string digest = apiResponse.substr(valStart, valEnd - valStart);
+                        if (digest.substr(0, 7) == "sha256:") {
+                            return digest.substr(7);
+                        }
+                    }
+                }
+            }
+            return "";
+        }
+        pos = nameEnd;
+    }
+
+    return "";
+}
+
+std::string getRepoFromUrl(const std::string& url) {
+    std::string search = "github.com/repos/";
+    size_t pos = url.find(search);
+    if (pos == std::string::npos) {
+        search = "github.com/";
+        pos = url.find(search);
+        if (pos == std::string::npos) return "";
+    }
+    pos += search.length();
+    size_t end = url.find("/releases/", pos);
+    if (end == std::string::npos) return "";
+    return url.substr(pos, end - pos);
+}
+
 static bool downloadAndExtractZip(const std::string& repo, const std::string& pattern, const std::string& displayName, const std::string& sdPath, std::function<std::string(std::string)> pathMapper = nullptr) {
     std::string zipUrl = getLatestReleaseAssetUrl(repo, pattern);
     if (zipUrl.empty()) return false;
