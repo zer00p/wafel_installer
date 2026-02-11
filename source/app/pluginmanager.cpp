@@ -304,7 +304,7 @@ static bool managePlugins(std::string posixPath) {
 
         WHBLogFreetypeScreenPrintBottom(L"===============================");
         if (isStandardPath) {
-            WHBLogFreetypeScreenPrintBottom(L"\uE000 Select \uE001 Back \uE002 Delete \uE003 Get plugin \u002B Sync All");
+            WHBLogFreetypeScreenPrintBottom(L"\uE000 Select \uE001 Back \uE002 Delete \uE003 Get plugin \ue045 Sync All");
         } else {
             WHBLogFreetypeScreenPrintBottom(L"\uE000 Select \uE001 Back \uE002 Delete \uE003 Get plugin");
         }
