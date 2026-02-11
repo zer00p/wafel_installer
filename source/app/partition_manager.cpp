@@ -588,17 +588,15 @@ void formatAndPartitionMenu() {
             free(mbr);
         } else {
             bool hasMbr = false;
-            if ((FSStatus)rawRead(fsaHandle, "/dev/sdcard01", 0, 1, mbr, deviceInfo.deviceSectorSize) == FS_STATUS_OK) {
+            FSError readRes = rawRead(fsaHandle, "/dev/sdcard01", 0, 1, mbr, deviceInfo.deviceSectorSize);
+            if ((FSStatus)readRes == FS_STATUS_OK) {
                 if (mbr[510] == 0x55 && mbr[511] == 0xAA) hasMbr = true;
-            }
-
-            if (!hasMbr) {
-                setErrorPrompt(L"Failed to read MBR!");
+            } else {
+                setErrorPrompt(L"Failed to read MBR from device!");
                 showErrorPrompt(L"OK");
                 free(mbr);
                 continue;
             }
-
 
             uint8_t* backupMbr = (uint8_t*)memalign(0x40, deviceInfo.deviceSectorSize);
             if (backupMbr) {
@@ -638,7 +636,7 @@ void formatAndPartitionMenu() {
 
             int partitionCount = 0;
             uint32_t lastOccupiedSector = 1;
-            if ((FSStatus)rawRead(fsaHandle, "/dev/sdcard01", 0, 1, mbr, deviceInfo.deviceSectorSize) == FS_STATUS_OK) {
+            if (hasMbr) {
                 for (int i = 0; i < 4; i++) {
                     uint8_t type = mbr[446 + i * 16 + 4];
                     if (type != 0) {
@@ -823,6 +821,9 @@ void formatAndPartitionMenu() {
                         WHBLogFreetypeDraw();
                         if ((FSStatus)rawWrite(fsaHandle, "/dev/sdcard01", 0, 1, zeroSector, deviceInfo.deviceSectorSize) == FS_STATUS_OK) {
                             showDialogPrompt(L"MBR deleted successfully!", L"OK");
+                            free(zeroSector);
+                            free(mbr);
+                            break;
                         } else {
                             setErrorPrompt(L"Failed to delete MBR!");
                             showErrorPrompt(L"OK");
@@ -1042,6 +1043,7 @@ void setupPartitionedUSBMenu() {
     std::string pluginTarget;
 
     if (sdEmulation) {
+        if (!checkSystemAccess()) return;
         pluginTarget = convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins");
         bool stroopAvailable = isStroopwafelAvailable();
         bool runningFromSLC = false;

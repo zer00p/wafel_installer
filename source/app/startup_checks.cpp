@@ -14,11 +14,16 @@
 #include <vector>
 #include <string>
 
-void performStartupChecks() {
+bool performStartupChecks() {
     bool wantsPartitionedStorage = false;
     bool usingUSB = false;
 
     WHBLogPrint("Performing startup checks...");
+    WHBLogFreetypeDraw();
+
+    if (getStroopwafelPluginPosixPath().find("storage_slc") != std::string::npos) {
+        if (!checkSystemAccess(true)) return false;
+    }
     WHBLogFreetypeDraw();
 
     // 1. SD Card accessibility check
@@ -147,4 +152,6 @@ void performStartupChecks() {
             }
         }
     }
+
+    return true;
 }

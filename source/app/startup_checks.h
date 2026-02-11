@@ -2,4 +2,4 @@
 
 #include "common.h"
 
-void performStartupChecks();
+bool performStartupChecks();

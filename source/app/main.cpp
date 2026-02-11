@@ -37,8 +37,9 @@ int main() {
         WHBLogPrint("Finished loading!");
         WHBLogFreetypeDraw();
         sleep_for(2s);
-        performStartupChecks();
-        showMainMenu();
+        if (performStartupChecks()) {
+            showMainMenu();
+        }
     }
 
     if (isShutdownPending()) {

@@ -24,10 +24,15 @@ void showLoadingScreen() {
 
 #define OPTION(n) (selectedOption == (n) ? L'>' : L' ')
 
-bool checkSystemAccess() {
+bool checkSystemAccess(bool suggestExit) {
     if (!isSlcMounted()) {
-        showDialogPrompt(L"Cannot access the SLC!\nPlease make sure to disable 'System Access' in ftpiiu if you have it running.", L"OK");
-        return false;
+        if (suggestExit) {
+            uint8_t choice = showDialogPrompt(L"Cannot access the SLC!\nPlease make sure to disable 'System Access' in ftpiiu if you have it running.", L"Continue", L"Exit", nullptr, nullptr, 1);
+            return (choice == 0);
+        } else {
+            showDialogPrompt(L"Cannot access the SLC!\nPlease make sure to disable 'System Access' in ftpiiu if you have it running.", L"OK");
+            return false;
+        }
     }
     return true;
 }
