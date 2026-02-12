@@ -506,7 +506,7 @@ void checkForUpdates() {
                 bool upToDate = false;
                 bool isSd = (minutePath.find("external01") != std::string::npos);
                 if (isSd) {
-                    if (!hashFull.empty() && localHash == hashFull) {
+                    if ((!hashFull.empty() && localHash == hashFull) || (!hashFastboot.empty() && localHash == hashFastboot)) {
                         upToDate = true;
                     }
                 } else {
