@@ -49,14 +49,19 @@ typedef struct __attribute__((aligned(0x40))) {
 #define FAT_MOUNT_CALL 0x1078a948
 static uint32_t fatmount_org_ins = 0;
 static void block_fat_mount(void) {
-    if(!fatmount_org_ins)
-        Mocha_IOSUKernelRead32(FAT_MOUNT_CALL, &fatmount_org_ins);
+    uint32_t val = 0;
+    if (Mocha_IOSUKernelRead32(FAT_MOUNT_CALL, &val) == MOCHA_RESULT_SUCCESS) {
+        if (val != 0xe3e00000) {
+            fatmount_org_ins = val;
+        }
+    }
     Mocha_IOSUKernelWrite32(FAT_MOUNT_CALL, 0xe3e00000); // mov r0,#-1
 }
 
 static void unblock_fat_mount(void) {
-    if(fatmount_org_ins)
+    if (fatmount_org_ins != 0 && fatmount_org_ins != 0xe3e00000) {
         Mocha_IOSUKernelWrite32(FAT_MOUNT_CALL, fatmount_org_ins);
+    }
 }
 
 FatMountGuard::FatMountGuard() : active(false) {}

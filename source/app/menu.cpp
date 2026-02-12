@@ -123,6 +123,8 @@ void installStroopwafelMenu() {
                 }
             }
         }
+    } else {
+        showErrorPrompt(L"OK");
     }
 }
 
