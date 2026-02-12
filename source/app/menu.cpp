@@ -92,7 +92,7 @@ void loadArbitraryFwImgMenu() {
 
     uint8_t choice = showDialogPrompt(L"Select a fw.img to load:", files);
     if (choice != 255) {
-        std::string fullPath = "/vol/external01/wiiu/cfw/" + toString(files[choice]);
+        std::string fullPath = "/vol/sdcard/wiiu/cfw/" + toString(files[choice]);
         loadFwImg(fullPath.c_str());
     }
 }
@@ -199,7 +199,7 @@ void showMainMenu() {
             WHBLogFreetypePrint(L"ISFShax Loader");
             WHBLogFreetypePrint(L"===============================");
             WHBLogFreetypePrintf(L"%C Stroopwafel Plugin Manager", OPTION(0));
-            WHBLogFreetypePrintf(L"%C Load arbitrary fw.img", OPTION(1));
+            WHBLogFreetypePrintf(L"%C Load custom fw.img", OPTION(1));
             WHBLogFreetypePrintf(L"%C Install Stroopwafel", OPTION(2));
             WHBLogFreetypePrintf(L"%C (Un)Install ISFShax", OPTION(3));
             WHBLogFreetypePrintf(L"%C Check for Updates", OPTION(4));
