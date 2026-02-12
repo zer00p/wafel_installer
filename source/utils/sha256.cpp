@@ -4,8 +4,8 @@
 #include <vector>
 #include <iomanip>
 #include <sstream>
+#include "../app/gui.h"
 
-#include <whb/log_freetype.h>
 #include "../app/common.h"
 
 std::string calculateSHA256(const std::string& path) {
