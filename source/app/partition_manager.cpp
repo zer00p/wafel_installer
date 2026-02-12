@@ -45,6 +45,20 @@ typedef struct __attribute__((aligned(0x40))) {
     uint8_t unknown[0x3d];
 } FSAIpcData;
 
+
+#define FAT_MOUNT_CALL 0x1078a948
+static uint32_t fatmount_org_ins = 0;
+static void block_fat_mount(void) {
+    if(!fatmount_org_ins)
+        Mocha_IOSUKernelRead32(FAT_MOUNT_CALL, &fatmount_org_ins);
+    Mocha_IOSUKernelWrite32(FAT_MOUNT_CALL, 0xe3e00000); // mov r0,#-1
+}
+
+static void unblock_fat_mount(void) {
+    if(fatmount_org_ins)
+        Mocha_IOSUKernelWrite32(FAT_MOUNT_CALL, fatmount_org_ins);
+}
+
 static int32_t FSA_Format(FSAClientHandle handle, const char* device, const char* filesystem, uint32_t flags, uint32_t param_5, uint32_t param_6) {
     FSAIpcData* data = (FSAIpcData*)memalign(0x40, sizeof(FSAIpcData));
     if (!data) return -1;
@@ -63,6 +77,7 @@ static int32_t FSA_Format(FSAClientHandle handle, const char* device, const char
     int32_t ret = IOS_Ioctl((int)handle, 0x69, data, 0x520, data->outbuf, 0x293);
 
     free(data);
+    unblock_fat_mount();
     return ret;
 }
 
@@ -233,6 +248,8 @@ bool waitForDevice(FSAClientHandle fsaHandle, const wchar_t* deviceName) {
             break;
         }
     }
+
+    block_fat_mount();
 
     std::wstring pluginMsg = L"Plug in ONLY the " + std::wstring(deviceName) + L" you want to work with.\nPlugging in other devices may lead to DATA LOSS!";
     while (true) {
