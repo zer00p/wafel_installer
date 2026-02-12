@@ -9,6 +9,8 @@
 #include "download.h"
 #include <vector>
 #include <string>
+#include <dirent.h>
+#include <whb/sdcard.h>
 
 // Menu screens
 
@@ -35,6 +37,64 @@ bool checkSystemAccess(bool suggestExit) {
         }
     }
     return true;
+}
+
+void loadArbitraryFwImgMenu() {
+    if (!isStroopwafelAvailable()) {
+        if (wasStroopwafelDownloadedInSession()) {
+            showDialogPrompt(L"Stroopwafel was just installed.\nPlease reboot your console to activate it before using this feature.", L"OK");
+        } else {
+            uint8_t choice = showDialogPrompt(L"Stroopwafel is required to load arbitrary fw.img files.\nDo you want to install it now?", L"Yes", L"No");
+            if (choice == 0) {
+                installStroopwafelMenu();
+            }
+        }
+        return;
+    }
+
+    if (WHBMountSdCard() != 1) {
+        setErrorPrompt(L"Failed to mount SD card!");
+        showErrorPrompt(L"OK");
+        return;
+    }
+
+    const char* cfwDir = "fs:/vol/external01/wiiu/cfw";
+    if (!dirExist(cfwDir)) {
+        if (mkdir(cfwDir, 0755) != 0 && errno != EEXIST) {
+            setErrorPrompt(L"Failed to create wiiu/cfw directory on SD!");
+            showErrorPrompt(L"OK");
+            return;
+        }
+        showDialogPrompt(L"The directory 'wiiu/cfw' has been created on your SD card.\nPlease put your fw.img files there to boot them.", L"OK");
+        return;
+    }
+
+    DIR* dir = opendir(cfwDir);
+    if (!dir) {
+        setErrorPrompt(L"Failed to open wiiu/cfw directory!");
+        showErrorPrompt(L"OK");
+        return;
+    }
+
+    std::vector<std::wstring> files;
+    struct dirent* ent;
+    while ((ent = readdir(dir)) != nullptr) {
+        if (ent->d_type != DT_DIR) {
+            files.push_back(toWstring(ent->d_name));
+        }
+    }
+    closedir(dir);
+
+    if (files.empty()) {
+        showDialogPrompt(L"No files found in 'wiiu/cfw' on SD card.\nPlease put your fw.img files there.", L"OK");
+        return;
+    }
+
+    uint8_t choice = showDialogPrompt(L"Select a fw.img to load:", files);
+    if (choice != 255) {
+        std::string fullPath = "/vol/external01/wiiu/cfw/" + toString(files[choice]);
+        loadFwImg(fullPath.c_str());
+    }
 }
 
 void installStroopwafelMenu() {
@@ -139,13 +199,14 @@ void showMainMenu() {
             WHBLogFreetypePrint(L"ISFShax Loader");
             WHBLogFreetypePrint(L"===============================");
             WHBLogFreetypePrintf(L"%C Stroopwafel Plugin Manager", OPTION(0));
-            WHBLogFreetypePrintf(L"%C Install Stroopwafel", OPTION(1));
-            WHBLogFreetypePrintf(L"%C (Un)Install ISFShax", OPTION(2));
-            WHBLogFreetypePrintf(L"%C Check for Updates", OPTION(3));
-            WHBLogFreetypePrintf(L"%C Download Aroma", OPTION(4));
-            WHBLogFreetypePrintf(L"%C Format and Partition", OPTION(5));
-            WHBLogFreetypePrintf(L"%C Set up SDUSB", OPTION(6));
-            WHBLogFreetypePrintf(L"%C Set up USB Partition", OPTION(7));
+            WHBLogFreetypePrintf(L"%C Load arbitrary fw.img", OPTION(1));
+            WHBLogFreetypePrintf(L"%C Install Stroopwafel", OPTION(2));
+            WHBLogFreetypePrintf(L"%C (Un)Install ISFShax", OPTION(3));
+            WHBLogFreetypePrintf(L"%C Check for Updates", OPTION(4));
+            WHBLogFreetypePrintf(L"%C Download Aroma", OPTION(5));
+            WHBLogFreetypePrintf(L"%C Format and Partition", OPTION(6));
+            WHBLogFreetypePrintf(L"%C Set up SDUSB", OPTION(7));
+            WHBLogFreetypePrintf(L"%C Set up USB Partition", OPTION(8));
             WHBLogFreetypePrint(L" ");
 
             WHBLogFreetypeScreenPrintBottom(L"===============================");
@@ -177,7 +238,7 @@ void showMainMenu() {
                     }
                 }
                 if (navigatedDown()) {
-                    if (selectedOption < 7) {
+                    if (selectedOption < 8) {
                         selectedOption++;
                         break;
                     }
@@ -204,24 +265,27 @@ void showMainMenu() {
                 showPluginManager();
                 break;
             case 1:
-                installStroopwafelMenu();
+                loadArbitraryFwImgMenu();
                 break;
             case 2:
-                installIsfshaxMenu();
+                installStroopwafelMenu();
                 break;
             case 3:
-                checkForUpdates();
+                installIsfshaxMenu();
                 break;
             case 4:
-                installAromaMenu();
+                checkForUpdates();
                 break;
             case 5:
-                formatAndPartitionMenu();
+                installAromaMenu();
                 break;
             case 6:
-                setupSDUSBMenu();
+                formatAndPartitionMenu();
                 break;
             case 7:
+                setupSDUSBMenu();
+                break;
+            case 8:
                 setupPartitionedUSBMenu();
                 break;
             default:

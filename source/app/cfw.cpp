@@ -9,6 +9,7 @@
 
 CFWVersion currCFWVersion = CFWVersion::NONE;
 bool stroopwafel_available = false;
+bool stroopwafel_downloaded_in_session = false;
 std::string stroopwafel_plugin_posix_path = "";
 bool pending_shutdown = false;
 bool forced_shutdown = false;
@@ -165,6 +166,14 @@ CFWVersion getCFWVersion() {
 
 bool isStroopwafelAvailable() {
     return stroopwafel_available;
+}
+
+bool wasStroopwafelDownloadedInSession() {
+    return stroopwafel_downloaded_in_session;
+}
+
+void setStroopwafelDownloadedInSession(bool downloaded) {
+    stroopwafel_downloaded_in_session = downloaded;
 }
 
 bool isIsfshaxInstalled() {

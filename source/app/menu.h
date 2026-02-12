@@ -5,6 +5,7 @@
 void showLoadingScreen();
 void showMainMenu();
 void bootInstaller();
+void loadArbitraryFwImgMenu();
 void installStroopwafelMenu();
 void installIsfshaxMenu();
 bool checkSystemAccess(bool suggestExit = false);

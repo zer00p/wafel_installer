@@ -256,6 +256,7 @@ bool downloadStroopwafelFiles(bool toSD) {
         }
         setStroopwafelPluginPosixPath(convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins"));
     }
+    setStroopwafelDownloadedInSession(true);
     return true;
 }
 

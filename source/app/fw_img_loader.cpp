@@ -107,14 +107,14 @@ static bool applyPatch(uint32_t addr, const void* data, size_t size, const wchar
 }
 
 
-void loadFwImg() {
+void loadFwImg(const char* fwPath) {
     WHBLogFreetypeStartScreen();
     WHBLogFreetypePrint(L"Applying fw.img patches...");
     WHBLogFreetypeDrawScreen();
 
     if (stroopwafel_available) {
         WHBLogFreetypePrint(L"libstroopwafel is available. Using stroopwafel to change firmware path.");
-        Stroopwafel_SetFwPath("/vol/system/hax/installer/fw.img");
+        Stroopwafel_SetFwPath(fwPath);
         WHBLogFreetypePrint(L"Path changed using libstroopwafel. Skipping patches.");
     } else {
         WHBLogFreetypePrint(L"libstroopwafel not available. Applying fw.img patches...");
@@ -160,7 +160,11 @@ void loadFwImg() {
     }
 
     WHBLogFreetypeClear();
-    WHBLogFreetypePrint(L"Patches applied. Launching ISFShax Installer...");
+    if (strcmp(fwPath, "/vol/system/hax/installer/fw.img") == 0) {
+        WHBLogFreetypePrint(L"Patches applied. Launching ISFShax Installer...");
+    } else {
+        WHBLogFreetypePrintf(L"Patches applied. Launching %S...", toWstring(fwPath).c_str());
+    }
     WHBLogFreetypeDraw();
     sleep_for(3s);
 

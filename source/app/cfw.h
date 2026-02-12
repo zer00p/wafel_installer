@@ -17,6 +17,8 @@ bool initCFW();
 void shutdownCFW();
 CFWVersion getCFWVersion();
 bool isStroopwafelAvailable();
+bool wasStroopwafelDownloadedInSession();
+void setStroopwafelDownloadedInSession(bool downloaded);
 bool isIsfshaxInstalled();
 bool isSdEmulated();
 std::string getStroopwafelPluginPosixPath();

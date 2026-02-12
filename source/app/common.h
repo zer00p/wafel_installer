@@ -143,6 +143,18 @@ static inline std::wstring toWstring(const std::string& stringToConvert) {
     return wide;
 }
 
+[[maybe_unused]]
+static inline std::string toString(const std::wstring& wideString) {
+    if (wideString.empty()) return std::string();
+    size_t size = std::wcstombs(nullptr, wideString.c_str(), 0);
+    if (size == (size_t)-1) {
+        return std::string(wideString.begin(), wideString.end());
+    }
+    std::string str(size, '\0');
+    std::wcstombs(&str[0], wideString.c_str(), size);
+    return str;
+}
+
 // Enums and Structs
 
 enum class DUMP_METHOD {
