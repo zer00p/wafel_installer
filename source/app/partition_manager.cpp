@@ -59,6 +59,11 @@ static void unblock_fat_mount(void) {
         Mocha_IOSUKernelWrite32(FAT_MOUNT_CALL, fatmount_org_ins);
 }
 
+FatMountGuard::FatMountGuard() : active(false) {}
+FatMountGuard::~FatMountGuard() { if (active) unblock_fat_mount(); }
+void FatMountGuard::block() { if (!active) { block_fat_mount(); active = true; } }
+void FatMountGuard::unblock() { if (active) { unblock_fat_mount(); active = false; } }
+
 static int32_t FSA_Format(FSAClientHandle handle, const char* device, const char* filesystem, uint32_t flags, uint32_t param_5, uint32_t param_6) {
     FSAIpcData* data = (FSAIpcData*)memalign(0x40, sizeof(FSAIpcData));
     if (!data) return -1;
@@ -77,7 +82,6 @@ static int32_t FSA_Format(FSAClientHandle handle, const char* device, const char
     int32_t ret = IOS_Ioctl((int)handle, 0x69, data, 0x520, data->outbuf, 0x293);
 
     free(data);
-    unblock_fat_mount();
     return ret;
 }
 
@@ -238,7 +242,7 @@ void showDeviceInfoScreen(FSAClientHandle fsaHandle, const char* device, const F
     WHBLogFreetypeDraw();
 }
 
-bool waitForDevice(FSAClientHandle fsaHandle, const wchar_t* deviceName) {
+bool waitForDevice(FSAClientHandle fsaHandle, const wchar_t* deviceName, FatMountGuard& guard) {
     while (true) {
         uint8_t choice = showDialogPrompt(L"Remove ALL SD and USB storage devices NOW!", L"OK", L"Cancel");
         if (choice != 0) return false;
@@ -249,7 +253,7 @@ bool waitForDevice(FSAClientHandle fsaHandle, const wchar_t* deviceName) {
         }
     }
 
-    block_fat_mount();
+    guard.block();
 
     std::wstring pluginMsg = L"Plug in ONLY the " + std::wstring(deviceName) + L" you want to work with.\nPlugging in other devices may lead to DATA LOSS!";
     while (true) {
@@ -557,9 +561,10 @@ void formatAndPartitionMenu() {
     }
 
     bool shouldDownloadAroma = false;
+    FatMountGuard guard;
 
     while (true) {
-        if (!waitForDevice(fsaHandle, deviceName)) {
+        if (!waitForDevice(fsaHandle, deviceName, guard)) {
             FSADelClient(fsaHandle);
             usbAsSd(false);
             return;
@@ -854,6 +859,7 @@ void formatAndPartitionMenu() {
     }
 
     FSADelClient(fsaHandle);
+    guard.unblock();
 
     if (shouldDownloadAroma) {
         sleep_for(2s);
@@ -896,8 +902,9 @@ void setupSDUSBMenu() {
         WHBLogFreetypeDraw();
     }
 
+    FatMountGuard guard;
     while (true) {
-        if (!waitForDevice(fsaHandle, L"SD card")) {
+        if (!waitForDevice(fsaHandle, L"SD card", guard)) {
             FSADelClient(fsaHandle);
             return;
         }
@@ -1029,6 +1036,7 @@ void setupSDUSBMenu() {
         free(mbr);
 
         if (partitionSuccess) {
+            guard.unblock();
             WHBMountSdCard();
             if (download5sdusb(true, true)) {
                 if (!dirExist("fs:/vol/external01/wiiu/environments/aroma")) {
@@ -1144,8 +1152,9 @@ void setupPartitionedUSBMenu() {
         WHBLogFreetypeDraw();
     }
 
+    FatMountGuard guard;
     while (true) {
-        if (!waitForDevice(fsaHandle, L"USB device")) {
+        if (!waitForDevice(fsaHandle, L"USB device", guard)) {
             usbAsSd(false);
             FSADelClient(fsaHandle);
             return;
@@ -1284,6 +1293,7 @@ void setupPartitionedUSBMenu() {
         }
 
         if (partitionSuccess) {
+            guard.unblock();
             if (sdEmulation) {
                 WHBMountSdCard();
                 if (showDialogPrompt(L"USB partitioned successfully!\nDo you want to download Aroma to the emulated SD now?", L"Yes", L"No") == 0) {

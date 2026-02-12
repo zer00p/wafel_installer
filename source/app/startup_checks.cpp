@@ -60,15 +60,20 @@ bool performStartupChecks() {
                     uint64_t totalSize = (uint64_t)devInfo.deviceSizeInSectors * devInfo.deviceSectorSize;
                     uint64_t twoGiB = 2ULL * 1024 * 1024 * 1024;
 
+                    FatMountGuard guard;
+                    guard.block();
+
                     showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", devInfo);
                     if (totalSize >= twoGiB && showDialogPrompt(L"Do you also want to use the SD card to install Wii U games to?", L"Yes", L"No", nullptr, nullptr, 0, false) == 0) {
                         wantsPartitionedStorage = true;
                         if (partitionDevice(fsaHandle, "/dev/sdcard01", devInfo)) {
+                            guard.unblock();
                             WHBMountSdCard();
                             download5sdusb(true, true);
                         }
                     } else {
                         if (formatWholeDrive(fsaHandle, "/dev/sdcard01", devInfo)) {
+                            guard.unblock();
                             WHBMountSdCard();
                         }
                     }
@@ -80,18 +85,22 @@ bool performStartupChecks() {
                 usingUSB = true;
                 usbAsSd(true);
 
-                if (waitForDevice(fsaHandle, L"USB device")) {
+                FatMountGuard guard;
+                if (waitForDevice(fsaHandle, L"USB device", guard)) {
                     FSStatus res = (FSStatus)FSAGetDeviceInfo(fsaHandle, "/dev/sdcard01", &devInfo);
                     if (res == FS_STATUS_OK) {
                         bool dummy = false;
                         checkAndFixPartitionOrder(fsaHandle, "/dev/sdcard01", devInfo, dummy);
                     }
 
+                    guard.unblock();
                     if (WHBMountSdCard() == 1) {
                         showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", devInfo);
                         if (showDialogPrompt(L"USB device detected.\nDo you want to repartition it to store Wii U games on or keep as is?", L"Repartition", L"Keep as is", nullptr, nullptr, 0, false) == 0) {
                             wantsPartitionedStorage = true;
+                            guard.block();
                             if (partitionDevice(fsaHandle, "/dev/sdcard01", devInfo)) {
+                                guard.unblock();
                                 WHBMountSdCard();
                             }
                         }
@@ -100,11 +109,15 @@ bool performStartupChecks() {
                         showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", devInfo);
                         if (showDialogPrompt(L"USB device cannot be mounted.\nDo you want to use the full drive for homebrew or also store Wii U games on it?", L"Homebrew only", L"Homebrew + Games", nullptr, nullptr, 0, false) == 1) {
                             wantsPartitionedStorage = true;
+                            guard.block();
                             if (partitionDevice(fsaHandle, "/dev/sdcard01", devInfo)) {
+                                guard.unblock();
                                 WHBMountSdCard();
                             }
                         } else {
+                            guard.block();
                             if (formatWholeDrive(fsaHandle, "/dev/sdcard01", devInfo)) {
+                                guard.unblock();
                                 WHBMountSdCard();
                             }
                         }
