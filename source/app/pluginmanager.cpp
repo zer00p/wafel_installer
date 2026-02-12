@@ -503,16 +503,21 @@ void checkForUpdates() {
                 WHBLogFreetypeDrawScreen();
 
                 bool upToDate = false;
-                if (!hashFastboot.empty() && localHash == hashFastboot) {
-                    upToDate = true;
-                } else if (!hashFull.empty() && localHash == hashFull) {
-                    upToDate = true;
+                bool isSd = (minutePath.find("external01") != std::string::npos);
+                if (isSd) {
+                    if (!hashFull.empty() && localHash == hashFull) {
+                        upToDate = true;
+                    }
+                } else {
+                    if (!hashFastboot.empty() && localHash == hashFastboot) {
+                        upToDate = true;
+                    }
                 }
 
                 if (!upToDate) {
                     WHBLogFreetypePrint(L"Minute is outdated!");
                     WHBLogFreetypeDrawScreen();
-                    std::string downloadUrl = "https://github.com/StroopwafelCFW/minute_minute/releases/latest/download/fw_fastboot.img";
+                    std::string downloadUrl = isSd ? "https://github.com/StroopwafelCFW/minute_minute/releases/latest/download/fw.img" : "https://github.com/StroopwafelCFW/minute_minute/releases/latest/download/fw_fastboot.img";
                     outdatedFiles.push_back({"fw.img", repo, downloadUrl, minutePath});
                 }
             } else {
@@ -539,6 +544,7 @@ void checkForUpdates() {
                 }
             }
             if (allSuccess) {
+                ensureMinuteIni();
                 showSuccessPrompt(L"All files updated successfully!");
                 setShutdownPending(true);
                 showDialogPrompt(L"Updates applied.\nYour console will reboot when you exit.", L"OK");

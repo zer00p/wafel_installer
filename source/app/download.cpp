@@ -6,6 +6,7 @@
 #include "common.h"
 #include <curl/curl.h>
 #include <string>
+#include <cstring>
 #include <vector>
 #include <thread>
 #include <chrono>
@@ -225,6 +226,21 @@ static bool createHaxDirectories() {
     return true;
 }
 
+void ensureMinuteIni() {
+    WHBMountSdCard();
+    std::string minuteDir = "fs:/vol/external01/minute";
+    std::string iniPath = minuteDir + "/minute.ini";
+    fs::create_directories(minuteDir);
+    if (!fileExist(iniPath.c_str())) {
+        int fd = open(iniPath.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+        if (fd >= 0) {
+            const char* content = "[boot]\nautoboot=3\nautoboot_timeout=0\n";
+            write(fd, content, strlen(content));
+            close(fd);
+        }
+    }
+}
+
 bool downloadStroopwafelFiles(bool toSD) {
     WHBMountSdCard();
     bool hasAroma = dirExist("fs:/vol/external01/wiiu/environments/aroma");
@@ -240,10 +256,13 @@ bool downloadStroopwafelFiles(bool toSD) {
         if (!downloadFile(getPluginUrl("00core.ipx"), sdPluginPath + "00core.ipx") ||
             !downloadFile(getPluginUrl("5isfshax.ipx"), sdPluginPath + "5isfshax.ipx") ||
             (hasAroma && !downloadFile(getPluginUrl("5payldr.ipx"), sdPluginPath + "5payldr.ipx")) ||
-            !downloadFile("https://github.com/StroopwafelCFW/minute_minute/releases/latest/download/fw_fastboot.img", "fs:/vol/external01/fw.img"))
+            !downloadFile("https://github.com/StroopwafelCFW/minute_minute/releases/latest/download/fw.img", "fs:/vol/external01/fw.img"))
         {
             return false;
         }
+
+        ensureMinuteIni();
+
         setStroopwafelPluginPosixPath(convertToPosixPath("/vol/external01/wiiu/ios_plugins"));
     } else {
         if (!createHaxDirectories()) return false;

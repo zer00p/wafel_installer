@@ -8,6 +8,7 @@ void bootInstaller();
 void loadArbitraryFwImgMenu();
 void installStroopwafelMenu();
 void installIsfshaxMenu();
+void configureMinuteMenu();
 bool checkSystemAccess(bool suggestExit = false);
 
 uint8_t showDialogPrompt(const wchar_t* message, const wchar_t* button1, const wchar_t* button2, const wchar_t* button3 = nullptr, const wchar_t* button4 = nullptr, uint8_t defaultOption = 0, bool clearScreen = true);
