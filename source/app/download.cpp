@@ -400,16 +400,15 @@ std::string getDigestFromResponse(const std::string& apiResponse, const std::str
             size_t digestPos = apiResponse.find("\"digest\":", nameEnd);
             size_t nextNamePos = apiResponse.find("\"name\":", nameEnd);
             if (digestPos != std::string::npos && (nextNamePos == std::string::npos || digestPos < nextNamePos)) {
-                digestPos += 9;
-                size_t valStart = apiResponse.find("\"", digestPos);
+                size_t endOfDigest = apiResponse.find_first_of(",}", digestPos);
+                std::string digestVal = apiResponse.substr(digestPos + 9, endOfDigest - (digestPos + 9));
+
+                size_t valStart = digestVal.find("\"sha256:");
                 if (valStart != std::string::npos) {
-                    valStart++;
-                    size_t valEnd = apiResponse.find("\"", valStart);
+                    valStart += 8;
+                    size_t valEnd = digestVal.find("\"", valStart);
                     if (valEnd != std::string::npos) {
-                        std::string digest = apiResponse.substr(valStart, valEnd - valStart);
-                        if (digest.substr(0, 7) == "sha256:") {
-                            return digest.substr(7);
-                        }
+                        return digestVal.substr(valStart, valEnd - valStart);
                     }
                 }
             }

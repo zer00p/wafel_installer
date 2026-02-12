@@ -442,19 +442,35 @@ void checkForUpdates() {
                         WHBLogFreetypeDrawScreen();
 
                         std::string repo = getRepoFromUrl(p.downloadPath);
-                        if (repo.empty()) continue;
+                        if (repo.empty()) {
+                            WHBLogFreetypePrintf(L"No repo for %S", toWstring(fileName).c_str());
+                            WHBLogFreetypeDrawScreen();
+                            continue;
+                        }
 
                         std::string response = getCachedResponse(repo);
-                        if (response.empty()) continue;
+                        if (response.empty()) {
+                            WHBLogFreetypePrintf(L"No API response for %S", toWstring(repo).c_str());
+                            WHBLogFreetypeDrawScreen();
+                            continue;
+                        }
 
                         std::string remoteHash = getDigestFromResponse(response, fileName);
-                        if (remoteHash.empty()) continue;
+                        if (remoteHash.empty()) {
+                            WHBLogFreetypePrintf(L"No hash found for %S", toWstring(fileName).c_str());
+                            WHBLogFreetypeDrawScreen();
+                            continue;
+                        }
 
                         std::string fullPath = targetPosix;
                         if (fullPath.back() != '/') fullPath += "/";
                         fullPath += fileName;
 
                         std::string localHash = calculateSHA256(fullPath);
+                        WHBLogFreetypePrintf(L"L: %S", toWstring(localHash.substr(0, 8)).c_str());
+                        WHBLogFreetypePrintf(L"R: %S", toWstring(remoteHash.substr(0, 8)).c_str());
+                        WHBLogFreetypeDrawScreen();
+
                         if (localHash != remoteHash) {
                             outdatedFiles.push_back({fileName, repo, p.downloadPath, fullPath});
                         }
@@ -481,6 +497,11 @@ void checkForUpdates() {
             // If both are empty, we assume up to date (no digest available).
             if (!hashFastboot.empty() || !hashFull.empty()) {
                 std::string localHash = calculateSHA256(minutePath);
+                WHBLogFreetypePrintf(L"L: %S", localHash.empty() ? L"EMPTY" : toWstring(localHash.substr(0, 8)).c_str());
+                if (!hashFastboot.empty()) WHBLogFreetypePrintf(L"RF: %S", toWstring(hashFastboot.substr(0, 8)).c_str());
+                if (!hashFull.empty()) WHBLogFreetypePrintf(L"RM: %S", toWstring(hashFull.substr(0, 8)).c_str());
+                WHBLogFreetypeDrawScreen();
+
                 bool upToDate = false;
                 if (!hashFastboot.empty() && localHash == hashFastboot) {
                     upToDate = true;
@@ -489,9 +510,14 @@ void checkForUpdates() {
                 }
 
                 if (!upToDate) {
+                    WHBLogFreetypePrint(L"Minute is outdated!");
+                    WHBLogFreetypeDrawScreen();
                     std::string downloadUrl = "https://github.com/StroopwafelCFW/minute_minute/releases/latest/download/fw_fastboot.img";
                     outdatedFiles.push_back({"fw.img", repo, downloadUrl, minutePath});
                 }
+            } else {
+                WHBLogFreetypePrint(L"No hashes found for minute");
+                WHBLogFreetypeDrawScreen();
             }
         }
     }

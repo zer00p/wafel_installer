@@ -5,9 +5,14 @@
 #include <iomanip>
 #include <sstream>
 
+#include <whb/log_freetype.h>
+#include "../app/common.h"
+
 std::string calculateSHA256(const std::string& path) {
     FILE* file = fopen(path.c_str(), "rb");
     if (!file) {
+        WHBLogFreetypePrintf(L"Failed to open %S", toWstring(path).c_str());
+        WHBLogFreetypeDrawScreen();
         return "";
     }
 
