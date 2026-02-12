@@ -18,7 +18,6 @@ std::string getPluginUrl(const std::string& fileName);
 bool downloadHaxFiles();
 bool downloadHaxFilesToSD();
 bool downloadStroopwafelFiles(bool toSD);
-void ensureMinuteIni();
 bool downloadIsfshaxFiles();
 bool download5sdusb(bool toSLC, bool toSD);
 bool download5upartsd(bool toSLC);

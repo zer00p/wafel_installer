@@ -1,4 +1,5 @@
 #include "download.h"
+#include "minute_config.h"
 #include "gui.h"
 #include "menu.h"
 #include "cfw.h"
@@ -224,21 +225,6 @@ static bool createHaxDirectories() {
         }
     }
     return true;
-}
-
-void ensureMinuteIni() {
-    WHBMountSdCard();
-    std::string minuteDir = "fs:/vol/external01/minute";
-    std::string iniPath = minuteDir + "/minute.ini";
-    fs::create_directories(minuteDir);
-    if (!fileExist(iniPath.c_str())) {
-        int fd = open(iniPath.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
-        if (fd >= 0) {
-            const char* content = "[boot]\nautoboot=3\nautoboot_timeout=0\n";
-            write(fd, content, strlen(content));
-            close(fd);
-        }
-    }
 }
 
 bool downloadStroopwafelFiles(bool toSD) {

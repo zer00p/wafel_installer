@@ -5,6 +5,7 @@
 #include "filesystem.h"
 #include "cfw.h"
 #include "download.h"
+#include "minute_config.h"
 #include "../utils/sha256.h"
 #include <dirent.h>
 #include <algorithm>
