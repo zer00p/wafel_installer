@@ -504,20 +504,14 @@ void checkForUpdates() {
                 WHBLogFreetypeDrawScreen();
 
                 bool upToDate = false;
-                bool isSd = (minutePath.find("external01") != std::string::npos);
-                if (isSd) {
-                    if ((!hashFull.empty() && localHash == hashFull) || (!hashFastboot.empty() && localHash == hashFastboot)) {
-                        upToDate = true;
-                    }
-                } else {
-                    if (!hashFastboot.empty() && localHash == hashFastboot) {
-                        upToDate = true;
-                    }
+                if ((!hashFull.empty() && localHash == hashFull) || (!hashFastboot.empty() && localHash == hashFastboot)) {
+                    upToDate = true;
                 }
 
                 if (!upToDate) {
                     WHBLogFreetypePrint(L"Minute is outdated!");
                     WHBLogFreetypeDrawScreen();
+                    bool isSd = (minutePath.find("external01") != std::string::npos);
                     std::string downloadUrl = isSd ? "https://github.com/StroopwafelCFW/minute_minute/releases/latest/download/fw.img" : "https://github.com/StroopwafelCFW/minute_minute/releases/latest/download/fw_fastboot.img";
                     outdatedFiles.push_back({"fw.img", repo, downloadUrl, minutePath});
                 }
