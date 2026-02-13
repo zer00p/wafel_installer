@@ -83,7 +83,7 @@ CFWVersion testCFW() {
             WHBLogPrint("Detected previous Syrup CFW...");
             WHBLogPrint("Attempt to replace it with Syrup CFW...");
             WHBLogFreetypeDraw();
-            currCFWVersion = CFWVersion::SYRUP;
+            currCFWVersion = CFWVersion::DUMPLING;
         }
         else if (mochaVersion == 999) {
             WHBLogPrintf("Detected custom Mocha payload...");

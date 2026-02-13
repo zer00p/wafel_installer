@@ -8,7 +8,7 @@ enum CFWVersion {
     NONE,
     MOCHA_FSCLIENT,
     CUSTOM_MOCHA,
-    SYRUP,
+    DUMPLING,
     CEMU,
 };
 
