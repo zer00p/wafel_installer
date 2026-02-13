@@ -68,7 +68,7 @@ CFWVersion testCFW() {
     WHBLogFreetypeDraw();
 
     if (IS_CEMU_PRESENT()) {
-        WHBLogPrint("Detected that Cemu is being used to run ISFShax Loader...");
+        WHBLogPrint("Detected that Cemu is being used to run Syrup...");
         WHBLogPrint("Skip exploits since they aren't required.");
         WHBLogFreetypeDraw();
         sleep_for(2s);
@@ -80,14 +80,14 @@ CFWVersion testCFW() {
     MochaUtilsStatus ret = Mocha_CheckAPIVersion(&mochaVersion);
     if (ret == MOCHA_RESULT_SUCCESS) {
         if (mochaVersion == (1 + 1337)) {
-            WHBLogPrint("Detected previous ISFShax Loader CFW...");
-            WHBLogPrint("Attempt to replace it with ISFShax Loader CFW...");
+            WHBLogPrint("Detected previous Syrup CFW...");
+            WHBLogPrint("Attempt to replace it with Syrup CFW...");
             WHBLogFreetypeDraw();
-            currCFWVersion = CFWVersion::DUMPLING;
+            currCFWVersion = CFWVersion::SYRUP;
         }
         else if (mochaVersion == 999) {
             WHBLogPrintf("Detected custom Mocha payload...");
-            WHBLogPrintf("Running in ISFShax Loader environment, all devices allowed");
+            WHBLogPrintf("Running in Syrup environment, all devices allowed");
             currCFWVersion = CFWVersion::CUSTOM_MOCHA;
         }
         else {
@@ -96,12 +96,12 @@ CFWVersion testCFW() {
         return currCFWVersion;
     }
     else if (ret == MOCHA_RESULT_UNSUPPORTED_API_VERSION) {
-        uint8_t forceTiramisu = showDialogPrompt(L"Using an outdated Tiramisu version\nwithout FS client support!\n\nPlease update Tiramisu with this guide:\nhttps://wiiu.hacks.guide/#/tiramisu/sd-preparation\n\nForcing internal CFW will temporarily stop Tiramisu!", L"Exit ISFShax Loader To Update (Recommended)", L"Force Internal CFW And Continue");
+        uint8_t forceTiramisu = showDialogPrompt(L"Using an outdated Tiramisu version\nwithout FS client support!\n\nPlease update Tiramisu with this guide:\nhttps://wiiu.hacks.guide/#/tiramisu/sd-preparation\n\nForcing internal CFW will temporarily stop Tiramisu!", L"Exit Syrup To Update (Recommended)", L"Force Internal CFW And Continue");
         if (forceTiramisu == 1) {
             if (stopMochaServer()) {
                 WHBLogFreetypeClear();
                 WHBLogPrint("Detected and stopped Tiramisu...");
-                WHBLogPrint("Attempt to replace it with ISFShax Loader CFW...");
+                WHBLogPrint("Attempt to replace it with Syrup CFW...");
                 WHBLogFreetypeDraw();
                 currCFWVersion = CFWVersion::NONE;
             }
@@ -113,7 +113,7 @@ CFWVersion testCFW() {
                 WHBLogPrint("https://wiiu.hacks.guide/#/tiramisu/sd-preparation");
                 WHBLogPrint("since stopping CFW isn't working properly");
                 WHBLogPrint("");
-                WHBLogPrint("Exiting ISFShax Loader in 10 seconds...");
+                WHBLogPrint("Exiting Syrup in 10 seconds...");
                 WHBLogFreetypeDraw();
                 sleep_for(10s);
                 currCFWVersion = CFWVersion::FAILED;
@@ -121,7 +121,7 @@ CFWVersion testCFW() {
         }
         else {
             WHBLogFreetypeClear();
-            WHBLogPrint("Exiting ISFShax Loader...");
+            WHBLogPrint("Exiting Syrup...");
             WHBLogPrint("You have to manually update your Tiramisu/Aroma now!");
             WHBLogFreetypeDraw();
             sleep_for(3s);
@@ -130,7 +130,7 @@ CFWVersion testCFW() {
         return currCFWVersion;
     }
     WHBLogPrint("Detected no prior (compatible) CFW...");
-    WHBLogPrint("Attempt to use internal ISFShax Loader CFW...");
+    WHBLogPrint("Attempt to use internal Syrup CFW...");
     WHBLogFreetypeDraw();
     currCFWVersion = CFWVersion::NONE;
     return currCFWVersion;
@@ -146,7 +146,7 @@ bool initCFW() {
     if (Mocha_InitLibrary() != MOCHA_RESULT_SUCCESS) {
         WHBLogPrint("Couldn't open /dev/iosuhax :/");
         WHBLogPrint("Something interfered with the exploit...");
-        WHBLogPrint("Try restarting your Wii U and launching ISFShax Loader again!");
+        WHBLogPrint("Try restarting your Wii U and launching Syrup again!");
         return false;
     }
     return true;

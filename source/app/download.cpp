@@ -63,7 +63,7 @@ bool downloadFile(const std::string& url, const std::string& path) {
         curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, write_data_posix);
         curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &fd);
         curl_easy_setopt(curl_handle, CURLOPT_FAILONERROR, 1L);
-        curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "ISFShaxLoader/1.0");
+        curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "Syrup/1.0");
         curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
 
         // set cert
@@ -117,7 +117,7 @@ bool downloadToBuffer(const std::string& url, std::string& buffer) {
         curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, write_data_buffer);
         curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &buffer);
         curl_easy_setopt(curl_handle, CURLOPT_FAILONERROR, 1L);
-        curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "ISFShaxLoader/1.0");
+        curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "Syrup/1.0");
         curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
 
         curl_blob blob;

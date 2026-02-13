@@ -46,17 +46,12 @@ config.properties
 # Project specific
 /build
 /dist/wiiu
-/dist/dumpling.zip
-/dist/isfshax_loader.zip
+/dist/syrup.zip
 /cemu
-dumpling.wuhb
-dumpling.rpx
-dumpling.wua
-dumpling.elf
-isfshax_loader.wuhb
-isfshax_loader.rpx
-isfshax_loader.wua
-isfshax_loader.elf
+syrup.wuhb
+syrup.rpx
+syrup.wua
+syrup.elf
 
 source/cfw/ios_kernel/build/
 source/cfw/ios_kernel/ios_kernel.bin

@@ -21,8 +21,8 @@ TOPDIR ?= $(CURDIR)
 # APP_SHORTNAME sets the short name of the application
 # APP_AUTHOR sets the author of the application
 #-------------------------------------------------------------------------------
-APP_NAME		:=	ISFShax Loader
-APP_SHORTNAME	:=	ISFShax Loader
+APP_NAME		:=	Syrup
+APP_SHORTNAME	:=	Syrup
 APP_AUTHOR		:=	Crementif, emiyl and zer00p
 
 include $(DEVKITPRO)/wut/share/wut_rules
@@ -38,7 +38,7 @@ include $(DEVKITPRO)/wut/share/wut_rules
 # TV_SPLASH is the image displayed during bootup on the TV, leave blank to use default rule
 # DRC_SPLASH is the image displayed during bootup on the DRC, leave blank to use default rule
 #-------------------------------------------------------------------------------
-TARGET		:=	isfshax_loader
+TARGET		:=	syrup
 BUILD		:=	build
 SOURCES		:=	source/app \
 				source/app/interfaces \
@@ -47,9 +47,9 @@ SOURCES		:=	source/app \
 DATA		:=	data
 INCLUDES	:=	include
 CONTENT		:=
-ICON		:=	dist/dumpling-icon.png
-TV_SPLASH	:=	dist/dumpling-tv-boot.png
-DRC_SPLASH	:=	dist/dumpling-drc-boot.png
+ICON		:=	dist/syrup-icon.png
+TV_SPLASH	:=	dist/syrup-tv-boot.png
+DRC_SPLASH	:=	dist/syrup-drc-boot.png
 
 #-------------------------------------------------------------------------------
 # options for code generation
@@ -193,7 +193,7 @@ clean:
 	@echo Clean files from app...
 	@rm -fr $(BUILD) $(TARGET).wuhb $(TARGET).rpx $(TARGET).wua $(TARGET).elf
 	@rm -fr dist/wua/00050000103b3b3b_v0/code/$(TARGET).rpx
-	@rm -fr dist/wiiu/apps/isfshax_loader/$(TARGET).rpx dist/wiiu/apps/isfshax_loader/$(TARGET).wuhb
+	@rm -fr dist/wiiu/apps/syrup/$(TARGET).rpx dist/wiiu/apps/syrup/$(TARGET).wuhb
 	@$(MAKE) clean -C $(CURDIR)/source/cfw/ios_kernel
 	@$(MAKE) clean -C $(CURDIR)/source/cfw/ios_fs
 	@$(MAKE) clean -C $(CURDIR)/source/cfw/ios_mcp
@@ -202,15 +202,15 @@ clean:
 #-------------------------------------------------------------------------------
 dist:
 	@echo Making dist folder
-	@mkdir -p dist/wiiu/apps/isfshax_loader
+	@mkdir -p dist/wiiu/apps/syrup
 	@echo Put latest files into it
-	@cp dist/meta.xml dist/wiiu/apps/isfshax_loader/meta.xml
-	@cp dist/dumpling-banner.png dist/wiiu/apps/isfshax_loader/icon.png
-	@cp $(TARGET).rpx dist/wiiu/apps/isfshax_loader/$(TARGET).rpx
-	@cp $(TARGET).wuhb dist/wiiu/apps/isfshax_loader/$(TARGET).wuhb
+	@cp dist/meta.xml dist/wiiu/apps/syrup/meta.xml
+	@cp dist/syrup-banner.png dist/wiiu/apps/syrup/icon.png
+	@cp $(TARGET).rpx dist/wiiu/apps/syrup/$(TARGET).rpx
+	@cp $(TARGET).wuhb dist/wiiu/apps/syrup/$(TARGET).wuhb
 	@echo Zip up a release zip
-	@rm -f dist/isfshax_loader.zip
-	@cd dist && zip -q -r ./isfshax_loader.zip ./wiiu && cd ..
+	@rm -f dist/syrup.zip
+	@cd dist && zip -q -r ./syrup.zip ./wiiu && cd ..
 
 #-------------------------------------------------------------------------------
 
@@ -227,7 +227,7 @@ all: $(OUTPUT).wuhb $(OUTPUT).wua
 $(OUTPUT).wuhb	:	$(OUTPUT).rpx
 $(OUTPUT).wua	:	$(OUTPUT).rpx
 	@echo Creating wua...
-	@cp $(OUTPUT).rpx $(TOPDIR)/dist/wua/00050000103b3b3b_v0/code/isfshax_loader.rpx
+	@cp $(OUTPUT).rpx $(TOPDIR)/dist/wua/00050000103b3b3b_v0/code/syrup.rpx
 	@#rm -rf $(TOPDIR)/dist/wua/00050000103b3b3b_v0/content/
 	@#mkdir $(TOPDIR)/dist/wua/00050000103b3b3b_v0/content/
 	@#cp -r $(TOPDIR)/$(CONTENT)/. $(TOPDIR)/dist/wua/00050000103b3b3b_v0/content/

@@ -29,7 +29,7 @@ int main() {
 
     IMDisableAPD(); // Disable auto-shutdown feature
 
-    // Start ISFShax Loader
+    // Start Syrup
     showLoadingScreen();
     if (testCFW() != FAILED && ((getCFWVersion() == MOCHA_FSCLIENT || getCFWVersion() == CEMU || getCFWVersion() == CUSTOM_MOCHA) || installCFW()) && initCFW() ) {
         mountSystemDrives();
@@ -51,7 +51,7 @@ int main() {
         OSShutdown();
     } else {
         WHBLogPrint("");
-        WHBLogPrint(getCFWVersion() == MOCHA_FSCLIENT ? "Exiting ISFShax Loader..." : "Exiting ISFShax Loader and rebooting Wii U...");
+        WHBLogPrint(getCFWVersion() == MOCHA_FSCLIENT ? "Exiting Syrup..." : "Exiting Syrup and rebooting Wii U...");
         WHBLogFreetypeDraw();
         sleep_for(5s);
     }

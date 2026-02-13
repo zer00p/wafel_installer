@@ -21,5 +21,5 @@ jobs:
           docker run --rm -v ${PWD}:/project builder make dist
       - uses: actions/upload-artifact@master
         with:
-          name: isfshax_loader
+          name: syrup
           path: "./dist/wiiu/"

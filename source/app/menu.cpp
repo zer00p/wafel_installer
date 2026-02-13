@@ -18,7 +18,7 @@ void showLoadingScreen() {
     WHBLogFreetypeSetBackgroundColor(0x0b5d5e00);
     WHBLogFreetypeSetFontColor(0xFFFFFFFF);
     WHBLogFreetypeSetFontSize(22);
-    WHBLogPrint("ISFShax Loader");
+    WHBLogPrint("Syrup");
     WHBLogPrint("-- Based on dumpling made by Crementif, Emiyl --");
     WHBLogPrint("");
     WHBLogFreetypeDraw();
@@ -198,7 +198,7 @@ void showMainMenu() {
         while(!startSelectedOption) {
             // Print menu text
             WHBLogFreetypeStartScreen();
-            WHBLogFreetypePrint(L"ISFShax Loader");
+            WHBLogFreetypePrint(L"Syrup");
             WHBLogFreetypePrint(L"===============================");
             WHBLogFreetypePrintf(L"%C Stroopwafel Plugin Manager", OPTION(0));
             WHBLogFreetypePrintf(L"%C Load custom fw.img", OPTION(1));
@@ -223,7 +223,7 @@ void showMainMenu() {
                     WHBLogFreetypeScreenPrintBottom((L"Plugins: " + path).c_str());
                 }
             }
-            WHBLogFreetypeScreenPrintBottom(L"\uE000 Button = Select Option \uE001 Button = Exit ISFShax Loader");
+            WHBLogFreetypeScreenPrintBottom(L"\uE000 Button = Select Option \uE001 Button = Exit Syrup");
             WHBLogFreetypeScreenPrintBottom(L"");
             WHBLogFreetypeDrawScreen();
 
@@ -251,7 +251,7 @@ void showMainMenu() {
                     break;
                 }
                 if (pressedBack()) {
-                    uint8_t exitSelectedOption = showDialogPrompt(getCFWVersion() == MOCHA_FSCLIENT ? L"Do you really want to exit ISFShax Loader?" : L"Do you really want to exit ISFShax Loader?\nYour console will reboot to prevent compatibility issues!", L"Yes", L"No", nullptr, nullptr, 1);
+                    uint8_t exitSelectedOption = showDialogPrompt(getCFWVersion() == MOCHA_FSCLIENT ? L"Do you really want to exit Syrup?" : L"Do you really want to exit Syrup?\nYour console will reboot to prevent compatibility issues!", L"Yes", L"No", nullptr, nullptr, 1);
                     if (exitSelectedOption == 0) {
                         WHBLogFreetypeClear();
                         return;
