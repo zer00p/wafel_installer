@@ -17,6 +17,7 @@
 bool performStartupChecks() {
     bool wantsPartitionedStorage = false;
     bool usingUSB = false;
+    FSAClientHandle fsaHandle = -1;
 
     WHBLogPrint("Performing startup checks...");
     WHBLogFreetypeDraw();
@@ -28,10 +29,8 @@ bool performStartupChecks() {
 
     while (true) {
         // 1. SD Card accessibility check
-        bool sdAccessible = (WHBMountSdCard() == 1);
-
-        if (sdAccessible) {
-            FSAClientHandle fsaHandle = FSAAddClient(NULL);
+        if (WHBMountSdCard() == 1) {
+            fsaHandle = FSAAddClient(NULL);
             if (fsaHandle >= 0) {
                 FSADeviceInfo devInfo;
                 if ((FSStatus)FSAGetDeviceInfo(fsaHandle, "/dev/sdcard01", &devInfo) == FS_STATUS_OK) {
@@ -39,17 +38,14 @@ bool performStartupChecks() {
                     FatMountGuard guard;
                     // We block here just in case checkAndFixPartitionOrder triggers a repartition/format
                     guard.block();
-                    if (checkAndFixPartitionOrder(fsaHandle, "/dev/sdcard01", devInfo, dummy)) {
-                        // All good
-                    }
+                    checkAndFixPartitionOrder(fsaHandle, "/dev/sdcard01", devInfo, dummy);
                 }
-                FSADelClient(fsaHandle);
             }
-            break;
+            goto end_detection;
         } else {
             WHBLogPrint("SD card not accessible.");
             WHBLogFreetypeDraw();
-            FSAClientHandle fsaHandle = FSAAddClient(NULL);
+            fsaHandle = FSAAddClient(NULL);
             FSADeviceInfo devInfo;
             bool sdExists = (fsaHandle >= 0) && ((FSStatus)FSAGetDeviceInfo(fsaHandle, "/dev/sdcard01", &devInfo) == FS_STATUS_OK);
 
@@ -57,11 +53,11 @@ bool performStartupChecks() {
                 bool dummy = false;
                 if (checkAndFixPartitionOrder(fsaHandle, "/dev/sdcard01", devInfo, dummy)) {
                     if (WHBMountSdCard() == 1) {
-                        sdAccessible = true;
+                        // All good
                     }
                 }
 
-                if (!sdAccessible) {
+                if (WHBMountSdCard() != 1) {
                     showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", devInfo);
                     if (showDialogPrompt(L"SD card cannot be accessed.\nDo you want to format it to use it on the Wii U?", L"Yes", L"No", nullptr, nullptr, 0, false) == 0) {
                         uint64_t totalSize = (uint64_t)devInfo.deviceSizeInSectors * devInfo.deviceSectorSize;
@@ -86,8 +82,7 @@ bool performStartupChecks() {
                         }
                     }
                 }
-                if (fsaHandle >= 0) FSADelClient(fsaHandle);
-                break;
+                goto end_detection;
             } else {
                 // SD doesn't exist, try USB
                 std::vector<std::wstring> options = { L"Retry SD", L"Use USB", L"Abort" };
@@ -98,8 +93,7 @@ bool performStartupChecks() {
                     WHBLogPrint("Checking for SD card...");
                     WHBLogFreetypeDraw();
                     sleep_for(1s);
-                    if (fsaHandle >= 0) FSADelClient(fsaHandle);
-                    continue;
+                    goto retry_detection;
                 } else if (choice == 1) {
                     usingUSB = true;
                     usbAsSd(true);
@@ -143,14 +137,24 @@ bool performStartupChecks() {
                         }
                         download5upartsd(true);
                     }
-                    if (fsaHandle >= 0) FSADelClient(fsaHandle);
-                    break;
+                    goto end_detection;
                 } else {
-                    if (fsaHandle >= 0) FSADelClient(fsaHandle);
-                    return true;
+                    goto abort_checks;
                 }
             }
         }
+
+retry_detection:
+        if (fsaHandle >= 0) {
+            FSADelClient(fsaHandle);
+            fsaHandle = -1;
+        }
+    }
+
+end_detection:
+    if (fsaHandle >= 0) {
+        FSADelClient(fsaHandle);
+        fsaHandle = -1;
     }
 
     // 2. Aroma check
@@ -161,8 +165,7 @@ bool performStartupChecks() {
     }
 
     // 3. Stroopwafel check
-    bool stroopAvailable = isStroopwafelAvailable();
-    if (!stroopAvailable) {
+    if (!isStroopwafelAvailable()) {
         uint8_t choice = showDialogPrompt(L"Stroopwafel is missing or outdated.\nDo you want to download it?", L"Yes", L"No");
         if (choice == 0) {
             bool toSD = false;
@@ -176,8 +179,7 @@ bool performStartupChecks() {
     }
 
     // 4. ISFShax check
-    bool isfshaxInstalled = isIsfshaxInstalled();
-    if (!isfshaxInstalled) {
+    if (!isIsfshaxInstalled()) {
         uint8_t choice = showDialogPrompt(L"ISFShax is not detected.\nDo you want to install it?\nThis is required for Stroopwafel.", L"Yes", L"No");
         if (choice == 0) {
             if (downloadIsfshaxFiles()) {
@@ -190,5 +192,11 @@ bool performStartupChecks() {
         }
     }
 
+    return true;
+
+abort_checks:
+    if (fsaHandle >= 0) {
+        FSADelClient(fsaHandle);
+    }
     return true;
 }
