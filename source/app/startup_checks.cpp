@@ -17,7 +17,6 @@
 bool performStartupChecks() {
     bool wantsPartitionedStorage = false;
     bool usingUSB = false;
-    bool skipIntrusiveChecks = false;
 
     WHBLogPrint("Performing startup checks...");
     WHBLogFreetypeDraw();
@@ -147,16 +146,15 @@ bool performStartupChecks() {
                     if (fsaHandle >= 0) FSADelClient(fsaHandle);
                     break;
                 } else {
-                    skipIntrusiveChecks = true;
                     if (fsaHandle >= 0) FSADelClient(fsaHandle);
-                    break;
+                    return true;
                 }
             }
         }
     }
 
     // 2. Aroma check
-    if (!skipIntrusiveChecks && (WHBMountSdCard() == 1) && !dirExist("fs:/vol/external01/wiiu/environments/aroma")) {
+    if ((WHBMountSdCard() == 1) && !dirExist("fs:/vol/external01/wiiu/environments/aroma")) {
         if (showDialogPrompt(L"Aroma is missing on your SD card.\nDo you want to download it now?", L"Yes", L"No") == 0) {
             downloadAroma();
         }
@@ -164,7 +162,7 @@ bool performStartupChecks() {
 
     // 3. Stroopwafel check
     bool stroopAvailable = isStroopwafelAvailable();
-    if (!skipIntrusiveChecks && !stroopAvailable) {
+    if (!stroopAvailable) {
         uint8_t choice = showDialogPrompt(L"Stroopwafel is missing or outdated.\nDo you want to download it?", L"Yes", L"No");
         if (choice == 0) {
             bool toSD = false;
@@ -179,7 +177,7 @@ bool performStartupChecks() {
 
     // 4. ISFShax check
     bool isfshaxInstalled = isIsfshaxInstalled();
-    if (!skipIntrusiveChecks && !isfshaxInstalled) {
+    if (!isfshaxInstalled) {
         uint8_t choice = showDialogPrompt(L"ISFShax is not detected.\nDo you want to install it?\nThis is required for Stroopwafel.", L"Yes", L"No");
         if (choice == 0) {
             if (downloadIsfshaxFiles()) {
