@@ -16,6 +16,7 @@ CFWVersion testCFW();
 bool initCFW();
 void shutdownCFW();
 CFWVersion getCFWVersion();
+const wchar_t* getCFWVersionName(CFWVersion version);
 bool isStroopwafelAvailable();
 bool wasStroopwafelDownloadedInSession();
 void setStroopwafelDownloadedInSession(bool downloaded);

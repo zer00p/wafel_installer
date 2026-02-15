@@ -70,7 +70,14 @@ static void unblock_fat_mount(void) {
 
 FatMountGuard::FatMountGuard() : active(false) {}
 FatMountGuard::~FatMountGuard() { if (active) unblock_fat_mount(); }
-void FatMountGuard::block() { if (!active) { block_fat_mount(); active = true; } }
+void FatMountGuard::block() {
+    if (!active && getCFWVersion() == CFWVersion::MOCHA_FSCLIENT) {
+        // We only need the mountguard when we are running aroma, which is indicated by the presence of Mocha.
+        // In the other cases the patch to block mounts causes problems (it causes the mount to hang after releasing the guard).
+        block_fat_mount();
+        active = true;
+    }
+}
 void FatMountGuard::unblock() { if (active) { unblock_fat_mount(); active = false; } }
 
 static int32_t FSA_Format(FSAClientHandle handle, const char* device, const char* filesystem, uint32_t flags, uint32_t param_5, uint32_t param_6) {

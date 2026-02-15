@@ -80,8 +80,8 @@ CFWVersion testCFW() {
     MochaUtilsStatus ret = Mocha_CheckAPIVersion(&mochaVersion);
     if (ret == MOCHA_RESULT_SUCCESS) {
         if (mochaVersion == (1 + 1337)) {
-            WHBLogPrint("Detected previous Syrup CFW...");
-            WHBLogPrint("Attempt to replace it with Syrup CFW...");
+            WHBLogPrint("Detected previous Dumpling CFW...");
+            WHBLogPrint("Attempt to replace it with Dumpling CFW...");
             WHBLogFreetypeDraw();
             currCFWVersion = CFWVersion::DUMPLING;
         }
@@ -162,6 +162,18 @@ void shutdownCFW() {
 
 CFWVersion getCFWVersion() {
     return currCFWVersion;
+}
+
+const wchar_t* getCFWVersionName(CFWVersion version) {
+    switch (version) {
+        case FAILED: return L"FAILED";
+        case NONE: return L"NONE";
+        case MOCHA_FSCLIENT: return L"MOCHA_FSCLIENT";
+        case CUSTOM_MOCHA: return L"CUSTOM_MOCHA";
+        case DUMPLING: return L"DUMPLING";
+        case CEMU: return L"CEMU";
+        default: return L"UNKNOWN";
+    }
 }
 
 bool isStroopwafelAvailable() {

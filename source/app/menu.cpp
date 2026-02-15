@@ -170,16 +170,18 @@ void showMainMenu() {
             WHBLogFreetypePrint(L" ");
 
             WHBLogFreetypeScreenPrintBottom(L"===============================");
+            std::wstring bottomStatus = L"CFW: " + std::wstring(getCFWVersionName(getCFWVersion())) + L" | ";
             if (!isStroopwafelAvailable()) {
-                WHBLogFreetypeScreenPrintBottom(L"Stroopwafel: Not active");
+                bottomStatus += L"Stroopwafel: Not active";
             } else {
                 std::wstring path = toWstring(getStroopwafelPluginPosixPath());
                 if (path.empty()) {
-                    WHBLogFreetypeScreenPrintBottom(L"Stroopwafel: Active (Path unknown)");
+                    bottomStatus += L"Stroopwafel: Active (Path unknown)";
                 } else {
-                    WHBLogFreetypeScreenPrintBottom((L"Plugins: " + path).c_str());
+                    bottomStatus += L"Plugins: " + path;
                 }
             }
+            WHBLogFreetypeScreenPrintBottom(bottomStatus.c_str());
             WHBLogFreetypeScreenPrintBottom(L"\uE000 Button = Select Option \uE001 Button = Exit Syrup");
             WHBLogFreetypeScreenPrintBottom(L"");
             WHBLogFreetypeDrawScreen();
