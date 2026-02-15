@@ -1,5 +1,6 @@
 #include "partition_manager.h"
 #include "menu.h"
+#include "isfshax_menu.h"
 #include "gui.h"
 #include "filesystem.h"
 #include "download.h"

@@ -1,5 +1,6 @@
 #include "startup_checks.h"
 #include "menu.h"
+#include "isfshax_menu.h"
 #include "pluginmanager.h"
 #include "partition_manager.h"
 #include "navigation.h"
