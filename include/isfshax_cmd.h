@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#define ISFSHAX_CMD_ADDR 0x10008000
+#define ISFSHAX_CMD_ADDR 0xFFFFFF00
 
 #define ISFSHAX_CMD_MAGIC "FSHAXCMD"
 
