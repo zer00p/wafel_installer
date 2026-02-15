@@ -353,7 +353,7 @@ bool partitionDevice(FSAClientHandle fsaHandle, const char* device, const FSADev
                     }
                 }
                 if (hasFat) {
-                    showDialogPrompt(L"Note: If you want to keep the data on your FAT32 partition, you should use a PC to resize it.\nDoing it on the Wii U will DELETE ALL DATA on the device.", L"OK");
+                    showDialogPrompt(L"Note: If you want to keep the data on your FAT32 partition, you should use a\nPC to resize it. Doing it on the Wii U will DELETE ALL DATA on the device.", L"OK");
                 }
 
                 uint32_t current_p1_start = read32LE(&mbr_check[446 + 8]);
