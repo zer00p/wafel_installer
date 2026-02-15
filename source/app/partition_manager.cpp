@@ -53,6 +53,7 @@ typedef struct __attribute__((aligned(0x40))) {
 #define FAT_MOUNT_CALL 0x1078a948
 static uint32_t fatmount_org_ins = 0;
 static bool mount_guard_enabled = false;
+static int mount_guard_nesting = 0;
 
 void setupMountGuard(CFWVersion version) {
     mount_guard_enabled = (version == CFWVersion::MOCHA_FSCLIENT);
@@ -80,15 +81,21 @@ void FatMountGuard::block() {
     if (!active && mount_guard_enabled) {
         // We only need the mountguard when we are running aroma, which is indicated by the presence of Mocha.
         // In the other cases the patch to block mounts causes problems (it causes the mount to hang after releasing the guard).
-        block_fat_mount();
+        if (mount_guard_nesting == 0) {
+            block_fat_mount();
+        }
+        mount_guard_nesting++;
         active = true;
     }
 }
 void FatMountGuard::unblock() {
     if (active) {
-        unblock_fat_mount();
+        mount_guard_nesting--;
+        if (mount_guard_nesting == 0) {
+            unblock_fat_mount();
+            showDialogPrompt(L"The FAT mount block has been released.\nPlease REPLUG your SD card now to ensure it is detected correctly.", L"OK");
+        }
         active = false;
-        showDialogPrompt(L"The FAT mount block has been released.\nPlease REPLUG your SD card now to ensure it is detected correctly.", L"OK");
     }
 }
 
@@ -304,6 +311,8 @@ bool waitForDevice(FSAClientHandle fsaHandle, const wchar_t* deviceName, FatMoun
 }
 
 bool formatWholeDrive(FSAClientHandle fsaHandle, const char* device, const FSADeviceInfo& deviceInfo) {
+    FatMountGuard guard;
+    guard.block();
     uint64_t totalSize = (uint64_t)deviceInfo.deviceSizeInSectors * deviceInfo.deviceSectorSize;
     uint64_t twoGiB = 2ULL * 1024 * 1024 * 1024;
     const char* fsType = (totalSize < twoGiB) ? "fat" : "fat"; // FAT16 is used by system automatically if < 2GiB and we pass "fat"
@@ -333,6 +342,8 @@ bool formatWholeDrive(FSAClientHandle fsaHandle, const char* device, const FSADe
 }
 
 bool partitionDevice(FSAClientHandle fsaHandle, const char* device, const FSADeviceInfo& deviceInfo) {
+    FatMountGuard guard;
+    guard.block();
     double totalGB = (double)deviceInfo.deviceSizeInSectors * (double)deviceInfo.deviceSectorSize / (1024.0 * 1024.0 * 1024.0);
     int fatPercent = 80;
     if (totalGB < 1.0) fatPercent = 100;
@@ -545,6 +556,8 @@ bool checkAndFixPartitionOrder(FSAClientHandle fsaHandle, const char* device, co
     showDeviceInfoScreen(fsaHandle, device, deviceInfo);
     uint8_t fixChoice = showDialogPrompt(L"FAT32 partition found but it is not the first partition.\nThis may cause issues with some homebrew.\nDo you want to fix the partition order or repartition?", L"Fix order", L"Repartition", L"Cancel", nullptr, 0, false);
     if (fixChoice == 0) {
+        FatMountGuard guard;
+        guard.block();
         if (fixPartitionOrder(fsaHandle, device, deviceInfo)) {
             showDialogPrompt(L"Partition order fixed successfully!", L"OK");
             return true;
@@ -554,6 +567,8 @@ bool checkAndFixPartitionOrder(FSAClientHandle fsaHandle, const char* device, co
             return false;
         }
     } else if (fixChoice == 1) {
+        FatMountGuard guard;
+        guard.block();
         repartitioned = partitionDevice(fsaHandle, device, deviceInfo);
         return false;
     }

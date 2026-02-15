@@ -167,9 +167,6 @@ bool performStartupChecks() {
                 FSADeviceInfo devInfo;
                 if ((FSStatus)FSAGetDeviceInfo(fsaHandle, "/dev/sdcard01", &devInfo) == FS_STATUS_OK) {
                     bool dummy = false;
-                    FatMountGuard guard;
-                    // We block here just in case checkAndFixPartitionOrder triggers a repartition/format
-                    guard.block();
                     checkAndFixPartitionOrder(fsaHandle, "/dev/sdcard01", devInfo, dummy);
                 }
                 FSADelClient(fsaHandle);
