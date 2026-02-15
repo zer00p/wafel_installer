@@ -136,8 +136,8 @@ void loadFwImg(const char* fwPath, uint32_t command, uint32_t parameter) {
 
         if (!applyPatch(0x050663B4, path, sizeof(path), L"Applying fw_path...")) return;
 
-        uint32_t p2 = 0xF031FB43;
-        if (!applyPatch(0x050282AE, &p2, 4, L"Applying patch 2 (launch_os_hook bl)...")) return;
+        uint64_t p2 = 0x00a4F031FB43193b; // need to align patch for old mocha
+        if (!applyPatch(0x050282AC, &p2, 8, L"Applying patch 2 (launch_os_hook bl)...")) return;
 
         uint32_t p3 = 0xE3A00000;
         if (!applyPatch(0x05052C44, &p3, 4, L"Applying patch 3 (mov r0, #0)...")) return;
