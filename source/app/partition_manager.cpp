@@ -185,6 +185,7 @@ static const char* getPartitionTypeName(uint8_t type) {
         case 0x0B: return "FAT32";
         case 0x0C: return "FAT32 (LBA)";
         case 0x07: return "NTFS/exFAT/WFS";
+        case 0x17: return "WFS (Hidden)";
         case 0x0E: return "FAT16 (LBA)";
         case 0x0F: return "Extended (LBA)";
         case 0x82: return "Linux Swap";
@@ -337,19 +338,61 @@ bool formatWholeDrive(FSAClientHandle fsaHandle, const char* device, const FSADe
 bool partitionDevice(FSAClientHandle fsaHandle, const char* device, const FSADeviceInfo& deviceInfo) {
     FatMountGuard guard;
     guard.block();
+
+    uint32_t p1_start_detected = 2048;
+    uint8_t* mbr_check = (uint8_t*)memalign(0x40, deviceInfo.deviceSectorSize);
+    if (mbr_check) {
+        if ((FSStatus)rawRead(fsaHandle, device, 0, 1, mbr_check, deviceInfo.deviceSectorSize) == FS_STATUS_OK) {
+            if (mbr_check[510] == 0x55 && mbr_check[511] == 0xAA) {
+                bool hasFat = false;
+                for (int i = 0; i < 4; i++) {
+                    uint8_t type = mbr_check[446 + i * 16 + 4];
+                    if (type == 0x0B || type == 0x0C) {
+                        hasFat = true;
+                        break;
+                    }
+                }
+                if (hasFat) {
+                    showDialogPrompt(L"Note: If you want to keep the data on your FAT32 partition, you should use a PC to resize it.\nDoing it on the Wii U will DELETE ALL DATA on the device.", L"OK");
+                }
+
+                uint32_t current_p1_start = read32LE(&mbr_check[446 + 8]);
+                if (current_p1_start >= 64 && current_p1_start < 1048576) {
+                    p1_start_detected = current_p1_start;
+                }
+            }
+        }
+        free(mbr_check);
+    }
+
     double totalGB = (double)deviceInfo.deviceSizeInSectors * (double)deviceInfo.deviceSectorSize / (1024.0 * 1024.0 * 1024.0);
-    int fatPercent = 80;
-    if (totalGB < 1.0) fatPercent = 100;
+    double targetFatGB = (totalGB >= 40.0) ? 20.0 : (totalGB / 2.0);
+    int fatPercent = (int)std::round((targetFatGB / totalGB) * 100.0);
+    if (fatPercent < 0) fatPercent = 0;
+    if (fatPercent > 100) fatPercent = 100;
+
+    uint32_t alignSectors = (64 * 1024 * 1024) / deviceInfo.deviceSectorSize;
+    uint32_t p1_start = p1_start_detected;
+    uint32_t final_p1_size = 0;
+    uint32_t final_p2_start = 0;
 
     while(true) {
-        double fatGB = totalGB * fatPercent / 100.0;
-        double ntfsGB = totalGB * (100 - fatPercent) / 100.0;
+        uint32_t target_p1_size = (uint32_t)(deviceInfo.deviceSizeInSectors * fatPercent / 100.0);
+        uint32_t p2_start = ((p1_start + target_p1_size + alignSectors / 2) / alignSectors) * alignSectors;
+        if (p2_start > deviceInfo.deviceSizeInSectors) p2_start = deviceInfo.deviceSizeInSectors;
+        if (p2_start < p1_start) p2_start = p1_start;
+
+        final_p1_size = p2_start - p1_start;
+        final_p2_start = p2_start;
+
+        double fatGB = (double)final_p1_size * deviceInfo.deviceSectorSize / (1024.0 * 1024.0 * 1024.0);
+        double ntfsGB = (double)(deviceInfo.deviceSizeInSectors - final_p2_start) * deviceInfo.deviceSectorSize / (1024.0 * 1024.0 * 1024.0);
 
         showDeviceInfoScreen(fsaHandle, device, deviceInfo);
         WHBLogFreetypePrint((L"Partition " + toWstring(device)).c_str());
         WHBLogFreetypePrint(L"===============================");
         WHBLogFreetypePrintf(L"FAT32:  [%3d%%] (%6.2f GB)    Homebrew and vWii USB Loader", fatPercent, fatGB);
-        WHBLogFreetypePrintf(L"WFS:    [%3d%%] (%6.2f GB)    Wii U games and VC", 100 - fatPercent, ntfsGB);
+        WHBLogFreetypePrintf(L"WFS:      [%3d%%] (%6.2f GB)    Wii U games and VC", 100 - fatPercent, ntfsGB);
         WHBLogFreetypePrint(L" ");
         WHBLogFreetypePrint(L"Use Left/Right to adjust (1% increments)");
         WHBLogFreetypePrint(L"Use Up/Down to adjust (10% increments)");
@@ -414,13 +457,10 @@ bool partitionDevice(FSAClientHandle fsaHandle, const char* device, const FSADev
         return false;
     }
 
-    uint32_t alignSectors = (64 * 1024 * 1024) / deviceInfo.deviceSectorSize;
-    uint32_t p1_size = (uint32_t)(deviceInfo.deviceSizeInSectors * fatPercent / 100);
-
     while (true) {
         WHBLogPrint("Formatting FAT32 partition...");
         WHBLogFreetypeDraw();
-        setCustomFormatSize(p1_size);
+        setCustomFormatSize(final_p1_size);
         WHBUnmountSdCard();
         FSStatus status = (FSStatus)FSA_Format(fsaHandle, device, "fat", 0, 0, 0);
         if (status != FS_STATUS_OK) {
@@ -443,12 +483,12 @@ bool partitionDevice(FSAClientHandle fsaHandle, const char* device, const FSADev
         uint32_t actual_p1_start = read32LE(&mbr[446 + 8]);
         uint32_t actual_p1_size = read32LE(&mbr[446 + 12]);
 
-        uint32_t p2_start = ((actual_p1_start + actual_p1_size + alignSectors - 1) / alignSectors) * alignSectors;
+        uint32_t p2_start = actual_p1_start + actual_p1_size;
         if (p2_start < deviceInfo.deviceSizeInSectors) {
             uint32_t p2_size = (uint32_t)(deviceInfo.deviceSizeInSectors - p2_start);
 
             uint8_t* pte2 = &mbr[446 + 3 * 16];
-            pte2[4] = 0x07;
+            pte2[4] = 0x17;
             write32LE(&pte2[8], p2_start);
             write32LE(&pte2[12], p2_size);
 
@@ -591,7 +631,7 @@ static bool handlePartitionActionMenu(FSAClientHandle fsaHandle, const FSADevice
                     if (type != 0) {
                         partitionCount++;
                         if (i == 0 && (type == 0x0B || type == 0x0C)) hasFat32 = true;
-                        if (i > 0 && type == 0x07) hasWfs = true;
+                        if (i > 0 && (type == 0x07 || type == 0x17)) hasWfs = true;
                         uint32_t start = read32LE(&mbr[446 + i * 16 + 8]);
                         uint32_t sectors = read32LE(&mbr[446 + i * 16 + 12]);
                         if (start + sectors > lastOccupiedSector) {
@@ -654,7 +694,7 @@ static bool handlePartitionActionMenu(FSAClientHandle fsaHandle, const FSADevice
             if (p_start < deviceInfo.deviceSizeInSectors) {
                 uint32_t p_size = deviceInfo.deviceSizeInSectors - p_start;
                 uint8_t* pte = &mbr[446 + 3 * 16];
-                pte[4] = 0x07;
+                pte[4] = 0x17;
                 write32LE(&pte[8], p_start);
                 write32LE(&pte[12], p_size);
                 mbr[510] = 0x55;
@@ -991,7 +1031,7 @@ void formatAndPartitionMenu() {
                     if (p2_start < deviceInfo.deviceSizeInSectors) {
                         uint32_t p2_size = deviceInfo.deviceSizeInSectors - p2_start;
                         uint8_t* pte = &mbr[446 + 3 * 16];
-                        pte[4] = 0x07; // NTFS/WFS
+                        pte[4] = 0x17; // WFS
                         write32LE(&pte[8], p2_start);
                         write32LE(&pte[12], p2_size);
 
