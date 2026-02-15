@@ -8,10 +8,12 @@
 #include "cfw.h"
 #include "fw_img_loader.h"
 #include "download.h"
+#include <isfshax_cmd.h>
 #include <vector>
 #include <string>
 #include <dirent.h>
 #include <whb/sdcard.h>
+
 // Menu screens
 
 void showLoadingScreen() {
@@ -128,28 +130,66 @@ void installStroopwafelMenu() {
     }
 }
 
+bool confirmIsfshaxAction(const wchar_t* action, bool isUninstall = false) {
+    std::wstring message = L"WARNING: You are about to make modifications to the console.\n"
+                           L"This software comes with ABSOLUTELY NO WARRANTY!\n"
+                           L"You are choosing to use this at your own risk.\n"
+                           L"The author(s) will not be held liable for any damage.\n\n";
+
+    if (isUninstall) {
+        message += L"WARNING: Before Uninstalling ISFShax make sure the console boots correctly using\n"
+                   L"the 'Patch ISFShax and boot IOS (slc)' option in minute.\n"
+                   L"If your console can't boot correctly, uninstalling ISFShax will BRICK the console!!!\n\n";
+    }
+
+    message += L"Do you want to proceed with ";
+    message += action;
+    message += L"?";
+
+    return showDialogPrompt(message.c_str(), L"Yes", L"No", nullptr, nullptr, 1) == 0;
+}
+
 void installIsfshaxMenu() {
     if (!checkSystemAccess()) return;
 
-    uint8_t downloadChoice = showDialogPrompt(L"Do you want to download the latest ISFShax files (installer and superblock)?", L"Yes", L"No", L"Cancel");
-    if (downloadChoice == 2 || downloadChoice == 255) return;
+    std::vector<std::wstring> options = {
+        L"Install (Automated)",
+        L"Uninstall (Automated)",
+        L"Expert (Manual)",
+        L"Download latest files",
+        L"Cancel"
+    };
 
-    bool downloaded = true;
-    if (downloadChoice == 0) {
-        downloaded = downloadIsfshaxFiles();
-    } else {
-        std::string fwImgPath = convertToPosixPath("/vol/storage_slc/sys/hax/installer/fw.img");
-        if (!fileExist(fwImgPath.c_str())) {
-            uint8_t missingChoice = showDialogPrompt(L"The ISFShax installer (fw.img) is missing.", L"Download", L"Cancel");
-            if (missingChoice == 0) {
-                downloaded = downloadIsfshaxFiles();
-            } else {
-                return;
-            }
+    uint8_t choice = showDialogPrompt(L"Select an option for the ISFShax installer:", options);
+    if (choice == 4 || choice == 255) return;
+
+    if (choice == 3) {
+        if (downloadIsfshaxFiles()) {
+            showSuccessPrompt(L"ISFShax files downloaded successfully!");
+        }
+        return;
+    }
+
+    // For options 0, 1, 2 we need the installer file
+    std::string fwImgPath = convertToPosixPath("/vol/storage_slc/sys/hax/installer/fw.img");
+    if (!fileExist(fwImgPath.c_str())) {
+        uint8_t missingChoice = showDialogPrompt(L"The ISFShax installer (fw.img) is missing.", L"Download", L"Cancel");
+        if (missingChoice == 0) {
+            if (!downloadIsfshaxFiles()) return;
+        } else {
+            return;
         }
     }
 
-    if (downloaded) {
+    if (choice == 0) { // Install (Automated)
+        if (confirmIsfshaxAction(L"Install")) {
+            loadFwImg("/vol/system/hax/installer/fw.img", ISFSHAX_CMD_INSTALL, (uint32_t)(ISFSHAX_CMD_POST_REBOOT) << 30 | ISFSHAX_CMD_SOURCE_SLC);
+        }
+    } else if (choice == 1) { // Uninstall (Automated)
+        if (confirmIsfshaxAction(L"Uninstall", true)) {
+            loadFwImg("/vol/system/hax/installer/fw.img", ISFSHAX_CMD_UNINSTALL, (uint32_t)(ISFSHAX_CMD_POST_REBOOT) << 30 | ISFSHAX_CMD_SOURCE_SLC);
+        }
+    } else if (choice == 2) { // Expert (Manual)
         bootInstaller();
     }
 }
