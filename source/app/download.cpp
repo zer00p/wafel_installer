@@ -276,16 +276,20 @@ bool downloadIsfshaxFiles() {
         }
     }
 
+    std::string slcFwImgPath = convertToPosixPath("/vol/storage_slc/sys/hax/installer/fw.img");
+
     if (!downloadFile("https://github.com/isfshax/isfshax/releases/latest/download/superblock.img", convertToPosixPath("/vol/storage_slc/sys/hax/installer/sblock.img")) ||
         !downloadFile("https://github.com/isfshax/isfshax/releases/latest/download/superblock.img.sha", convertToPosixPath("/vol/storage_slc/sys/hax/installer/sblock.sha")) ||
-        !downloadFile("https://github.com/isfshax/isfshax_installer/releases/latest/download/ios.img", convertToPosixPath("/vol/storage_slc/sys/hax/installer/fw.img")))
+        !downloadFile("https://github.com/isfshax/isfshax_installer/releases/latest/download/ios.img", slcFwImgPath))
     {
         return false;
     }
 
-    // Also download installer to SD root as ios.img if real SD exists
-    if (WHBMountSdCard() == 1) {
-        downloadFile("https://github.com/isfshax/isfshax_installer/releases/latest/download/ios.img", "fs:/vol/external01/ios.img");
+    // Also copy installer to SD root as ios.img if real SD exists
+    if (!isSdEmulated() && WHBMountSdCard() == 1) {
+        WHBLogFreetypePrintf(L"Copying installer to SD...");
+        WHBLogFreetypeDrawScreen();
+        copyFile(slcFwImgPath, "fs:/vol/external01/ios.img");
     }
 
     return true;
@@ -563,9 +567,17 @@ bool downloadInstallerOnly() {
 
     if (!createHaxDirectories()) return false;
 
-    if (!downloadFile("https://github.com/isfshax/isfshax_installer/releases/latest/download/ios.img", convertToPosixPath("/vol/storage_slc/sys/hax/installer/fw.img")))
+    std::string slcFwImgPath = convertToPosixPath("/vol/storage_slc/sys/hax/installer/fw.img");
+
+    if (!downloadFile("https://github.com/isfshax/isfshax_installer/releases/latest/download/ios.img", slcFwImgPath))
     {
         return false;
+    }
+
+    if (!isSdEmulated() && WHBMountSdCard() == 1) {
+        WHBLogFreetypePrintf(L"Copying installer to SD...");
+        WHBLogFreetypeDrawScreen();
+        copyFile(slcFwImgPath, "fs:/vol/external01/ios.img");
     }
 
     return true;
