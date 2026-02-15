@@ -1,5 +1,6 @@
 #include "startup_checks.h"
 #include "menu.h"
+#include "isfshax_menu.h"
 #include "pluginmanager.h"
 #include "partition_manager.h"
 #include "navigation.h"
@@ -40,7 +41,7 @@ void performAromaCheck() {
 
 void performStroopwafelCheck(bool wantsPartitionedStorage) {
     if (!isStroopwafelAvailable()) {
-        uint8_t choice = showDialogPrompt(L"Stroopwafel is missing or outdated.\nDo you want to download it?", L"Yes", L"No");
+        uint8_t choice = showDialogPrompt(L"Stroopwafel is missing, outdated or not running\nDo you want to download it?", L"Yes", L"No");
         if (choice == 0) {
             bool toSD = false;
             if (wantsPartitionedStorage) {
@@ -57,9 +58,7 @@ void performIsfshaxCheck(bool usingUSB, bool wantsPartitionedStorage) {
     if (!isIsfshaxInstalled()) {
         uint8_t choice = showDialogPrompt(L"ISFShax is not detected.\nDo you want to install it?\nThis is required for Stroopwafel.", L"Yes", L"No");
         if (choice == 0) {
-            if (downloadIsfshaxFiles()) {
-                bootInstaller();
-            }
+            installIsfshax(false, false);
         } else if (choice == 1 || choice == 255) {
             if (usingUSB || wantsPartitionedStorage) {
                 showDialogPrompt(L"You chose not to setup ISFShax.\nNote that USB-as-SD and partitioned storage REQUIRE Stroopwafel/ISFShax to work!", L"OK");

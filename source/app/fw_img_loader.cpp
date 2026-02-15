@@ -6,6 +6,7 @@
 #include <sysapp/title.h>
 #include <sysapp/launch.h>
 #include <stroopwafel/stroopwafel.h>
+#include <isfshax_cmd.h>
 
 #include <cstring>
 #include <sstream>
@@ -107,8 +108,22 @@ static bool applyPatch(uint32_t addr, const void* data, size_t size, const wchar
 }
 
 
-void loadFwImg(const char* fwPath) {
+void loadFwImg(const char* fwPath, uint32_t command, uint32_t parameter) {
     WHBLogFreetypeStartScreen();
+
+    if (command != 0) {
+        WHBLogFreetypePrint(L"Writing automated ISFShax commands...");
+        WHBLogFreetypeDrawScreen();
+
+        uint32_t magic[2];
+        memcpy(magic, ISFSHAX_CMD_MAGIC, 8);
+
+        Mocha_IOSUKernelWrite32(ISFSHAX_CMD_ADDR + 0, magic[0]);
+        Mocha_IOSUKernelWrite32(ISFSHAX_CMD_ADDR + 4, magic[1]);
+        Mocha_IOSUKernelWrite32(ISFSHAX_CMD_ADDR + 8, command);
+        Mocha_IOSUKernelWrite32(ISFSHAX_CMD_ADDR + 12, parameter);
+    }
+
     WHBLogFreetypePrint(L"Applying fw.img patches...");
     WHBLogFreetypeDrawScreen();
 
@@ -121,8 +136,8 @@ void loadFwImg(const char* fwPath) {
 
         if (!applyPatch(0x050663B4, path, sizeof(path), L"Applying fw_path...")) return;
 
-        uint32_t p2 = 0xF031FB43;
-        if (!applyPatch(0x050282AE, &p2, 4, L"Applying patch 2 (launch_os_hook bl)...")) return;
+        uint64_t p2 = 0x00a4F031FB43193b; // need to align patch for old mocha
+        if (!applyPatch(0x050282AC, &p2, 8, L"Applying patch 2 (launch_os_hook bl)...")) return;
 
         uint32_t p3 = 0xE3A00000;
         if (!applyPatch(0x05052C44, &p3, 4, L"Applying patch 3 (mov r0, #0)...")) return;

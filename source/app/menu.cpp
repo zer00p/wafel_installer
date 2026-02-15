@@ -1,4 +1,5 @@
 #include "menu.h"
+#include "isfshax_menu.h"
 #include "minute_config.h"
 #include "pluginmanager.h"
 #include "partition_manager.h"
@@ -8,10 +9,12 @@
 #include "cfw.h"
 #include "fw_img_loader.h"
 #include "download.h"
+#include <isfshax_cmd.h>
 #include <vector>
 #include <string>
 #include <dirent.h>
 #include <whb/sdcard.h>
+
 // Menu screens
 
 void showLoadingScreen() {
@@ -125,56 +128,6 @@ void installStroopwafelMenu() {
         }
     } else {
         showErrorPrompt(L"OK");
-    }
-}
-
-void installIsfshaxMenu() {
-    if (!checkSystemAccess()) return;
-
-    uint8_t downloadChoice = showDialogPrompt(L"Do you want to download the latest ISFShax files (installer and superblock)?", L"Yes", L"No", L"Cancel");
-    if (downloadChoice == 2 || downloadChoice == 255) return;
-
-    bool downloaded = true;
-    if (downloadChoice == 0) {
-        downloaded = downloadIsfshaxFiles();
-    } else {
-        std::string fwImgPath = convertToPosixPath("/vol/storage_slc/sys/hax/installer/fw.img");
-        if (!fileExist(fwImgPath.c_str())) {
-            uint8_t missingChoice = showDialogPrompt(L"The ISFShax installer (fw.img) is missing.", L"Download", L"Cancel");
-            if (missingChoice == 0) {
-                downloaded = downloadIsfshaxFiles();
-            } else {
-                return;
-            }
-        }
-    }
-
-    if (downloaded) {
-        bootInstaller();
-    }
-}
-
-void bootInstaller() {
-    if (!checkSystemAccess()) return;
-
-    std::string fwImgPath = convertToPosixPath("/vol/storage_slc/sys/hax/installer/fw.img");
-    if (!fileExist(fwImgPath.c_str())) {
-        setErrorPrompt(L"ISFShax installer (fw.img) is missing!");
-        showErrorPrompt(L"OK");
-        return;
-    }
-
-    while (true) {
-        sleep_for(1s);
-        uint8_t choice = showDialogPrompt(L"The ISFShax installer is controlled with the buttons on the main console.\nPOWER: moves the curser\nEJECT: confirm\nPress A to launch into the ISFShax Installer", L"Continue", L"Cancel");
-        if (choice == 0) {
-            loadFwImg();
-            break;
-        } else {
-            if (showDialogPrompt(L"Are you sure? ISFShax is required for stroopwafel", L"Yes, cancel", L"No, go back") == 0) {
-                return;
-            }
-        }
     }
 }
 
