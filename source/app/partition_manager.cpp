@@ -52,6 +52,12 @@ typedef struct __attribute__((aligned(0x40))) {
 
 #define FAT_MOUNT_CALL 0x1078a948
 static uint32_t fatmount_org_ins = 0;
+static bool mount_guard_enabled = false;
+
+void setupMountGuard(CFWVersion version) {
+    mount_guard_enabled = (version == CFWVersion::MOCHA_FSCLIENT);
+}
+
 static void block_fat_mount(void) {
     uint32_t val = 0;
     if (Mocha_IOSUKernelRead32(FAT_MOUNT_CALL, &val) == MOCHA_RESULT_SUCCESS) {
@@ -71,7 +77,7 @@ static void unblock_fat_mount(void) {
 FatMountGuard::FatMountGuard() : active(false) {}
 FatMountGuard::~FatMountGuard() { if (active) unblock_fat_mount(); }
 void FatMountGuard::block() {
-    if (!active && getCFWVersion() == CFWVersion::MOCHA_FSCLIENT) {
+    if (!active && mount_guard_enabled) {
         // We only need the mountguard when we are running aroma, which is indicated by the presence of Mocha.
         // In the other cases the patch to block mounts causes problems (it causes the mount to hang after releasing the guard).
         block_fat_mount();

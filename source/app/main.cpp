@@ -1,4 +1,5 @@
 #include "menu.h"
+#include "partition_manager.h"
 #include "startup_checks.h"
 #include "navigation.h"
 #include "cfw.h"
@@ -32,6 +33,7 @@ int main() {
     // Start Syrup
     showLoadingScreen();
     if (testCFW() != FAILED && ((getCFWVersion() == MOCHA_FSCLIENT || getCFWVersion() == CEMU || getCFWVersion() == CUSTOM_MOCHA) || installCFW()) && initCFW() ) {
+        setupMountGuard(getCFWVersion());
         mountSystemDrives();
         WHBLogFreetypePrint(L" ");
         WHBLogPrint("Finished loading!");

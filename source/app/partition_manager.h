@@ -2,7 +2,9 @@
 
 #include <coreinit/filesystem_fsa.h>
 #include <string>
+#include "cfw.h"
 
+void setupMountGuard(CFWVersion version);
 void formatAndPartitionMenu();
 void setupSDUSBMenu();
 void setupPartitionedUSBMenu();
