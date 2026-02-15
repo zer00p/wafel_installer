@@ -185,7 +185,7 @@ static const char* getPartitionTypeName(uint8_t type) {
         case 0x0B: return "FAT32";
         case 0x0C: return "FAT32 (LBA)";
         case 0x07: return "NTFS/exFAT/WFS";
-        case 0x17: return "WFS (Hidden)";
+        case 0x17: return "WFS";
         case 0x0E: return "FAT16 (LBA)";
         case 0x0F: return "Extended (LBA)";
         case 0x82: return "Linux Swap";
