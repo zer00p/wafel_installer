@@ -22,7 +22,6 @@
 #include <coreinit/time.h>
 #include <coreinit/energysaver.h>
 #include <mocha/mocha.h>
-#include <chrono>
 #include <thread>
 #include <mocha/fsa.h>
 #include <whb/sdcard.h>
@@ -658,19 +657,21 @@ static bool handlePartitionActionMenu(FSAClientHandle fsaHandle, const FSADevice
     return true;
 }
 
-bool handleSDUSBAction(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, bool& wantsPartitionedStorage) {
+bool handleSDUSBAction(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, bool& wantsPartitionedStorage, FatMountGuard& guard) {
     if (handlePartitionActionMenu(fsaHandle, deviceInfo, wantsPartitionedStorage, L"SD card", true)) {
+        guard.unblock();
         WHBMountSdCard();
         return true;
     }
     return false;
 }
 
-bool handleUSBAsSDAction(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, bool& wantsPartitionedStorage) {
+bool handleUSBAsSDAction(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, bool& wantsPartitionedStorage, FatMountGuard& guard) {
     bool dummyRepartitioned = false;
     if (!checkAndFixPartitionOrder(fsaHandle, "/dev/sdcard01", deviceInfo, dummyRepartitioned)) {
         if (dummyRepartitioned) {
             wantsPartitionedStorage = true;
+            guard.unblock();
             WHBMountSdCard();
             return true;
         }
@@ -678,6 +679,7 @@ bool handleUSBAsSDAction(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceI
     }
 
     if (handlePartitionActionMenu(fsaHandle, deviceInfo, wantsPartitionedStorage, L"USB device", false)) {
+        guard.unblock();
         WHBMountSdCard();
         return true;
     }
@@ -1077,7 +1079,7 @@ void setupSDUSBMenu() {
         }
 
         bool wantsPartitionedStorage = false;
-        if (handleSDUSBAction(fsaHandle, deviceInfo, wantsPartitionedStorage)) {
+        if (handleSDUSBAction(fsaHandle, deviceInfo, wantsPartitionedStorage, guard)) {
             FSADelClient(fsaHandle);
             performPostSetupChecks(false, wantsPartitionedStorage);
             return;
@@ -1156,7 +1158,7 @@ void setupPartitionedUSBMenu() {
 
         bool wantsPartitionedStorage = false;
         if (sdEmulation) {
-            if (handleUSBAsSDAction(fsaHandle, deviceInfo, wantsPartitionedStorage)) {
+            if (handleUSBAsSDAction(fsaHandle, deviceInfo, wantsPartitionedStorage, guard)) {
                 FSADelClient(fsaHandle);
                 performPostSetupChecks(true, wantsPartitionedStorage);
                 usbAsSd(false);
