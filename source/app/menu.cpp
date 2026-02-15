@@ -132,6 +132,10 @@ void installStroopwafelMenu() {
 }
 
 void installAromaMenu() {
+    if (showDialogPrompt(L"Do you want to download Aroma by Maschell and the HB Appstore now?\n\nNote: Aroma plugins like Inkay (Pretendo) or FTP can be downloaded with the Aroma Updater later.", L"Download", L"Cancel") != 0) {
+        return;
+    }
+
     while (true) {
         if (downloadAroma()) {
             showSuccessPrompt(L"Aroma and tools downloaded and extracted successfully!");
