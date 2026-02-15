@@ -15,29 +15,7 @@
 #include <string>
 
 static void setupInaccessibleSdCard(FSAClientHandle fsaHandle, FSADeviceInfo& devInfo, bool& wantsPartitionedStorage) {
-    showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", devInfo);
-    if (showDialogPrompt(L"SD card cannot be accessed.\nDo you want to format it to use it on the Wii U?", L"Yes", L"No", nullptr, nullptr, 0, false) == 0) {
-        uint64_t totalSize = (uint64_t)devInfo.deviceSizeInSectors * devInfo.deviceSectorSize;
-        uint64_t twoGiB = 2ULL * 1024 * 1024 * 1024;
-
-        FatMountGuard guard;
-        guard.block();
-
-        showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", devInfo);
-        if (totalSize >= twoGiB && showDialogPrompt(L"Do you also want to use the SD card to install Wii U games to?", L"Yes", L"No", nullptr, nullptr, 0, false) == 0) {
-            wantsPartitionedStorage = true;
-            if (partitionDevice(fsaHandle, "/dev/sdcard01", devInfo)) {
-                guard.unblock();
-                WHBMountSdCard();
-                download5sdusb(true, true);
-            }
-        } else {
-            if (formatWholeDrive(fsaHandle, "/dev/sdcard01", devInfo)) {
-                guard.unblock();
-                WHBMountSdCard();
-            }
-        }
-    }
+    handleSDUSBAction(fsaHandle, devInfo, wantsPartitionedStorage);
 }
 
 static void setupUsbStorage(FSAClientHandle fsaHandle, bool& wantsPartitionedStorage) {
@@ -46,46 +24,13 @@ static void setupUsbStorage(FSAClientHandle fsaHandle, bool& wantsPartitionedSto
     FatMountGuard guard;
     if (waitForDevice(fsaHandle, L"USB device", guard)) {
         FSADeviceInfo devInfo;
-        FSStatus res = (FSStatus)FSAGetDeviceInfo(fsaHandle, "/dev/sdcard01", &devInfo);
-        if (res == FS_STATUS_OK) {
-            bool dummy = false;
-            checkAndFixPartitionOrder(fsaHandle, "/dev/sdcard01", devInfo, dummy);
+        if ((FSStatus)FSAGetDeviceInfo(fsaHandle, "/dev/sdcard01", &devInfo) == FS_STATUS_OK) {
+            handleUSBAsSDAction(fsaHandle, devInfo, wantsPartitionedStorage);
         }
-
-        guard.unblock();
-        if (WHBMountSdCard() == 1) {
-            showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", devInfo);
-            if (showDialogPrompt(L"USB device detected.\nDo you want to repartition it to store Wii U games on or keep as is?", L"Repartition", L"Keep as is", nullptr, nullptr, 0, false) == 0) {
-                wantsPartitionedStorage = true;
-                guard.block();
-                if (partitionDevice(fsaHandle, "/dev/sdcard01", devInfo)) {
-                    guard.unblock();
-                    WHBMountSdCard();
-                }
-            }
-        } else {
-            // Cannot be mounted
-            showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", devInfo);
-            if (showDialogPrompt(L"USB device cannot be mounted.\nDo you want to use the full drive for homebrew or also store Wii U games on it?", L"Homebrew only", L"Homebrew + Games", nullptr, nullptr, 0, false) == 1) {
-                wantsPartitionedStorage = true;
-                guard.block();
-                if (partitionDevice(fsaHandle, "/dev/sdcard01", devInfo)) {
-                    guard.unblock();
-                    WHBMountSdCard();
-                }
-            } else {
-                guard.block();
-                if (formatWholeDrive(fsaHandle, "/dev/sdcard01", devInfo)) {
-                    guard.unblock();
-                    WHBMountSdCard();
-                }
-            }
-        }
-        download5upartsd(true);
     }
 }
 
-static void performAromaCheck() {
+void performAromaCheck() {
     if ((WHBMountSdCard() == 1) && !dirExist("fs:/vol/external01/wiiu/environments/aroma")) {
         if (showDialogPrompt(L"Aroma is missing on your SD card.\nDo you want to download it now?", L"Yes", L"No") == 0) {
             downloadAroma();
@@ -93,7 +38,7 @@ static void performAromaCheck() {
     }
 }
 
-static void performStroopwafelCheck(bool wantsPartitionedStorage) {
+void performStroopwafelCheck(bool wantsPartitionedStorage) {
     if (!isStroopwafelAvailable()) {
         uint8_t choice = showDialogPrompt(L"Stroopwafel is missing or outdated.\nDo you want to download it?", L"Yes", L"No");
         if (choice == 0) {
@@ -108,7 +53,7 @@ static void performStroopwafelCheck(bool wantsPartitionedStorage) {
     }
 }
 
-static void performIsfshaxCheck(bool usingUSB, bool wantsPartitionedStorage) {
+void performIsfshaxCheck(bool usingUSB, bool wantsPartitionedStorage) {
     if (!isIsfshaxInstalled()) {
         uint8_t choice = showDialogPrompt(L"ISFShax is not detected.\nDo you want to install it?\nThis is required for Stroopwafel.", L"Yes", L"No");
         if (choice == 0) {
@@ -120,6 +65,25 @@ static void performIsfshaxCheck(bool usingUSB, bool wantsPartitionedStorage) {
                 showDialogPrompt(L"You chose not to setup ISFShax.\nNote that USB-as-SD and partitioned storage REQUIRE Stroopwafel/ISFShax to work!", L"OK");
             }
         }
+    }
+}
+
+void performPostSetupChecks(bool usingUSB, bool wantsPartitionedStorage) {
+    performAromaCheck();
+    performStroopwafelCheck(wantsPartitionedStorage);
+    performIsfshaxCheck(usingUSB, wantsPartitionedStorage);
+
+    std::string pluginTarget = getStroopwafelPluginPosixPath();
+    if (pluginTarget.empty()) return;
+
+    if (usingUSB) {
+        if (isSdEmulated()) {
+            downloadUsbPartitionPlugin("5upartsd.ipx", pluginTarget);
+        } else if (wantsPartitionedStorage) {
+            downloadUsbPartitionPlugin("5usbpart.ipx", pluginTarget);
+        }
+    } else if (wantsPartitionedStorage) {
+        downloadUsbPartitionPlugin("5sdusb.ipx", pluginTarget);
     }
 }
 
@@ -196,9 +160,7 @@ bool performStartupChecks() {
         }
     }
 
-    performAromaCheck();
-    performStroopwafelCheck(wantsPartitionedStorage);
-    performIsfshaxCheck(usingUSB, wantsPartitionedStorage);
+    performPostSetupChecks(usingUSB, wantsPartitionedStorage);
 
     return true;
 }

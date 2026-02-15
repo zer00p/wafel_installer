@@ -1,4 +1,5 @@
 #include "partition_manager.h"
+#include "startup_checks.h"
 #include "menu.h"
 #include "gui.h"
 #include "filesystem.h"
@@ -538,6 +539,145 @@ bool checkAndFixPartitionOrder(FSAClientHandle fsaHandle, const char* device, co
     return false;
 }
 
+static bool handlePartitionActionMenu(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, bool& wantsPartitionedStorage, const wchar_t* deviceTypeName, bool isSdCard) {
+    uint8_t* mbr = (uint8_t*)memalign(0x40, deviceInfo.deviceSectorSize);
+    if (!mbr) {
+        setErrorPrompt(L"Failed to allocate memory for MBR!");
+        showErrorPrompt(L"OK");
+        return false;
+    }
+
+    bool partitionSuccess = false;
+    while (!partitionSuccess) {
+        bool hasWfs = false;
+        int partitionCount = 0;
+        uint32_t lastOccupiedSector = 1;
+        if ((FSStatus)rawRead(fsaHandle, "/dev/sdcard01", 0, 1, mbr, deviceInfo.deviceSectorSize) == FS_STATUS_OK) {
+            if (mbr[510] == 0x55 && mbr[511] == 0xAA) {
+                for (int i = 0; i < 4; i++) {
+                    uint8_t type = mbr[446 + i * 16 + 4];
+                    if (type != 0) {
+                        partitionCount++;
+                        if (i > 0 && type == 0x07) hasWfs = true;
+                        uint32_t start = read32LE(&mbr[446 + i * 16 + 8]);
+                        uint32_t sectors = read32LE(&mbr[446 + i * 16 + 12]);
+                        if (start + sectors > lastOccupiedSector) {
+                            lastOccupiedSector = start + sectors;
+                        }
+                    }
+                }
+            }
+        }
+
+        uint64_t unallocatedSpaceEnd = (uint64_t)(deviceInfo.deviceSizeInSectors - lastOccupiedSector) * deviceInfo.deviceSectorSize;
+        bool hasSpace = (unallocatedSpaceEnd > 4ULL * 1024 * 1024 * 1024) && (partitionCount < 4) && (partitionCount > 0);
+
+        std::vector<std::wstring> buttons;
+        int optKeep = -1;
+        int optCreate = -1;
+        int optRepartition = -1;
+        int optCancel = -1;
+
+        if (partitionCount >= (isSdCard ? 1 : 2) && (isSdCard ? true : hasWfs)) {
+            optKeep = (int)buttons.size();
+            buttons.push_back(L"Keep current partitioning");
+        }
+        if (hasSpace) {
+            optCreate = (int)buttons.size();
+            buttons.push_back(L"Create additional WFS partition");
+        }
+        optRepartition = (int)buttons.size();
+        buttons.push_back(L"Repartition");
+        optCancel = (int)buttons.size();
+        buttons.push_back(L"Cancel");
+
+        showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", deviceInfo);
+        std::wstring prompt = L"How do you want to partition the " + std::wstring(deviceTypeName) + L"?";
+        uint8_t choice = showDialogPrompt(prompt.c_str(), buttons, 0, false);
+
+        if (choice == optKeep) {
+            partitionSuccess = true;
+            wantsPartitionedStorage = true;
+        } else if (optCreate != -1 && choice == optCreate) {
+            struct Partition {
+                uint8_t data[16];
+            };
+            std::vector<Partition> partitions;
+            for (int i = 0; i < 4; i++) {
+                if (mbr[446 + i * 16 + 4] != 0) {
+                    Partition p;
+                    memcpy(p.data, &mbr[446 + i * 16], 16);
+                    partitions.push_back(p);
+                }
+            }
+
+            memset(&mbr[446], 0, 64);
+            for (size_t i = 0; i < partitions.size(); i++) {
+                memcpy(&mbr[446 + i * 16], partitions[i].data, 16);
+            }
+
+            uint32_t alignSectors = (64 * 1024 * 1024) / deviceInfo.deviceSectorSize;
+            uint32_t p_start = ((lastOccupiedSector + alignSectors - 1) / alignSectors) * alignSectors;
+            if (p_start < deviceInfo.deviceSizeInSectors) {
+                uint32_t p_size = deviceInfo.deviceSizeInSectors - p_start;
+                uint8_t* pte = &mbr[446 + 3 * 16];
+                pte[4] = 0x07;
+                write32LE(&pte[8], p_start);
+                write32LE(&pte[12], p_size);
+                mbr[510] = 0x55;
+                mbr[511] = 0xAA;
+
+                WHBLogPrint("Adding WFS partition to MBR...");
+                WHBLogFreetypeDraw();
+                if ((FSStatus)rawWrite(fsaHandle, "/dev/sdcard01", 0, 1, mbr, deviceInfo.deviceSectorSize) == FS_STATUS_OK) {
+                    writeMbrSignature(fsaHandle, "/dev/sdcard01", p_start, deviceInfo.deviceSectorSize);
+                    showDialogPrompt(L"WFS partition created successfully!", L"OK");
+                    partitionSuccess = true;
+                    wantsPartitionedStorage = true;
+                } else {
+                    setErrorPrompt(L"Failed to write MBR!");
+                    showErrorPrompt(L"OK");
+                }
+            }
+        } else if (choice == optRepartition) {
+            partitionSuccess = partitionDevice(fsaHandle, "/dev/sdcard01", deviceInfo);
+            if (partitionSuccess) wantsPartitionedStorage = true;
+        } else if (choice == optCancel || choice == 255) {
+            free(mbr);
+            return false;
+        }
+    }
+
+    free(mbr);
+    return true;
+}
+
+bool handleSDUSBAction(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, bool& wantsPartitionedStorage) {
+    if (handlePartitionActionMenu(fsaHandle, deviceInfo, wantsPartitionedStorage, L"SD card", true)) {
+        WHBMountSdCard();
+        return true;
+    }
+    return false;
+}
+
+bool handleUSBAsSDAction(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, bool& wantsPartitionedStorage) {
+    bool dummyRepartitioned = false;
+    if (!checkAndFixPartitionOrder(fsaHandle, "/dev/sdcard01", deviceInfo, dummyRepartitioned)) {
+        if (dummyRepartitioned) {
+            wantsPartitionedStorage = true;
+            WHBMountSdCard();
+            return true;
+        }
+        else return false;
+    }
+
+    if (handlePartitionActionMenu(fsaHandle, deviceInfo, wantsPartitionedStorage, L"USB device", false)) {
+        WHBMountSdCard();
+        return true;
+    }
+    return false;
+}
+
 void formatAndPartitionMenu() {
     uint8_t deviceChoice = showDialogPrompt(L"Which device do you want to format?", L"SD", L"USB");
     if (deviceChoice == 255) return;
@@ -910,8 +1050,7 @@ void setupSDUSBMenu() {
     FatMountGuard guard;
     while (true) {
         if (!waitForDevice(fsaHandle, L"SD card", guard)) {
-            FSADelClient(fsaHandle);
-            return;
+            break;
         }
 
         FSADeviceInfo deviceInfo;
@@ -920,160 +1059,22 @@ void setupSDUSBMenu() {
             WHBLogPrintf("FSAGetDeviceInfo failed: %d", status);
             WHBLogFreetypeDraw();
             setErrorPrompt(L"Failed to get device info!");
-            showErrorPrompt(L"OK");
-            FSADelClient(fsaHandle);
-            return;
-        }
-
-        uint8_t* mbr = (uint8_t*)memalign(0x40, deviceInfo.deviceSectorSize);
-        if (!mbr) {
-            setErrorPrompt(L"Failed to allocate memory for MBR!");
-            showErrorPrompt(L"OK");
-            FSADelClient(fsaHandle);
-            return;
+            if (!showErrorPrompt(L"Cancel", true)) {
+                break;
+            }
+            continue;
         }
 
         showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", deviceInfo);
-
         if (showDialogPrompt(L"Is this the correct device?", L"Yes", L"No", nullptr, nullptr, 1, false) != 0) {
-            free(mbr);
             continue;
         }
 
-        bool partitionSuccess = false;
-        bool userQuitActionMenu = false;
-        while (!partitionSuccess) {
-            bool hasNtfs = false;
-            int partitionCount = 0;
-            uint32_t lastOccupiedSector = 1;
-            if ((FSStatus)rawRead(fsaHandle, "/dev/sdcard01", 0, 1, mbr, deviceInfo.deviceSectorSize) == FS_STATUS_OK) {
-                if (mbr[510] == 0x55 && mbr[511] == 0xAA) {
-                    for (int i = 0; i < 4; i++) {
-                        uint8_t type = mbr[446 + i * 16 + 4];
-                        if (type != 0) {
-                            partitionCount++;
-                            if (type == 0x07) hasNtfs = true;
-                            uint32_t start = read32LE(&mbr[446 + i * 16 + 8]);
-                            uint32_t sectors = read32LE(&mbr[446 + i * 16 + 12]);
-                            if (start + sectors > lastOccupiedSector) {
-                                lastOccupiedSector = start + sectors;
-                            }
-                        }
-                    }
-                }
-            }
-
-            uint64_t unallocatedSpaceEnd = (uint64_t)(deviceInfo.deviceSizeInSectors - lastOccupiedSector) * deviceInfo.deviceSectorSize;
-            bool hasSpace = (unallocatedSpaceEnd > 4ULL * 1024 * 1024 * 1024) && (partitionCount < 4) && (partitionCount > 0);
-
-            std::vector<std::wstring> buttons;
-            int optKeep = -1;
-            int optCreate = -1;
-            int optRepartition = -1;
-            int optCancel = -1;
-
-            if (hasNtfs) {
-                optKeep = (int)buttons.size();
-                buttons.push_back(L"Keep current partitioning");
-            }
-            if (hasSpace) {
-                optCreate = (int)buttons.size();
-                buttons.push_back(L"Create additional WFS partition");
-            }
-            optRepartition = (int)buttons.size();
-            buttons.push_back(L"Repartition");
-            optCancel = (int)buttons.size();
-            buttons.push_back(L"Cancel");
-
-            showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", deviceInfo);
-            uint8_t choice = showDialogPrompt(L"How do you want to partition the SD card?", buttons, 0, false);
-
-            if (choice == optKeep) {
-                partitionSuccess = true;
-            } else if (optCreate != -1 && choice == optCreate) {
-                struct Partition {
-                    uint8_t data[16];
-                };
-                std::vector<Partition> partitions;
-                for (int i = 0; i < 4; i++) {
-                    if (mbr[446 + i * 16 + 4] != 0) {
-                        Partition p;
-                        memcpy(p.data, &mbr[446 + i * 16], 16);
-                        partitions.push_back(p);
-                    }
-                }
-
-                memset(&mbr[446], 0, 64);
-                for (size_t i = 0; i < partitions.size(); i++) {
-                    memcpy(&mbr[446 + i * 16], partitions[i].data, 16);
-                }
-
-                uint32_t alignSectors = (64 * 1024 * 1024) / deviceInfo.deviceSectorSize;
-                uint32_t p_start = ((lastOccupiedSector + alignSectors - 1) / alignSectors) * alignSectors;
-                if (p_start < deviceInfo.deviceSizeInSectors) {
-                    uint32_t p_size = deviceInfo.deviceSizeInSectors - p_start;
-                    uint8_t* pte = &mbr[446 + 3 * 16];
-                    pte[4] = 0x07;
-                    write32LE(&pte[8], p_start);
-                    write32LE(&pte[12], p_size);
-                    mbr[510] = 0x55;
-                    mbr[511] = 0xAA;
-
-                    WHBLogPrint("Adding WFS partition to MBR...");
-                    WHBLogFreetypeDraw();
-                    if ((FSStatus)rawWrite(fsaHandle, "/dev/sdcard01", 0, 1, mbr, deviceInfo.deviceSectorSize) == FS_STATUS_OK) {
-                        writeMbrSignature(fsaHandle, "/dev/sdcard01", p_start, deviceInfo.deviceSectorSize);
-                        showDialogPrompt(L"WFS partition created successfully!", L"OK");
-                        partitionSuccess = true;
-                    } else {
-                        setErrorPrompt(L"Failed to write MBR!");
-                        showErrorPrompt(L"OK");
-                    }
-                }
-            } else if (choice == optRepartition) {
-                partitionSuccess = partitionDevice(fsaHandle, "/dev/sdcard01", deviceInfo);
-            } else if (choice == optCancel || choice == 255) {
-                userQuitActionMenu = true;
-                break;
-            }
-        }
-
-        free(mbr);
-
-        if (partitionSuccess) {
-            guard.unblock();
-            WHBMountSdCard();
-            if (download5sdusb(true, true)) {
-                if (!dirExist("fs:/vol/external01/wiiu/environments/aroma")) {
-                    if (showDialogPrompt(L"Aroma is missing on your SD card.\nDo you want to download it now?", L"Yes", L"No") == 0) {
-                        downloadAroma();
-                    }
-                }
-
-                bool stroopAvailable = isStroopwafelAvailable();
-                if (!stroopAvailable) {
-                    if (showDialogPrompt(L"Stroopwafel is missing or outdated.\nDo you want to download it?", L"Yes", L"No") == 0) {
-                        // Since we are using SDUSB, always download Stroopwafel to SLC
-                        downloadStroopwafelFiles(false);
-                    }
-                }
-
-                bool isfshaxInstalled = isIsfshaxInstalled();
-                if (!isfshaxInstalled) {
-                    if (showDialogPrompt(L"ISFShax is not detected.\nDo you want to install it?\nThis is required for Stroopwafel.", L"Yes", L"No") == 0) {
-                        if (downloadIsfshaxFiles()) {
-                            bootInstaller();
-                        }
-                    }
-                } else {
-                    showSuccessPrompt(L"SDUSB setup complete!");
-                }
-            }
-            break;
-        }
-
-        if (userQuitActionMenu) {
-            continue;
+        bool wantsPartitionedStorage = false;
+        if (handleSDUSBAction(fsaHandle, deviceInfo, wantsPartitionedStorage)) {
+            FSADelClient(fsaHandle);
+            performPostSetupChecks(false, wantsPartitionedStorage);
+            return;
         }
     }
 
@@ -1085,55 +1086,22 @@ void setupPartitionedUSBMenu() {
     if (emulationChoice == 2 || emulationChoice == 255) return;
 
     bool sdEmulation = (emulationChoice == 0);
-    std::string pluginTarget;
 
-    if (sdEmulation) {
-        if (!checkSystemAccess()) return;
-        pluginTarget = convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins");
-        bool stroopAvailable = isStroopwafelAvailable();
-        bool runningFromSLC = false;
-        std::string currentPath = getStroopwafelPluginPosixPath();
-        if (!currentPath.empty() && currentPath.find("storage_slc") != std::string::npos) {
-            runningFromSLC = true;
-        }
-
-        if (!stroopAvailable || !runningFromSLC) {
-            if (showDialogPrompt(L"SD emulation REQUIRES Stroopwafel to be installed on the SLC.\nDo you want to install it now?", L"Yes", L"Cancel") != 0) return;
-            if (!downloadStroopwafelFiles(false)) return;
-        }
-    } else {
-        pluginTarget = getStroopwafelPluginPosixPath();
-        if (pluginTarget.empty()) {
+    if (!sdEmulation) {
+        if (getStroopwafelPluginPosixPath().empty()) {
             if (showDialogPrompt(L"Stroopwafel is not detected. It is required for partitioned USB storage.\nDo you want to install it now?", L"Yes", L"Cancel") != 0) return;
             uint8_t loc = showDialogPrompt(L"Where do you want to install Stroopwafel?", L"SD Card", L"SLC");
             if (loc == 255) return;
             if (!downloadStroopwafelFiles(loc == 0)) return;
-            pluginTarget = getStroopwafelPluginPosixPath();
         }
-    }
 
-    if (pluginTarget.empty()) {
-        setErrorPrompt(L"Could not determine plugin installation path!");
-        showErrorPrompt(L"OK");
-        return;
-    }
-
-    bool isfshaxInstalled = isIsfshaxInstalled();
-    if (!isfshaxInstalled) {
-        if (showDialogPrompt(L"ISFShax is not detected.\nIt is REQUIRED for partitioned USB devices.\nDo you want to install it now?", L"Yes", L"Cancel") != 0) return;
-        if (downloadIsfshaxFiles()) {
-            bootInstaller();
-            return;
-        } else {
+        if (!isIsfshaxInstalled()) {
+            if (showDialogPrompt(L"ISFShax is not detected.\nIt is REQUIRED for partitioned USB devices.\nDo you want to install it now?", L"Yes", L"Cancel") != 0) return;
+            if (downloadIsfshaxFiles()) {
+                bootInstaller();
+            }
             return;
         }
-    }
-
-    WHBLogPrint("Downloading required plugin...");
-    WHBLogFreetypeDraw();
-    std::string pluginFile = sdEmulation ? "5upartsd.ipx" : "5usbpart.ipx";
-    if (!downloadUsbPartitionPlugin(pluginFile, pluginTarget)) {
-        return;
     }
 
     WHBLogPrint("Opening /dev/fsa...");
@@ -1160,9 +1128,7 @@ void setupPartitionedUSBMenu() {
     FatMountGuard guard;
     while (true) {
         if (!waitForDevice(fsaHandle, L"USB device", guard)) {
-            usbAsSd(false);
-            FSADelClient(fsaHandle);
-            return;
+            break;
         }
 
         FSADeviceInfo deviceInfo;
@@ -1172,9 +1138,7 @@ void setupPartitionedUSBMenu() {
             WHBLogFreetypeDraw();
             setErrorPrompt(L"Failed to get device info!");
             if (!showErrorPrompt(L"Cancel", true)) {
-                usbAsSd(false);
-                FSADelClient(fsaHandle);
-                return;
+                break;
             }
             continue;
         }
@@ -1184,139 +1148,28 @@ void setupPartitionedUSBMenu() {
             continue;
         }
 
-        bool partitionSuccess = false;
-        bool userQuitActionMenu = false;
-        while (!partitionSuccess) {
-            if (!checkAndFixPartitionOrder(fsaHandle, "/dev/sdcard01", deviceInfo, partitionSuccess)) {
-                if (partitionSuccess) break;
-                userQuitActionMenu = true;
-                break;
+        bool wantsPartitionedStorage = false;
+        if (sdEmulation) {
+            if (handleUSBAsSDAction(fsaHandle, deviceInfo, wantsPartitionedStorage)) {
+                FSADelClient(fsaHandle);
+                performPostSetupChecks(true, wantsPartitionedStorage);
+                usbAsSd(false);
+                return;
             }
+        } else {
+            if (handlePartitionActionMenu(fsaHandle, deviceInfo, wantsPartitionedStorage, L"USB device", false)) {
+                guard.unblock();
+                FSADelClient(fsaHandle);
+                performPostSetupChecks(true, wantsPartitionedStorage);
 
-            uint8_t* mbr = (uint8_t*)memalign(0x40, deviceInfo.deviceSectorSize);
-            if (!mbr) {
-                setErrorPrompt(L"Failed to allocate memory for MBR!");
-                showErrorPrompt(L"OK");
-                break;
-            }
-
-            bool hasWfs = false;
-            int partitionCount = 0;
-            uint32_t lastOccupiedSector = 1;
-            if ((FSStatus)rawRead(fsaHandle, "/dev/sdcard01", 0, 1, mbr, deviceInfo.deviceSectorSize) == FS_STATUS_OK) {
-                if (mbr[510] == 0x55 && mbr[511] == 0xAA) {
-                    for (int i = 0; i < 4; i++) {
-                        uint8_t type = mbr[446 + i * 16 + 4];
-                        if (type != 0) {
-                            partitionCount++;
-                            if (i > 0 && type == 0x07) hasWfs = true;
-                            uint32_t start = read32LE(&mbr[446 + i * 16 + 8]);
-                            uint32_t sectors = read32LE(&mbr[446 + i * 16 + 12]);
-                            if (start + sectors > lastOccupiedSector) {
-                                lastOccupiedSector = start + sectors;
-                            }
-                        }
-                    }
-                }
-            }
-
-            uint64_t unallocatedSpaceEnd = (uint64_t)(deviceInfo.deviceSizeInSectors - lastOccupiedSector) * deviceInfo.deviceSectorSize;
-            bool hasSpace = (unallocatedSpaceEnd > 4ULL * 1024 * 1024 * 1024) && (partitionCount < 4) && (partitionCount > 0);
-
-            std::vector<std::wstring> buttons;
-            int optKeep = -1;
-            int optCreate = -1;
-            int optRepartition = -1;
-            int optCancel = -1;
-
-            if (partitionCount >= 2 && hasWfs) {
-                optKeep = (int)buttons.size();
-                buttons.push_back(L"Keep current partitioning");
-            }
-            if (hasSpace) {
-                optCreate = (int)buttons.size();
-                buttons.push_back(L"Create additional WFS partition");
-            }
-            optRepartition = (int)buttons.size();
-            buttons.push_back(L"Repartition");
-            optCancel = (int)buttons.size();
-            buttons.push_back(L"Cancel");
-
-            showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", deviceInfo);
-            uint8_t choice = showDialogPrompt(L"How do you want to partition the USB device?", buttons, 0, false);
-
-            if (choice == optKeep) {
-                partitionSuccess = true;
-            } else if (optCreate != -1 && choice == optCreate) {
-                struct Partition {
-                    uint8_t data[16];
-                };
-                std::vector<Partition> partitions;
-                for (int i = 0; i < 4; i++) {
-                    if (mbr[446 + i * 16 + 4] != 0) {
-                        Partition p;
-                        memcpy(p.data, &mbr[446 + i * 16], 16);
-                        partitions.push_back(p);
-                    }
-                }
-
-                memset(&mbr[446], 0, 64);
-                for (size_t i = 0; i < partitions.size(); i++) {
-                    memcpy(&mbr[446 + i * 16], partitions[i].data, 16);
-                }
-
-                uint32_t alignSectors = (64 * 1024 * 1024) / deviceInfo.deviceSectorSize;
-                uint32_t p_start = ((lastOccupiedSector + alignSectors - 1) / alignSectors) * alignSectors;
-                if (p_start < deviceInfo.deviceSizeInSectors) {
-                    uint32_t p_size = deviceInfo.deviceSizeInSectors - p_start;
-                    uint8_t* pte = &mbr[446 + 3 * 16];
-                    pte[4] = 0x07;
-                    write32LE(&pte[8], p_start);
-                    write32LE(&pte[12], p_size);
-                    mbr[510] = 0x55;
-                    mbr[511] = 0xAA;
-
-                    WHBLogPrint("Adding WFS partition to MBR...");
-                    WHBLogFreetypeDraw();
-                    if ((FSStatus)rawWrite(fsaHandle, "/dev/sdcard01", 0, 1, mbr, deviceInfo.deviceSectorSize) == FS_STATUS_OK) {
-                        writeMbrSignature(fsaHandle, "/dev/sdcard01", p_start, deviceInfo.deviceSectorSize);
-                        showDialogPrompt(L"WFS partition created successfully!", L"OK");
-                        partitionSuccess = true;
-                    } else {
-                        setErrorPrompt(L"Failed to write MBR!");
-                        showErrorPrompt(L"OK");
-                    }
-                }
-            } else if (choice == optRepartition) {
-                partitionSuccess = partitionDevice(fsaHandle, "/dev/sdcard01", deviceInfo);
-            } else if (choice == optCancel || choice == 255) {
-                userQuitActionMenu = true;
-                free(mbr);
-                break;
-            }
-            free(mbr);
-        }
-
-        if (partitionSuccess) {
-            guard.unblock();
-            if (sdEmulation) {
-                WHBMountSdCard();
-                if (showDialogPrompt(L"USB partitioned successfully!\nDo you want to download Aroma to the emulated SD now?", L"Yes", L"No") == 0) {
-                    downloadAroma("fs:/vol/external01/");
-                }
-            } else {
                 setShutdownPending(true);
                 if (showDialogPrompt(L"USB partitioned successfully!\nIt is recommended to shutdown the console now\nand plug your SD card back in.\nDo you want to shutdown now?", L"Yes", L"No") == 0) {
                     setShutdownPending(true, true);
-                    usbAsSd(false);
-                    FSADelClient(fsaHandle);
-                    return;
                 }
+                usbAsSd(false);
+                return;
             }
-            break;
         }
-
-        if (userQuitActionMenu) continue;
     }
 
     usbAsSd(false);

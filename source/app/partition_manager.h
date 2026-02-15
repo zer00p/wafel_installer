@@ -24,3 +24,5 @@ private:
 void showDeviceInfoScreen(FSAClientHandle fsaHandle, const char* device, const FSADeviceInfo& deviceInfo);
 bool waitForDevice(FSAClientHandle fsaHandle, const wchar_t* deviceName, FatMountGuard& guard);
 void usbAsSd(bool enable);
+bool handleSDUSBAction(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, bool& wantsPartitionedStorage);
+bool handleUSBAsSDAction(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, bool& wantsPartitionedStorage);
