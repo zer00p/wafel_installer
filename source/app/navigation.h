@@ -1,3 +1,5 @@
+#pragma once
+
 #include "common.h"
 
 // This is wrapper around all input types

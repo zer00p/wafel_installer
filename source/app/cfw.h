@@ -1,3 +1,5 @@
+#pragma once
+
 #include "common.h"
 #include <mocha/mocha.h>
 #include <string>

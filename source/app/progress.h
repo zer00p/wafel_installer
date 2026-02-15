@@ -1,3 +1,5 @@
+#pragma once
+
 #include "common.h"
 
 void startQueue(uint64_t queueByteSize);
