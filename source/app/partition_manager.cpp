@@ -428,6 +428,7 @@ bool partitionDevice(FSAClientHandle fsaHandle, const char* device, const FSADev
         WHBLogPrint("Formatting FAT32 partition...");
         WHBLogFreetypeDraw();
         setCustomFormatSize(p1_size);
+        WHBUnmountSdCard();
         FSStatus status = (FSStatus)FSA_Format(fsaHandle, device, "fat", 0, 0, 0);
         if (status != FS_STATUS_OK) {
             WHBLogPrintf("Format failed (status: %d)!\n", status);
