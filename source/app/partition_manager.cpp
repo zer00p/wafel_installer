@@ -16,6 +16,7 @@
 #include <sstream>
 #include <iomanip>
 #include <vector>
+#include <chrono>
 #include <coreinit/ios.h>
 #include <coreinit/filesystem_fsa.h>
 #include <coreinit/time.h>
@@ -25,6 +26,8 @@
 #include <thread>
 #include <mocha/fsa.h>
 #include <whb/sdcard.h>
+
+using namespace std::chrono_literals;
 
 typedef struct __attribute__((packed)) {
     uint32_t unused;
@@ -550,6 +553,7 @@ static bool handlePartitionActionMenu(FSAClientHandle fsaHandle, const FSADevice
 
     bool partitionSuccess = false;
     while (!partitionSuccess) {
+        bool hasFat32 = false;
         bool hasWfs = false;
         int partitionCount = 0;
         uint32_t lastOccupiedSector = 1;
@@ -559,6 +563,7 @@ static bool handlePartitionActionMenu(FSAClientHandle fsaHandle, const FSADevice
                     uint8_t type = mbr[446 + i * 16 + 4];
                     if (type != 0) {
                         partitionCount++;
+                        if (i == 0 && (type == 0x0B || type == 0x0C)) hasFat32 = true;
                         if (i > 0 && type == 0x07) hasWfs = true;
                         uint32_t start = read32LE(&mbr[446 + i * 16 + 8]);
                         uint32_t sectors = read32LE(&mbr[446 + i * 16 + 12]);
@@ -579,7 +584,7 @@ static bool handlePartitionActionMenu(FSAClientHandle fsaHandle, const FSADevice
         int optRepartition = -1;
         int optCancel = -1;
 
-        if (partitionCount >= (isSdCard ? 1 : 2) && (isSdCard ? true : hasWfs)) {
+        if (hasFat32 && hasWfs) {
             optKeep = (int)buttons.size();
             buttons.push_back(L"Keep current partitioning");
         }
