@@ -584,7 +584,7 @@ static bool handlePartitionActionMenu(FSAClientHandle fsaHandle, const FSADevice
         int optRepartition = -1;
         int optCancel = -1;
 
-        if (hasFat32 && hasWfs) {
+        if (hasFat32) {
             optKeep = (int)buttons.size();
             buttons.push_back(L"Keep current partitioning");
         }
@@ -603,7 +603,7 @@ static bool handlePartitionActionMenu(FSAClientHandle fsaHandle, const FSADevice
 
         if (choice == optKeep) {
             partitionSuccess = true;
-            wantsPartitionedStorage = true;
+            wantsPartitionedStorage = hasWfs;
         } else if (optCreate != -1 && choice == optCreate) {
             struct Partition {
                 uint8_t data[16];
