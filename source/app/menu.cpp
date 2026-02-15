@@ -155,10 +155,10 @@ void showMainMenu() {
             WHBLogFreetypePrint(L"===============================");
             WHBLogFreetypePrintf(L"%C Stroopwafel Plugin Manager", OPTION(0));
             WHBLogFreetypePrintf(L"%C Load custom fw.img", OPTION(1));
-            WHBLogFreetypePrintf(L"%C Install Stroopwafel", OPTION(2));
-            WHBLogFreetypePrintf(L"%C (Un)Install ISFShax", OPTION(3));
+            WHBLogFreetypePrintf(L"%C Install Stroopwafel by shinyquagsire23", OPTION(2));
+            WHBLogFreetypePrintf(L"%C (Un)Install ISFShax by rw_r_r_0644", OPTION(3));
             WHBLogFreetypePrintf(L"%C Check for Updates", OPTION(4));
-            WHBLogFreetypePrintf(L"%C Download Aroma", OPTION(5));
+            WHBLogFreetypePrintf(L"%C Download Aroma by Maschell", OPTION(5));
             WHBLogFreetypePrintf(L"%C Format and Partition", OPTION(6));
             WHBLogFreetypePrintf(L"%C Set up SDUSB", OPTION(7));
             WHBLogFreetypePrintf(L"%C Set up USB Partition", OPTION(8));

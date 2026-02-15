@@ -88,7 +88,7 @@ static void setupUsbStorage(FSAClientHandle fsaHandle, bool& wantsPartitionedSto
 
 void performAromaCheck() {
     if ((WHBMountSdCard() == 1) && !dirExist("fs:/vol/external01/wiiu/environments/aroma")) {
-        if (showDialogPrompt(L"Aroma is missing on your SD card.\nDo you want to download it now?", L"Yes", L"No") == 0) {
+        if (showDialogPrompt(L"Aroma is missing on your SD card.\nDo you want to download Aroma by Maschell and the HB Appstore now?", L"Yes", L"No") == 0) {
             downloadAroma();
         }
     }
@@ -102,7 +102,7 @@ void performStroopwafelCheck(bool wantsPartitionedStorage) {
     }
 
     if (!isStroopwafelAvailable() || !filesExist) {
-        uint8_t choice = showDialogPrompt(L"Stroopwafel is missing, outdated or not running\nDo you want to download it?", L"Yes", L"No");
+        uint8_t choice = showDialogPrompt(L"Stroopwafel is missing, outdated or not running\nDo you want to download stroopwafel by shinyquagsire23?", L"Yes", L"No");
         if (choice == 0) {
             bool toSD = false;
             if (isSdEmulated()) {
@@ -117,12 +117,12 @@ void performStroopwafelCheck(bool wantsPartitionedStorage) {
 
 void performIsfshaxCheck(bool usingUSB, bool wantsPartitionedStorage) {
     if (!isIsfshaxInstalled()) {
-        uint8_t choice = showDialogPrompt(L"ISFShax is not detected.\nDo you want to install it?\nThis is required for Stroopwafel.", L"Yes", L"No");
+        uint8_t choice = showDialogPrompt(L"ISFShax is not detected.\nDo you want to install ISFShax by rw_r_r_0644?\nThis is required for Stroopwafel.", L"Yes", L"No");
         if (choice == 0) {
             installIsfshax(false, false);
         } else if (choice == 1 || choice == 255) {
             if (usingUSB || wantsPartitionedStorage) {
-                showDialogPrompt(L"You chose not to setup ISFShax.\nNote that USB-as-SD and partitioned storage REQUIRE Stroopwafel/ISFShax to work!", L"OK");
+                showDialogPrompt(L"You chose not to setup ISFShax.\nNote that USB-as-SD and partitioned storage REQUIRE Stroopwafel and ISFShax to work!", L"OK");
             }
         }
     }
