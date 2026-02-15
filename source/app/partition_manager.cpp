@@ -53,7 +53,6 @@ typedef struct __attribute__((aligned(0x40))) {
 #define FAT_MOUNT_CALL 0x1078a948
 static uint32_t fatmount_org_ins = 0;
 static bool mount_guard_enabled = false;
-static int mount_guard_nesting = 0;
 
 void setupMountGuard(CFWVersion version) {
     mount_guard_enabled = (version == CFWVersion::MOCHA_FSCLIENT);
@@ -81,20 +80,14 @@ void FatMountGuard::block() {
     if (!active && mount_guard_enabled) {
         // We only need the mountguard when we are running aroma, which is indicated by the presence of Mocha.
         // In the other cases the patch to block mounts causes problems (it causes the mount to hang after releasing the guard).
-        if (mount_guard_nesting == 0) {
-            block_fat_mount();
-        }
-        mount_guard_nesting++;
+        block_fat_mount();
         active = true;
     }
 }
 void FatMountGuard::unblock() {
     if (active) {
-        mount_guard_nesting--;
-        if (mount_guard_nesting == 0) {
-            unblock_fat_mount();
-            showDialogPrompt(L"The FAT mount block has been released.\nPlease REPLUG your SD card now to ensure it is detected correctly.", L"OK");
-        }
+        unblock_fat_mount();
+        showDialogPrompt(L"The FAT mount block has been released.\nPlease REPLUG your SD card now to ensure it is detected correctly.", L"OK");
         active = false;
     }
 }
