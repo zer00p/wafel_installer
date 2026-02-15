@@ -30,7 +30,7 @@ int main() {
 
     IMDisableAPD(); // Disable auto-shutdown feature
 
-    // Start Syrup
+    // Start Wafel Installer
     showLoadingScreen();
     if (testCFW() != FAILED && ((getCFWVersion() == MOCHA_FSCLIENT || getCFWVersion() == CEMU || getCFWVersion() == CUSTOM_MOCHA) || installCFW()) && initCFW() ) {
         setupMountGuard(getCFWVersion());
@@ -53,7 +53,7 @@ int main() {
         OSShutdown();
     } else {
         WHBLogPrint("");
-        WHBLogPrint(getCFWVersion() == MOCHA_FSCLIENT ? "Exiting Syrup..." : "Exiting Syrup and rebooting Wii U...");
+        WHBLogPrint(getCFWVersion() == MOCHA_FSCLIENT ? "Exiting Wafel Installer..." : "Exiting Wafel Installer and rebooting Wii U...");
         WHBLogFreetypeDraw();
         sleep_for(5s);
     }

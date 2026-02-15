@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Run Debug Using Wii U" type="CLionNativeAppRunConfigurationType" PROGRAM_PARAMS="./syrup.rpx" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" WORKING_DIR="file://$ProjectFileDir$" PASS_PARENT_ENVS_2="true" PROJECT_NAME="syrup" TARGET_NAME="debug" CONFIG_NAME="debug" version="1" RUN_PATH="//wsl$/Debian/opt/devkitpro/tools/bin/wiiload">
+  <configuration default="false" name="Run Debug Using Wii U" type="CLionNativeAppRunConfigurationType" PROGRAM_PARAMS="./wafel_installer.rpx" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" WORKING_DIR="file://$ProjectFileDir$" PASS_PARENT_ENVS_2="true" PROJECT_NAME="wafel_installer" TARGET_NAME="debug" CONFIG_NAME="debug" version="1" RUN_PATH="//wsl$/Debian/opt/devkitpro/tools/bin/wiiload">
     <envs>
       <env name="WIILOAD" value="tcp:192.168.1.61" />
     </envs>

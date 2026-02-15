@@ -46,12 +46,12 @@ config.properties
 # Project specific
 /build
 /dist/wiiu
-/dist/syrup.zip
+/dist/wafel_installer.zip
 /cemu
-syrup.wuhb
-syrup.rpx
-syrup.wua
-syrup.elf
+wafel_installer.wuhb
+wafel_installer.rpx
+wafel_installer.wua
+wafel_installer.elf
 
 source/cfw/ios_kernel/build/
 source/cfw/ios_kernel/ios_kernel.bin

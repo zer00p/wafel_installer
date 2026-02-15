@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <app version="1">
-  <name>Syrup</name>
+  <name>Wafel</name>
   <coder>Crementif, emiyl and zer00p</coder>
   <version>2.7.2</version>
   <release_date>20200813200000</release_date>
   <short_description>Loader and installer for ISFShax on Wii U</short_description>
-  <long_description>Syrup is a tool designed to load and install ISFShax on the Wii U, providing an environment for system recovery and advanced modifications.</long_description>
+  <long_description>Wafel Installer is a tool designed to load and install ISFShax on the Wii U, providing an environment for system recovery and advanced modifications.</long_description>
 </app>

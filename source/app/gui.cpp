@@ -53,7 +53,7 @@ bool stillRunning() {
 }
 
 void exitApplication(bool rebootOnExit) {
-    // Loop through ProcUI messages until it says Syrup should exit
+    // Loop through ProcUI messages until it says Wafel Installer should exit
     if (getCFWVersion() == MOCHA_FSCLIENT) {
         SYSLaunchMenu();
 

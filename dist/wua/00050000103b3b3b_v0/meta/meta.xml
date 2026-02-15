@@ -69,30 +69,30 @@
   <reserved_flag5 type="hexBinary" length="4">00000000</reserved_flag5>
   <reserved_flag6 type="hexBinary" length="4">00000003</reserved_flag6>
   <reserved_flag7 type="hexBinary" length="4">00000000</reserved_flag7>
-  <longname_ja type="string" length="512">Syrup</longname_ja>
-  <longname_en type="string" length="512">Syrup</longname_en>
-  <longname_fr type="string" length="512">Syrup</longname_fr>
-  <longname_de type="string" length="512">Syrup</longname_de>
-  <longname_it type="string" length="512">Syrup</longname_it>
-  <longname_es type="string" length="512">Syrup</longname_es>
-  <longname_zhs type="string" length="512">Syrup</longname_zhs>
-  <longname_ko type="string" length="512">Syrup</longname_ko>
-  <longname_nl type="string" length="512">Syrup</longname_nl>
-  <longname_pt type="string" length="512">Syrup</longname_pt>
-  <longname_ru type="string" length="512">Syrup</longname_ru>
-  <longname_zht type="string" length="512">Syrup</longname_zht>
-  <shortname_ja type="string" length="256">Syrup</shortname_ja>
-  <shortname_en type="string" length="256">Syrup</shortname_en>
-  <shortname_fr type="string" length="256">Syrup</shortname_fr>
-  <shortname_de type="string" length="256">Syrup</shortname_de>
-  <shortname_it type="string" length="256">Syrup</shortname_it>
-  <shortname_es type="string" length="256">Syrup</shortname_es>
-  <shortname_zhs type="string" length="256">Syrup</shortname_zhs>
-  <shortname_ko type="string" length="256">Syrup</shortname_ko>
-  <shortname_nl type="string" length="256">Syrup</shortname_nl>
-  <shortname_pt type="string" length="256">Syrup</shortname_pt>
-  <shortname_ru type="string" length="256">Syrup</shortname_ru>
-  <shortname_zht type="string" length="256">Syrup</shortname_zht>
+  <longname_ja type="string" length="512">Wafel Installer</longname_ja>
+  <longname_en type="string" length="512">Wafel Installer</longname_en>
+  <longname_fr type="string" length="512">Wafel Installer</longname_fr>
+  <longname_de type="string" length="512">Wafel Installer</longname_de>
+  <longname_it type="string" length="512">Wafel Installer</longname_it>
+  <longname_es type="string" length="512">Wafel Installer</longname_es>
+  <longname_zhs type="string" length="512">Wafel Installer</longname_zhs>
+  <longname_ko type="string" length="512">Wafel Installer</longname_ko>
+  <longname_nl type="string" length="512">Wafel Installer</longname_nl>
+  <longname_pt type="string" length="512">Wafel Installer</longname_pt>
+  <longname_ru type="string" length="512">Wafel Installer</longname_ru>
+  <longname_zht type="string" length="512">Wafel Installer</longname_zht>
+  <shortname_ja type="string" length="256">Wafel</shortname_ja>
+  <shortname_en type="string" length="256">Wafel</shortname_en>
+  <shortname_fr type="string" length="256">Wafel</shortname_fr>
+  <shortname_de type="string" length="256">Wafel</shortname_de>
+  <shortname_it type="string" length="256">Wafel</shortname_it>
+  <shortname_es type="string" length="256">Wafel</shortname_es>
+  <shortname_zhs type="string" length="256">Wafel</shortname_zhs>
+  <shortname_ko type="string" length="256">Wafel</shortname_ko>
+  <shortname_nl type="string" length="256">Wafel</shortname_nl>
+  <shortname_pt type="string" length="256">Wafel</shortname_pt>
+  <shortname_ru type="string" length="256">Wafel</shortname_ru>
+  <shortname_zht type="string" length="256">Wafel</shortname_zht>
   <publisher_ja type="string" length="256">I Made This :)</publisher_ja>
   <publisher_en type="string" length="256">I Made This :)</publisher_en>
   <publisher_fr type="string" length="256">I Made This :)</publisher_fr>
