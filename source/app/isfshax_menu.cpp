@@ -31,6 +31,41 @@ bool confirmIsfshaxAction(const wchar_t* action, bool isUninstall = false) {
     return showDialogPrompt(message.c_str(), L"Yes", L"No", nullptr, nullptr, 1) == 0;
 }
 
+void installIsfshax(bool uninstall, bool manual) {
+    For automated install, proactively download latest files
+    if (!uninstall && !manual) {
+        if (!downloadIsfshaxFiles()) return;
+    }
+
+    // For options 0, 1, 2 we need the installer file
+    std::string fwImgPath = convertToPosixPath("/vol/storage_slc/sys/hax/installer/fw.img");
+    if (!fileExist(fwImgPath.c_str())) {
+        uint8_t missingChoice = showDialogPrompt(L"The ISFShax installer (fw.img) is missing.", L"Download", L"Cancel");
+        if (missingChoice == 0) {
+            if (!downloadIsfshaxFiles()) return;
+        } else {
+            return;
+        }
+    }
+
+    if (manual) {
+        bootInstaller();
+        return;
+    }
+
+    if(uninstall){
+        if (confirmIsfshaxAction(L"Uninstall", true)) {
+            loadFwImg("/vol/system/hax/installer/fw.img", ISFSHAX_CMD_UNINSTALL, (uint32_t)(ISFSHAX_CMD_POST_REBOOT) << 30 | ISFSHAX_CMD_SOURCE_SLC);
+        }
+        return;
+    }
+
+
+    if (confirmIsfshaxAction(L"Install")) {
+        loadFwImg("/vol/system/hax/installer/fw.img", ISFSHAX_CMD_INSTALL, (uint32_t)(ISFSHAX_CMD_POST_REBOOT) << 30 | ISFSHAX_CMD_SOURCE_SLC);
+    }
+}
+
 void installIsfshaxMenu() {
     if (!checkSystemAccess()) return;
 
@@ -52,33 +87,7 @@ void installIsfshaxMenu() {
         return;
     }
 
-    // For automated install, proactively download latest files
-    if (choice == 0) {
-        if (!downloadIsfshaxFiles()) return;
-    }
-
-    // For options 0, 1, 2 we need the installer file
-    std::string fwImgPath = convertToPosixPath("/vol/storage_slc/sys/hax/installer/fw.img");
-    if (!fileExist(fwImgPath.c_str())) {
-        uint8_t missingChoice = showDialogPrompt(L"The ISFShax installer (fw.img) is missing.", L"Download", L"Cancel");
-        if (missingChoice == 0) {
-            if (!downloadIsfshaxFiles()) return;
-        } else {
-            return;
-        }
-    }
-
-    if (choice == 0) { // Install (Automated)
-        if (confirmIsfshaxAction(L"Install")) {
-            loadFwImg("/vol/system/hax/installer/fw.img", ISFSHAX_CMD_INSTALL, (uint32_t)(ISFSHAX_CMD_POST_REBOOT) << 30 | ISFSHAX_CMD_SOURCE_SLC);
-        }
-    } else if (choice == 1) { // Uninstall (Automated)
-        if (confirmIsfshaxAction(L"Uninstall", true)) {
-            loadFwImg("/vol/system/hax/installer/fw.img", ISFSHAX_CMD_UNINSTALL, (uint32_t)(ISFSHAX_CMD_POST_REBOOT) << 30 | ISFSHAX_CMD_SOURCE_SLC);
-        }
-    } else if (choice == 2) { // Expert (Manual)
-        bootInstaller();
-    }
+    installIsfshax(choice==1, choice==2);
 }
 
 void bootInstaller() {
