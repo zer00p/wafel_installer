@@ -40,11 +40,17 @@ void performAromaCheck() {
 }
 
 void performStroopwafelCheck(bool wantsPartitionedStorage) {
-    if (!isStroopwafelAvailable()) {
+    bool filesExist = true;
+    std::string path = getStroopwafelPluginPosixPath();
+    if (path.empty() || !dirExist(path.c_str())) {
+        filesExist = false;
+    }
+
+    if (!isStroopwafelAvailable() || !filesExist) {
         uint8_t choice = showDialogPrompt(L"Stroopwafel is missing, outdated or not running\nDo you want to download it?", L"Yes", L"No");
         if (choice == 0) {
             bool toSD = false;
-            if (wantsPartitionedStorage) {
+            if (isSdEmulated()) {
                 toSD = false; // Only SLC for SD emulation
             } else {
                 toSD = (showDialogPrompt(L"Where do you want to download Stroopwafel?\nSD card is recommended.", L"SD Card", L"SLC") == 0);

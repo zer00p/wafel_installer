@@ -32,7 +32,7 @@ bool confirmIsfshaxAction(const wchar_t* action, bool isUninstall = false) {
 }
 
 void installIsfshax(bool uninstall, bool manual) {
-    For automated install, proactively download latest files
+    // For automated install, proactively download latest files
     if (!uninstall && !manual) {
         if (!downloadIsfshaxFiles()) return;
     }
