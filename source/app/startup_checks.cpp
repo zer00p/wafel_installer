@@ -145,7 +145,7 @@ bool performStartupChecks() {
     // 3. Stroopwafel check
     bool stroopAvailable = isStroopwafelAvailable();
     if (!stroopAvailable) {
-        uint8_t choice = showDialogPrompt(L"Stroopwafel is missing or outdated.\nDo you want to download it?", L"Yes", L"No");
+        uint8_t choice = showDialogPrompt(L"Stroopwafel is missing, outdated or not running\nDo you want to download it?", L"Yes", L"No");
         if (choice == 0) {
             bool toSD = false;
             if (wantsPartitionedStorage) {

@@ -12,16 +12,17 @@
 using namespace std::chrono_literals;
 
 bool confirmIsfshaxAction(const wchar_t* action, bool isUninstall = false) {
-    std::wstring message = L"WARNING: You are about to make modifications to the console.\n"
-                           L"This software comes with ABSOLUTELY NO WARRANTY!\n"
-                           L"You are choosing to use this at your own risk.\n"
-                           L"The author(s) will not be held liable for any damage.\n\n";
-
+    message = "";
     if (isUninstall) {
         message += L"WARNING: Before Uninstalling ISFShax make sure the console boots correctly using\n"
                    L"the 'Patch ISFShax and boot IOS (slc)' option in minute.\n"
                    L"If your console can't boot correctly, uninstalling ISFShax will BRICK the console!!!\n\n";
     }
+
+    std::wstring message += L"WARNING: You are about to make modifications to the console.\n"
+                           L"This software comes with ABSOLUTELY NO WARRANTY!\n"
+                           L"You are choosing to use this at your own risk.\n"
+                           L"The author(s) will not be held liable for any damage.\n\n";
 
     message += L"Do you want to proceed with ";
     message += action;
