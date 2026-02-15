@@ -75,7 +75,7 @@ static void unblock_fat_mount(void) {
 }
 
 FatMountGuard::FatMountGuard() : active(false) {}
-FatMountGuard::~FatMountGuard() { if (active) unblock_fat_mount(); }
+FatMountGuard::~FatMountGuard() { unblock(); }
 void FatMountGuard::block() {
     if (!active && mount_guard_enabled) {
         // We only need the mountguard when we are running aroma, which is indicated by the presence of Mocha.
@@ -84,7 +84,13 @@ void FatMountGuard::block() {
         active = true;
     }
 }
-void FatMountGuard::unblock() { if (active) { unblock_fat_mount(); active = false; } }
+void FatMountGuard::unblock() {
+    if (active) {
+        unblock_fat_mount();
+        active = false;
+        showDialogPrompt(L"The FAT mount block has been released.\nPlease REPLUG your SD card now to ensure it is detected correctly.", L"OK");
+    }
+}
 
 static int32_t FSA_Format(FSAClientHandle handle, const char* device, const char* filesystem, uint32_t flags, uint32_t param_5, uint32_t param_6) {
     FSAIpcData* data = (FSAIpcData*)memalign(0x40, sizeof(FSAIpcData));
