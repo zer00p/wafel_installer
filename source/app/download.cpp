@@ -154,7 +154,7 @@ bool fetchPluginList(bool force) {
     if (failedToFetch && !force) return false;
 
     std::string csvData;
-    std::string url = "https://raw.githubusercontent.com/zer00p/isfshax-loader/refs/heads/master/plugins.csv";
+    std::string url = "https://raw.githubusercontent.com/zer00p/wafel_installer/refs/heads/master/plugins.csv";
 
     if (!downloadToBuffer(url, csvData)) {
         failedToFetch = true;
