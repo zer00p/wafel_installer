@@ -4,15 +4,15 @@
     <p>Wafel Installer is a tool designed to load and install ISFShax on the Wii U, providing an environment for system recovery and advanced modifications.</p>
 </div>
 
-## How to install
+## How to use
 **Method 1:**  
-Use the Wii U App Store to download and install it in the homebrew launcher. See Dumpling's page [here](https://apps.fortheusers.org/wiiu/dumpling).
+Use [wafel.xyz](https://wafel.xyz) on your Wii U to launch Wafel Installer without any setup or SD card.
+
+**Method 2:**
+Use the Wii U App Store to download ot. See Dumpling's page [here](https://apps.fortheusers.org/wiiu/wafel_installer). (comming soon)
 
 **Method 2:**  
-Download the [latest release from GitHub](https://github.com/zer00p/isfshax-loader/releases), and extract the `wafel_installer.zip` file to the root of your SD card.
-
-**Method 3:**  
-Use [wafel.xyz](https://wafel.xyz) on your Wii U to launch Wafel Installer without any setup or SD card.
+Download the [latest release from GitHub](https://github.com/zer00p/wafel_installer/releases), and extract the `wafel_installer.zip` file to the root of your SD card.
 
 ## How to use
 
