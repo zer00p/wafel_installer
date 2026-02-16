@@ -36,6 +36,7 @@ You don't need to run/have Mocha CFW or Haxchi, just launch Wafel Installer from
  - [wut](https://github.com/devkitpro/wut) for providing the Wii U toolchain that Wafel Installer is built with
  - FIX94, Maschell, Quarky, GaryOderNichts and koolkdev for making and maintaining homebrew (libraries)
  - smea, plutoo, yellows8, naehrwert, derrek, dimok and kanye_west for making the exploits and CFW possible
+ - Google Jules
 
 ## License
 Wafel Installer is licensed under [MIT](https://github.com/zer00p/isfshax-loader/blob/master/LICENSE.md).
