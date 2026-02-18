@@ -540,7 +540,7 @@ bool downloadAroma(const std::string& sdPath) {
 
     // Freshly downloaded Aroma, also download payloader plugin if Stroopwafel is present
     std::string pluginPath = getStroopwafelPluginPosixPath();
-    if (!pluginPath.empty() && dirExist(pluginPath)) {
+    if (!pluginPath.empty() && dirExist(pluginPath.c_str())) {
         std::string target = pluginPath;        
         if (target.back() != '/') target += "/";
         target += "5payldr.ipx";
