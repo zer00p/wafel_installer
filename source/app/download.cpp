@@ -50,9 +50,9 @@ bool downloadFile(const std::string& url, const std::string& path) {
 
         int fd = open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
         if (fd < 0) {
-            WHBLogFreetypePrintf(L"Failed to open %S for writing! Errno: %d", toWstring(path).c_str(), errno);
+            WHBLogFreetypePrintf(L"Failed to open %S for writing!\nErrno: %d", toWstring(path).c_str(), errno);
             WHBLogFreetypeDrawScreen();
-            std::wstring error = L"Failed to open " + toWstring(path) + L" for writing! Errno: " + std::to_wstring(errno);
+            std::wstring error = L"Failed to open " + toWstring(path) + L" for writing!\nErrno: " + std::to_wstring(errno);
             setErrorPrompt(error);
             curl_easy_cleanup(curl_handle);
             if (showErrorPrompt(L"Cancel", true)) continue;

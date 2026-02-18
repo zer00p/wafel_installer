@@ -453,7 +453,7 @@ bool partitionDevice(FSAClientHandle fsaHandle, const char* device, const FSADev
     }
 
     showDeviceInfoScreen(fsaHandle, device, deviceInfo);
-    if (showDialogPrompt(L"WARNING: This will RE-PARTITION the whole device and DELETE ALL DATA on it.\nDo you want to continue?", L"Yes", L"No", nullptr, nullptr, 1, false) != 0) {
+    if (showDialogPrompt(L"WARNING: This will RE-PARTITION the whole device\nand DELETE ALL DATA on it.\nDo you want to continue?", L"Yes", L"No", nullptr, nullptr, 1, false) != 0) {
         return false;
     }
 
