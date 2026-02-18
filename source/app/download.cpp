@@ -311,7 +311,6 @@ bool downloadHaxFilesToSD() {
 static void removeCompetingPlugins(std::string posixPath) {
     if (posixPath.empty()) return;
     if (posixPath.back() != '/') posixPath += "/";
-    remove((posixPath + "5sdusb.ipx").c_str());
     remove((posixPath + "5usbpart.ipx").c_str());
     remove((posixPath + "5upartsd.ipx").c_str());
 }
@@ -335,7 +334,6 @@ bool download5sdusb(bool toSLC, bool toSD) {
     if (toSD) {
         std::string sdPluginPath = "fs:/vol/external01/wiiu/ios_plugins/";
         fs::create_directories(sdPluginPath);
-        removeCompetingPlugins(sdPluginPath);
         success &= downloadFile(getPluginUrl("5sdusb.ipx"), sdPluginPath + "5sdusb.ipx");
     }
     return success;
