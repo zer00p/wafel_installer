@@ -227,39 +227,37 @@ static bool createHaxDirectories() {
     return true;
 }
 
-bool downloadStroopwafelFiles(bool toSD) {
-    WHBMountSdCard();
+static bool downloadBasePlugins() {
+    std::string pluginPath = getStroopwafelPluginPosixPath();
+    fs::create_directories(pluginPath);
+    bool res =  downloadFile(getPluginUrl("00core.ipx"),   pluginPath + "/00core.ipx") &&
+                downloadFile(getPluginUrl("5isfshax.ipx"), pluginPath + "/5isfshax.ipx");
     bool hasAroma = dirExist("fs:/vol/external01/wiiu/environments/aroma");
+    if(res && hasAroma)
+        return downloadFile(getPluginUrl("5payldr.ipx"),  pluginPath + "/5payldr.ipx");
+    return res;
+}
+
+bool downloadStroopwafelFiles(bool toSD) {
+    const char *plugin_dir = toSD? "/vol/external01/wiiu/ios_plugins":"/vol/storage_slc/sys/hax/ios_plugins";
+    setStroopwafelPluginPosixPath(convertToPosixPath(plugin_dir));
 
     if (toSD) {
         if (WHBMountSdCard() != 1) {
             setErrorPrompt(L"Failed to mount SD card!");
             return false;
         }
-        std::string sdPluginPath = "fs:/vol/external01/wiiu/ios_plugins/";
-        fs::create_directories(sdPluginPath);
-
-        if (!downloadFile(getPluginUrl("00core.ipx"), sdPluginPath + "00core.ipx") ||
-            !downloadFile(getPluginUrl("5isfshax.ipx"), sdPluginPath + "5isfshax.ipx") ||
-            (hasAroma && !downloadFile(getPluginUrl("5payldr.ipx"), sdPluginPath + "5payldr.ipx")) ||
+        if (!downloadBasePlugins() ||
             !downloadFile("https://github.com/StroopwafelCFW/minute_minute/releases/latest/download/fw.img", "fs:/vol/external01/fw.img"))
-        {
             return false;
-        }
 
         ensureMinuteIni();
 
-        setStroopwafelPluginPosixPath(convertToPosixPath("/vol/external01/wiiu/ios_plugins"));
+
     } else {
-        if (!createHaxDirectories()) return false;
-        if (!downloadFile(getPluginUrl("00core.ipx"), convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/00core.ipx")) ||
-            !downloadFile(getPluginUrl("5isfshax.ipx"), convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/5isfshax.ipx")) ||
-            (hasAroma && !downloadFile(getPluginUrl("5payldr.ipx"), convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/5payldr.ipx"))) ||
+        if (!downloadBasePlugins() ||
             !downloadFile("https://github.com/StroopwafelCFW/minute_minute/releases/latest/download/fw_fastboot.img", convertToPosixPath("/vol/storage_slc/sys/hax/fw.img")))
-        {
             return false;
-        }
-        setStroopwafelPluginPosixPath(convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins"));
     }
     setStroopwafelDownloadedInSession(true);
     return true;
@@ -328,7 +326,6 @@ bool download5sdusb(bool toSLC, bool toSD) {
     if (toSLC) {
         if (!createHaxDirectories()) return false;
         std::string slcPath = convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/");
-        removeCompetingPlugins(slcPath);
         success &= downloadFile(getPluginUrl("5sdusb.ipx"), slcPath + "5sdusb.ipx");
     }
     if (toSD) {
