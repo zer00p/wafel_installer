@@ -79,8 +79,6 @@ static const char ancast_decrypt_hook[] = {
     0xe1, 0x2f, 0xff, 0x1e, 0x01, 0x00, 0x01, 0xa0,
 };
 
-static const char path[64] = "/vol/system/hax/installer";
-
 static uint32_t generate_bl_t(uint32_t from, uint32_t to)
 {
 	int32_t bl_offs = (((int32_t)to - (int32_t)(from)) - 4) / 2;
@@ -134,7 +132,17 @@ void loadFwImg(const char* fwPath, uint32_t command, uint32_t parameter) {
     } else {
         WHBLogFreetypePrint(L"libstroopwafel not available. Applying fw.img patches...");
 
-        if (!applyPatch(0x050663B4, path, sizeof(path), L"Applying fw_path...")) return;
+        char fwDir[64];
+        std::memset(fwDir, 0, sizeof(fwDir));
+        std::string fwPathStr(fwPath);
+        size_t lastSlash = fwPathStr.find_last_of('/');
+        if (lastSlash != std::string::npos) {
+            std::strncpy(fwDir, fwPathStr.substr(0, lastSlash).c_str(), sizeof(fwDir) - 1);
+        } else {
+            std::strncpy(fwDir, "/vol/system/hax/installer", sizeof(fwDir) - 1);
+        }
+
+        if (!applyPatch(0x050663B4, fwDir, sizeof(fwDir), L"Applying fw_path...")) return;
 
         uint64_t p2 = 0x00a4F031FB43193b; // need to align patch for old mocha
         if (!applyPatch(0x050282AC, &p2, 8, L"Applying patch 2 (launch_os_hook bl)...")) return;

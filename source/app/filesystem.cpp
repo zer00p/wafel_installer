@@ -197,6 +197,47 @@ bool copyFile(const std::string& src, const std::string& dest) {
     }
 }
 
+bool moveFile(const char* src, const char* dest) {
+    if (rename(src, dest) == 0) return true;
+    if (copyFile(src, dest)) {
+        removeFile(src);
+        return true;
+    }
+    return false;
+}
+
+bool removeFile(const char* path) {
+    return unlink(path) == 0;
+}
+
+bool removeDir(const char* path) {
+    return rmdir(path) == 0;
+}
+
+bool deleteDirContent(const char* path) {
+    DIR* dirHandle;
+    if ((dirHandle = opendir(path)) == nullptr) return false;
+
+    struct dirent *dirEntry;
+    while((dirEntry = readdir(dirHandle)) != nullptr) {
+        if (strcmp(dirEntry->d_name, ".") == 0 || strcmp(dirEntry->d_name, "..") == 0) continue;
+
+        std::string fullPath = std::string(path);
+        if (fullPath.back() != '/') fullPath += "/";
+        fullPath += dirEntry->d_name;
+
+        if ((dirEntry->d_type & DT_DIR) == DT_DIR) {
+            deleteDirContent(fullPath.c_str());
+            removeDir(fullPath.c_str());
+        } else {
+            removeFile(fullPath.c_str());
+        }
+    }
+
+    closedir(dirHandle);
+    return true;
+}
+
 bool isDirEmpty(const char* path) {
     DIR* dirHandle;
     if ((dirHandle = opendir(path)) == nullptr) return true;
