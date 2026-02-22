@@ -20,7 +20,7 @@ void ensureMinuteIni() {
     WHBMountSdCard();
     std::string minuteDir = Paths::SdMinuteDir;
     std::string iniPath = minuteDir + "/minute.ini";
-    fs::create_directories(minuteDir);
+    createDirectories(minuteDir);
     if (!fileExist(iniPath)) {
         int fd = fileOpen(iniPath.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
         if (fd >= 0) {
@@ -102,7 +102,7 @@ void configureMinuteMenu() {
                 } else if (selectedOption == 2) {
                     // Save
                     std::string minuteDir = Paths::SdMinuteDir;
-                    fs::create_directories(minuteDir);
+                    createDirectories(minuteDir);
                     FILE* f = fileFopen(iniPath.c_str(), "w");
                     if (f) {
                         fprintf(f, "[boot]\nautoboot=%d\nautoboot_timeout=%d\n", autoboot, timeout);

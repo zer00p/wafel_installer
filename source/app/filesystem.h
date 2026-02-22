@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include <string_view>
+#include <dirent.h> // Required for DIR type
 
 // Functions related to devices
 bool mountSystemDrives();
@@ -26,6 +27,7 @@ bool createDirectories(const std::string& path);
 
 int fileOpen(const std::string& path, int flags, mode_t mode);
 FILE* fileFopen(const std::string& path, const char* mode);
+DIR* dirOpen(const std::string& path);
 
 bool deleteDirContent(const std::string& path);
 

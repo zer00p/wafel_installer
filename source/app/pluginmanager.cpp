@@ -143,26 +143,24 @@ static bool browsePlugins(std::string posixPath) {
     }
 }
 
-static bool syncPlugins(const std::string& sourcePosixPath) {
-    std::string slcPosix = Paths::SlcPluginsDir;
-    std::string sdPosix = Paths::SdPluginsDir;
-    std::string destPosixPath;
+static bool syncPlugins(const std::string& sourcePath) {
+    std::string destPath;
     std::string sourceFwImg;
     std::string destFwImg;
 
-    if (sourcePosixPath == slcPosix) {
-        destPosixPath = sdPosix;
+    if (sourcePath == Paths::SlcPluginsDir) {
+        destPath = Paths::SdPluginsDir;
         sourceFwImg = Paths::SlcFwImg;
         destFwImg = Paths::SdFwImg;
-    } else if (sourcePosixPath == sdPosix) {
-        destPosixPath = slcPosix;
+    } else if (sourcePath == Paths::SdPluginsDir) {
+        destPath = Paths::SlcPluginsDir;
         sourceFwImg = Paths::SdFwImg;
         destFwImg = Paths::SlcFwImg;
     } else {
         return false;
     }
 
-    std::wstring msg = L"Do you want to sync all plugins from\n" + toWstring(sourcePosixPath) + L"\nto\n" + toWstring(destPosixPath) + L"?\nExisting plugins will be overwritten and others deleted.";
+    std::wstring msg = L"Do you want to sync all plugins from\n" + toWstring(sourcePath) + L"\nto\n" + toWstring(destPath) + L"?\nExisting plugins will be overwritten and others deleted.";
     if (showDialogPrompt(msg.c_str(), L"Yes", L"No") != 0) return false;
 
     bool copyFwImg = false;
@@ -178,9 +176,9 @@ static bool syncPlugins(const std::string& sourcePosixPath) {
     WHBLogFreetypeDrawScreen();
 
     // Ensure destination directory exists
-    if (!dirExist(destPosixPath)) {
+    if (!dirExist(destPath)) {
         try {
-            std::filesystem::create_directories(destPosixPath);
+            createDirectories(destPath);
         } catch (...) {
             setErrorPrompt(L"Failed to create destination directory!");
             showErrorPrompt(L"OK");
@@ -189,7 +187,7 @@ static bool syncPlugins(const std::string& sourcePosixPath) {
     }
 
     // 1. Copy plugins from source to destination
-    DIR* dir = opendir(sourcePosixPath.c_str());
+    DIR* dir = dirOpen(sourcePath);
     std::vector<std::string> sourceFiles;
     if (dir) {
         struct dirent* ent;
@@ -197,10 +195,10 @@ static bool syncPlugins(const std::string& sourcePosixPath) {
             if (ent->d_type == DT_REG) {
                 std::string fileName = ent->d_name;
                 sourceFiles.push_back(fileName);
-                std::string srcFile = sourcePosixPath;
+                std::string srcFile = sourcePath;
                 if (srcFile.back() != '/') srcFile += "/";
                 srcFile += fileName;
-                std::string destFile = destPosixPath;
+                std::string destFile = destPath;
                 if (destFile.back() != '/') destFile += "/";
                 destFile += fileName;
 
@@ -216,7 +214,7 @@ static bool syncPlugins(const std::string& sourcePosixPath) {
     }
 
     // 2. Delete plugins in destination that are not in source
-    dir = opendir(destPosixPath.c_str());
+    dir = dirOpen(destPath);
     if (dir) {
         struct dirent* ent;
         while ((ent = readdir(dir)) != nullptr) {
@@ -225,7 +223,7 @@ static bool syncPlugins(const std::string& sourcePosixPath) {
                 if (std::find(sourceFiles.begin(), sourceFiles.end(), fileName) == sourceFiles.end()) {
                     WHBLogFreetypePrintf(L"Deleting %S...", toWstring(fileName).c_str());
                     WHBLogFreetypeDrawScreen();
-                    std::string destFile = destPosixPath;
+                    std::string destFile = destPath;
                     if (destFile.back() != '/') destFile += "/";
                     destFile += fileName;
                     remove(destFile.c_str());

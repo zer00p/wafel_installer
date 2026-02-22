@@ -427,10 +427,10 @@ static bool downloadAndExtractZip(const std::string& repo, const std::string& pa
 
             std::string fullPath = sdPath + targetFilename;
             if (targetFilename.back() == '/') {
-                fs::create_directories(fullPath);
+                createDirectories(fullPath);
             } else {
                 fs::path p(fullPath);
-                fs::create_directories(p.parent_path());
+                createDirectories(p.parent_path());
 
                 std::string data = zip.read(info);
                 int fd = fileOpen(fullPath, O_WRONLY | O_CREAT | O_TRUNC, 0644);
@@ -489,7 +489,7 @@ bool downloadAroma() {
     if (appstoreUrl.empty()) return false;
 
     std::string appstorePath = targetPath + "wiiu/apps/appstore/";
-    fs::create_directories(appstorePath);
+    createDirectories(appstorePath);
     if (!downloadFile(appstoreUrl, appstorePath + "appstore.wuhb")) {
         return false;
     }

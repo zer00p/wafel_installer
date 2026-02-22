@@ -206,8 +206,10 @@ bool dirExist(const std::string& path) {
 }
 
 bool copyFile(const std::string& src, const std::string& dest) {
+    std::string convertedSrc = convertToWiiUFsPath(src);
+    std::string convertedDest = convertToWiiUFsPath(dest);
     try {
-        return std::filesystem::copy_file(src, dest, std::filesystem::copy_options::overwrite_existing);
+        return std::filesystem::copy_file(convertedSrc, convertedDest, std::filesystem::copy_options::overwrite_existing);
     } catch (...) {
         return false;
     }
@@ -249,9 +251,14 @@ FILE* fileFopen(const std::string& path, const char* mode) {
     return fopen(convertedPath.c_str(), mode);
 }
 
+DIR* dirOpen(const std::string& path) {
+    std::string convertedPath = convertToWiiUFsPath(path);
+    return opendir(convertedPath.c_str());
+}
+
 bool deleteDirContent(const std::string& path) {
     DIR* dirHandle;
-    if ((dirHandle = opendir(path.c_str())) == nullptr) return false;
+    if ((dirHandle = dirOpen(path.c_str())) == nullptr) return false;
 
     struct dirent *dirEntry;
     while((dirEntry = readdir(dirHandle)) != nullptr) {
@@ -275,7 +282,7 @@ bool deleteDirContent(const std::string& path) {
 
 bool isDirEmpty(const std::string& path) {
     DIR* dirHandle;
-    if ((dirHandle = opendir(path.c_str())) == nullptr) return true;
+    if ((dirHandle = dirOpen(path.c_str())) == nullptr) return true;
 
     struct dirent *dirEntry;
     while((dirEntry = readdir(dirHandle)) != nullptr) {
