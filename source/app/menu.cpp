@@ -476,12 +476,16 @@ void showUninstallMenu() {
 
                     if (askFormat) {
                         if (showDialogPrompt(L"Your SD card seems to have multiple partitions or unallocated\nspace. Do you want to format the entire SD card to FAT32?\nThis will delete ALL data on it.", L"Yes, format SD", L"No, keep as is") == 0) {
-                            if (dirExist(Paths::SdAromaDir)) {
-                                showDialogPrompt(L"Aroma is detected. Formatting the SD card while running\n"
+                            if (getCFWVersion() == MOCHA_FSCLIENT) {
+                                showDialogPrompt(L"Aroma is running. Formatting the SD card while running\n"
                                                  L"Aroma is not possible from here.\n \n"
                                                  L"Please come back by using wafel.xyz after uninstalling stroopwafel\n", L"OK");
                             } else {
-                                if (!formatWholeDrive(fsaHandle, "/dev/sdcard01", deviceInfo)) {
+                                int status = WHBUnmountSdCard();
+                                if (status != 1) {
+                                    WHBLogPrintf("Unmount failed (status: %d), ignoring...", status);
+                                    WHBLogFreetypeDraw();
+                                } else if (!formatWholeDrive(fsaHandle, "/dev/sdcard01", deviceInfo)) {
                                     showErrorPrompt(L"Failed to format SD card. Continuing with uninstall...");
                                 } else {
                                     showSuccessPrompt(L"SD card formatted successfully.");
