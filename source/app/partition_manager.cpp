@@ -307,6 +307,7 @@ bool waitForDevice(FSAClientHandle fsaHandle, const wchar_t* deviceName, FatMoun
 bool formatWholeDrive(FSAClientHandle fsaHandle, const char* device, const FSADeviceInfo& deviceInfo) {
     FatMountGuard guard;
     guard.block();
+    
     uint64_t totalSize = (uint64_t)deviceInfo.deviceSizeInSectors * deviceInfo.deviceSectorSize;
     uint64_t twoGiB = 2ULL * 1024 * 1024 * 1024;
     const char* fsType = (totalSize < twoGiB) ? "fat" : "fat"; // FAT16 is used by system automatically if < 2GiB and we pass "fat"
@@ -318,7 +319,7 @@ bool formatWholeDrive(FSAClientHandle fsaHandle, const char* device, const FSADe
 
     while (true) {
         setCustomFormatSize(0);
-        WHBLogFreetypePrint(L"Formatting whole Device with FAT32...");
+        WHBLogFreetypePrint(L"Formatting whole Device with FAT32...\nthis might take a while");
         WHBLogFreetypeDraw();
         FSStatus status = (FSStatus)FSA_Format(fsaHandle, device, fsType, 0, 0, 0);
         if (status != FS_STATUS_OK) {
@@ -448,7 +449,7 @@ bool partitionDevice(FSAClientHandle fsaHandle, const char* device, const FSADev
     }
 
     while (true) {
-        WHBLogPrint("Formatting FAT32 partition...");
+        WHBLogPrint("Formatting FAT32 partition...\nthis might take a while");
         WHBLogFreetypeDraw();
         // that also incldues the MBR and alignement gap
         setCustomFormatSize(final_p2_start);
@@ -957,7 +958,7 @@ void formatAndPartitionMenu() {
                     uint32_t p1_size = read32LE(&mbr[446 + 12]);
                     bool partialFormatSuccess = false;
                     while (true) {
-                        WHBLogPrintf("Formatting Partition 1 (size: %u sectors)...", p1_size);
+                        WHBLogPrintf("Formatting Partition 1 (size: %u sectors)...\nthis might take a while", p1_size);
                         WHBLogFreetypeDraw();
                         setCustomFormatSize(p1_size);
                         int32_t f_status = FSA_Format(fsaHandle, "/dev/sdcard01", "fat", 0, 0, 0);
