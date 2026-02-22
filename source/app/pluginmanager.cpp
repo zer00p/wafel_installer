@@ -20,7 +20,7 @@
 
 #define OPTION(n) (selectedOption == (n) ? L'>' : L' ')
 
-static bool browsePlugins(std::string posixPath) {
+static bool browsePlugins(std::string pluginsPath) {
     if (!fetchPluginList(true)) return false;
 
     bool changed = false;
@@ -34,10 +34,10 @@ static bool browsePlugins(std::string posixPath) {
         for (size_t i = 0; i < cachedPluginList.size(); i++) {
             const auto& p = cachedPluginList[i];
             bool installed = false;
-            std::string fullPath = posixPath;
+            std::string fullPath = pluginsPath;
             if (fullPath.back() != '/') fullPath += "/";
             fullPath += p.fileName;
-            if (access(fullPath.c_str(), F_OK) == 0) {
+            if (access(convertToWiiUFsPath(fullPath).c_str(), F_OK) == 0) {
                 installed = true;
             }
 
@@ -102,10 +102,10 @@ static bool browsePlugins(std::string posixPath) {
                         size_t last = incompatibleFile.find_last_not_of(" ");
                         incompatibleFile = incompatibleFile.substr(first, (last - first + 1));
 
-                        std::string fullPath = posixPath;
+                        std::string fullPath = pluginsPath;
                         if (fullPath.back() != '/') fullPath += "/";
                         fullPath += incompatibleFile;
-                        if (access(fullPath.c_str(), F_OK) == 0) {
+                        if (access(convertToWiiUFsPath(fullPath).c_str(), F_OK) == 0) {
                             std::wstring msg = L"Warning: " + toWstring(incompatibleFile) + L" is already installed and is incompatible with " + toWstring(p.fileName) + L"!\nDo you want to delete the incompatible plugin first?";
                             uint8_t res = showDialogPrompt(msg.c_str(), L"Delete", L"Keep both", L"Cancel");
                             if (res == 0) { // Delete
@@ -126,7 +126,7 @@ static bool browsePlugins(std::string posixPath) {
                 {
                     std::wstring msg = L"Do you want to download " + toWstring(p.fileName) + L"?";
                     if (showDialogPrompt(msg.c_str(), L"Yes", L"No") == 0) {
-                        std::string fullPath = posixPath;
+                        std::string fullPath = pluginsPath;
                         if (fullPath.back() != '/') fullPath += "/";
                         fullPath += p.fileName;
                         if (downloadFile(p.downloadPath, fullPath)) {
@@ -248,20 +248,18 @@ static bool syncPlugins(const std::string& sourcePath) {
     return true;
 }
 
-static bool managePlugins(std::string posixPath) {
+static bool managePlugins(std::string pluginsPath) {
     uint8_t selectedOption = 0;
     bool refreshList = true;
     bool changed = false;
     std::vector<std::string> plugins;
 
-    std::string slcPosix = Paths::SlcPluginsDir;
-    std::string sdPosix = Paths::SdPluginsDir;
-    bool isStandardPath = (posixPath == slcPosix || posixPath == sdPosix);
+    bool isStandardPath = (pluginsPath == Paths::SlcPluginsDir || pluginsPath == Paths::SdPluginsDir);
 
     while(true) {
         if (refreshList) {
             plugins.clear();
-            DIR* dir = opendir(posixPath.c_str());
+            DIR* dir = dirOpen(pluginsPath.c_str());
             if (dir) {
                 struct dirent* ent;
                 while ((ent = readdir(dir)) != nullptr) {
@@ -276,7 +274,7 @@ static bool managePlugins(std::string posixPath) {
         }
 
         WHBLogFreetypeStartScreen();
-        WHBLogFreetypePrintf(L"Managing: %S", toWstring(posixPath).c_str());
+        WHBLogFreetypePrintf(L"Managing: %S", toWstring(pluginsPath).c_str());
         WHBLogFreetypePrint(L"===============================");
 
         if (plugins.empty()) {
@@ -328,14 +326,14 @@ static bool managePlugins(std::string posixPath) {
                 return changed;
             }
             if (pressedY()) {
-                if (browsePlugins(posixPath)) {
+                if (browsePlugins(pluginsPath)) {
                     refreshList = true;
                     changed = true;
                 }
                 break;
             }
             if (pressedStart() && isStandardPath) {
-                if (syncPlugins(posixPath)) {
+                if (syncPlugins(pluginsPath)) {
                     refreshList = true;
                     changed = true;
                     break;
@@ -348,7 +346,7 @@ static bool managePlugins(std::string posixPath) {
                 } else {
                     std::wstring msg = L"Do you really want to delete " + toWstring(pluginName) + L"?";
                     if (showDialogPrompt(msg.c_str(), L"Yes", L"No") == 0) {
-                        std::string fullPath = posixPath;
+                        std::string fullPath = pluginsPath;
                         if (fullPath.back() != '/') fullPath += "/";
                         fullPath += pluginName;
                         if (remove(fullPath.c_str()) == 0) {
@@ -374,7 +372,7 @@ static bool managePlugins(std::string posixPath) {
 void checkForUpdates() {
     std::string slcPosix = Paths::SlcPluginsDir;
     std::string sdPosix = Paths::SdPluginsDir;
-    std::string currentPosix = getStroopwafelPluginPosixPath();
+    std::string currentPosix = getStroopwafelPluginPath();
 
     std::string targetPosix = "";
     std::string minutePath = "";
@@ -550,22 +548,20 @@ void checkForUpdates() {
 
 void showPluginManager() {
     bool anyChanged = false;
-    std::string slcPosix = Paths::SlcPluginsDir;
-    std::string sdPosix = Paths::SdPluginsDir;
-    std::string currentPosix = getStroopwafelPluginPosixPath();
+    std::string currentPath = getStroopwafelPluginPath();
 
     std::vector<std::pair<std::wstring, std::string>> options;
-    options.push_back({L"SLC Plugins (/sys/hax/ios_plugins)", slcPosix});
-    options.push_back({L"SD Plugins (/wiiu/ios_plugins)", sdPosix});
+    options.push_back({L"SLC Plugins (/sys/hax/ios_plugins)", Paths::SlcPluginsDir});
+    options.push_back({L"SD Plugins (/wiiu/ios_plugins)", Paths::SdPluginsDir});
 
     uint8_t selectedOption = 0;
-    if (!currentPosix.empty()) {
-        if (currentPosix == slcPosix) {
+    if (!currentPath.empty()) {
+        if (currentPath == Paths::SlcPluginsDir) {
             selectedOption = 0;
-        } else if (currentPosix == sdPosix) {
+        } else if (currentPath == Paths::SdPluginsDir) {
             selectedOption = 1;
         } else {
-            options.push_back({L"Current Plugins (" + toWstring(currentPosix) + L")", currentPosix});
+            options.push_back({L"Current Plugins (" + toWstring(currentPath) + L")", currentPath});
             selectedOption = 2;
         }
     }
@@ -594,7 +590,7 @@ void showPluginManager() {
                 break;
             }
             if (pressedOk()) {
-                bool slcSelected = (options[selectedOption].second == slcPosix);
+                bool slcSelected = (options[selectedOption].second == Paths::SlcPluginsDir);
                 if (slcSelected && !checkSystemAccess()) {
                     break;
                 }

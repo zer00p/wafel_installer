@@ -217,7 +217,7 @@ static bool createIsfsHaxDirectories() {
 }
 
 static bool downloadBasePlugins() {
-    std::string pluginPath = getStroopwafelPluginPosixPath();
+    std::string pluginPath = getStroopwafelPluginPath();
     createDirectories(pluginPath);
     bool res =  downloadFile(getPluginUrl("00core.ipx"),   pluginPath + "/00core.ipx") &&
                 downloadFile(getPluginUrl("5isfshax.ipx"), pluginPath + "/5isfshax.ipx");
@@ -229,7 +229,7 @@ static bool downloadBasePlugins() {
 
 bool downloadStroopwafelFiles(bool toSD) {
     std::string plugin_dir = toSD? Paths::SdPluginsDir : Paths::SlcPluginsDir;
-    setStroopwafelPluginPosixPath(plugin_dir);
+    setStroopwafelPluginPath(plugin_dir);
 
     if (toSD) {
         if (WHBMountSdCard() != 1) {
@@ -498,7 +498,7 @@ bool downloadAroma() {
     WHBLogFreetypeDrawScreen();
 
     // Freshly downloaded Aroma, also download payloader plugin if Stroopwafel is present
-    std::string pluginPath = getStroopwafelPluginPosixPath();
+    std::string pluginPath = getStroopwafelPluginPath();
     if (!pluginPath.empty() && dirExist(pluginPath)) {
         std::string target = pluginPath;        
         if (target.back() != '/') target += "/";

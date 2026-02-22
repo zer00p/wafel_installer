@@ -175,7 +175,7 @@ void showMainMenu() {
             if (!isStroopwafelAvailable()) {
                 bottomStatus += L"Stroopwafel: Not active";
             } else {
-                std::wstring path = toWstring(getStroopwafelPluginPosixPath());
+                std::wstring path = toWstring(getStroopwafelPluginPath());
                 if (path.empty()) {
                     bottomStatus += L"Stroopwafel: Active (Path unknown)";
                 } else {

@@ -378,7 +378,7 @@ bool partitionDevice(FSAClientHandle fsaHandle, const char* device, const FSADev
 
     while(true) {
         uint32_t target_p1_size = (uint32_t)(deviceInfo.deviceSizeInSectors * fatPercent / 100.0);
-        uint32_t p2_start = ((p1_start + target_p1_size + alignSectors / 2) / alignSectors) * alignSectors;
+        uint32_t p2_start = ((p1_start + target_p1_size + alignSectors - 1) / alignSectors) * alignSectors;
         if (p2_start > deviceInfo.deviceSizeInSectors) p2_start = deviceInfo.deviceSizeInSectors;
         if (p2_start < p1_start) p2_start = p1_start;
 
@@ -1164,7 +1164,7 @@ void setupPartitionedUSBMenu() {
     bool sdEmulation = (emulationChoice == 0);
 
     if (!sdEmulation) {
-        if (getStroopwafelPluginPosixPath().empty()) {
+        if (getStroopwafelPluginPath().empty()) {
             if (showDialogPrompt(L"Stroopwafel is not detected. It is required for partitioned USB storage.\nDo you want to install it now?", L"Yes", L"Cancel") != 0) return;
             uint8_t loc = showDialogPrompt(L"Where do you want to install Stroopwafel?", L"SD Card", L"SLC");
             if (loc == 255) return;

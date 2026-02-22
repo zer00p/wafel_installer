@@ -97,7 +97,7 @@ void performAromaCheck() {
 
 void performStroopwafelCheck(bool wantsPartitionedStorage) {
     bool filesExist = true;
-    std::string path = getStroopwafelPluginPosixPath();
+    std::string path = getStroopwafelPluginPath();
     if (path.empty() || !dirExist(path)) {
         filesExist = false;
     }
@@ -134,7 +134,7 @@ void performPostSetupChecks(bool usingUSB, bool wantsPartitionedStorage) {
     performStroopwafelCheck(wantsPartitionedStorage);
     performIsfshaxCheck(usingUSB, wantsPartitionedStorage);
 
-    std::string pluginTarget = getStroopwafelPluginPosixPath();
+    std::string pluginTarget = getStroopwafelPluginPath();
     if (pluginTarget.empty()) return;
 
     if (usingUSB) {
@@ -155,7 +155,7 @@ bool performStartupChecks() {
     WHBLogPrint("Performing startup checks...");
     WHBLogFreetypeDraw();
 
-    if (getStroopwafelPluginPosixPath().find("storage_slc") != std::string::npos) {
+    if (getStroopwafelPluginPath().find("storage_slc") != std::string::npos) {
         if (!checkSystemAccess(true)) return false;
     }
     WHBLogFreetypeDraw();

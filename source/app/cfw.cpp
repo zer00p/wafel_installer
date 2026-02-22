@@ -12,7 +12,7 @@
 CFWVersion currCFWVersion = CFWVersion::NONE;
 bool stroopwafel_available = false;
 bool stroopwafel_downloaded_in_session = false;
-std::string stroopwafel_plugin_posix_path = "";
+std::string stroopwafel_plugin_path = "";
 bool pending_shutdown = false;
 bool forced_shutdown = false;
 
@@ -58,7 +58,7 @@ CFWVersion testCFW() {
                 fullVolPath = Paths::SdRoot + currentPath.path;
             }
             if (!fullVolPath.empty()) {
-                stroopwafel_plugin_posix_path = fullVolPath;
+                stroopwafel_plugin_path = fullVolPath;
             }
         }
     } else {
@@ -206,12 +206,12 @@ bool isSdEmulated() {
     return val == 0xe3a03006;
 }
 
-std::string getStroopwafelPluginPosixPath() {
-    return stroopwafel_plugin_posix_path;
+std::string getStroopwafelPluginPath() {
+    return stroopwafel_plugin_path;
 }
 
-void setStroopwafelPluginPosixPath(const std::string& path) {
-    stroopwafel_plugin_posix_path = path;
+void setStroopwafelPluginPath(const std::string& path) {
+    stroopwafel_plugin_path = path;
 }
 
 bool isShutdownPending() {
