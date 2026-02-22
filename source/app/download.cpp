@@ -488,7 +488,7 @@ bool downloadAroma() {
     std::string appstoreUrl = getLatestReleaseAssetUrl("fortheusers/hb-appstore", "appstore.wuhb");
     if (appstoreUrl.empty()) return false;
 
-    std::string appstorePath = targetPath + "wiiu/apps/appstore/";
+    std::string appstorePath = targetPath + "/wiiu/apps/appstore/";
     createDirectories(appstorePath);
     if (!downloadFile(appstoreUrl, appstorePath + "appstore.wuhb")) {
         return false;
