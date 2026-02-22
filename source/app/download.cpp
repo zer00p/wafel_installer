@@ -404,7 +404,7 @@ std::string getRepoFromUrl(const std::string& url) {
     return url.substr(pos, end - pos);
 }
 
-static bool downloadAndExtractZip(const std::string& repo, const std::string& pattern, const std::string& displayName, const std::string& sdPath, std::function<std::string(std::string)> pathMapper = nullptr) {
+static bool downloadAndExtractZip(const std::string& repo, const std::string& pattern, const std::string& displayName, const std::string& path, std::function<std::string(std::string)> pathMapper = nullptr) {
     std::string zipUrl = getLatestReleaseAssetUrl(repo, pattern);
     if (zipUrl.empty()) return false;
 
@@ -425,7 +425,7 @@ static bool downloadAndExtractZip(const std::string& repo, const std::string& pa
                 if (targetFilename.empty()) continue; // Skip if mapped to empty
             }
 
-            std::string fullPath = sdPath + targetFilename;
+            std::string fullPath = path + "/" + targetFilename;
             if (targetFilename.back() == '/') {
                 createDirectories(fullPath);
             } else {
