@@ -4,6 +4,7 @@
 #include "navigation.h"
 #include "filesystem.h"
 #include "common_paths.h"
+#include "../cfw/shared.h"
 
 #include <mocha/mocha.h>
 #include <stroopwafel/stroopwafel.h> // Assuming this is the correct header
@@ -33,7 +34,7 @@ bool stopMochaServer() {
 
     alignas(0x20) int32_t responseBuffer[0x20 >> 2];
     *responseBuffer = 0;
-    IOS_Ioctl(iosuhaxHandle, 0x03/*IOCTL_KILL_SERVER*/, nullptr, 0, responseBuffer, 4);
+    IOS_Ioctl(iosuhaxHandle, IOCTL_KILL_SERVER, nullptr, 0, responseBuffer, 4);
     
     WHBLogPrint("Waiting for Mocha to stop... ");
     WHBLogFreetypeDraw();

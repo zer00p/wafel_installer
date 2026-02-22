@@ -4,7 +4,6 @@
 #include <mocha/mocha.h>
 #include <string>
 
-
 enum CFWVersion {
     FAILED,
     NONE,
