@@ -37,7 +37,7 @@ static size_t write_data_posix(void *ptr, size_t size, size_t nmemb, void *strea
 
 bool downloadFile(const std::string& url, const std::string& path) {
     while (true) {
-        WHBLogFreetypePrintf(L"Downloading %S...", toWstring(url).c_str());
+        WHBLogFreetypePrintf(L"Downloading %S to %S...", toWstring(url).c_str(), toWstring(path).c_str());
         WHBLogFreetypeDrawScreen();
 
         CURL *curl_handle = curl_easy_init();
@@ -49,7 +49,7 @@ bool downloadFile(const std::string& url, const std::string& path) {
             return false;
         }
 
-        int fd = open(path.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+        int fd = fileOpen(path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
         if (fd < 0) {
             WHBLogFreetypePrintf(L"Failed to open %S for writing!\nErrno: %d", toWstring(path).c_str(), errno);
             WHBLogFreetypeDrawScreen();
@@ -212,7 +212,7 @@ static bool createIsfsHaxDirectories() {
     if (!checkSystemAccess()) {
         return false;
     }
-    fs::create_directories(convertToPosixPath(Paths::SlcInstallerDir));
+    createDirectories(Paths::SlcInstallerDir);
     return true;
 }
 
@@ -221,7 +221,7 @@ static bool downloadBasePlugins() {
     fs::create_directories(pluginPath);
     bool res =  downloadFile(getPluginUrl("00core.ipx"),   pluginPath + "/00core.ipx") &&
                 downloadFile(getPluginUrl("5isfshax.ipx"), pluginPath + "/5isfshax.ipx");
-    bool hasAroma = dirExist(convertToPosixPath(Paths::SdAromaDir));
+    bool hasAroma = dirExist(Paths::SdAromaDir);
     if(res && hasAroma)
         return downloadFile(getPluginUrl("5payldr.ipx"),  pluginPath + "/5payldr.ipx");
     return res;
@@ -229,7 +229,7 @@ static bool downloadBasePlugins() {
 
 bool downloadStroopwafelFiles(bool toSD) {
     std::string_view plugin_dir = toSD? Paths::SdPluginsDir : Paths::SlcPluginsDir;
-    setStroopwafelPluginPosixPath(convertToPosixPath(plugin_dir));
+    setStroopwafelPluginPosixPath(convertToWiiUFsPath(plugin_dir));
 
     if (toSD) {
         if (WHBMountSdCard() != 1) {
@@ -237,7 +237,7 @@ bool downloadStroopwafelFiles(bool toSD) {
             return false;
         }
         if (!downloadBasePlugins() ||
-            !downloadFile("https://github.com/StroopwafelCFW/minute_minute/releases/latest/download/fw.img", convertToPosixPath(Paths::SdFwImg)))
+            !downloadFile("https://github.com/StroopwafelCFW/minute_minute/releases/latest/download/fw.img", Paths::SdFwImg))
             return false;
 
         ensureMinuteIni();
@@ -245,7 +245,7 @@ bool downloadStroopwafelFiles(bool toSD) {
 
     } else {
         if (!downloadBasePlugins() ||
-            !downloadFile("https://github.com/StroopwafelCFW/minute_minute/releases/latest/download/fw_fastboot.img", convertToPosixPath(Paths::SlcFwImg)))
+            !downloadFile("https://github.com/StroopwafelCFW/minute_minute/releases/latest/download/fw_fastboot.img", Paths::SlcFwImg))
             return false;
     }
     setStroopwafelDownloadedInSession(true);
@@ -257,17 +257,17 @@ bool downloadIsfshaxFiles() {
 
     // Check for superblock.img on SD
     WHBMountSdCard();
-    std::string sdRootPosix = convertToPosixPath(Paths::SdRoot);
+    std::string sdRootPosix = Paths::SdRoot;
     if (fileExist(sdRootPosix + "/superblock.img")) {
         if (showDialogPrompt(L"A superblock.img was found on the SD card.\nDo you want to remove it so the latest one gets used?", L"Yes", L"No") == 0) {
             remove((sdRootPosix + "/superblock.img").c_str());
         }
     }
 
-    std::string slcFwImgPath = convertToPosixPath(Paths::SlcInstallerFwImg);
+    std::string slcFwImgPath = Paths::SlcInstallerFwImg;
 
-    if (!downloadFile("https://github.com/isfshax/isfshax/releases/latest/download/superblock.img", convertToPosixPath(Paths::SlcInstallerSblockImg)) ||
-        !downloadFile("https://github.com/isfshax/isfshax/releases/latest/download/superblock.img.sha", convertToPosixPath(Paths::SlcInstallerSblockSha)) ||
+    if (!downloadFile("https://github.com/isfshax/isfshax/releases/latest/download/superblock.img", Paths::SlcInstallerSblockImg) ||
+        !downloadFile("https://github.com/isfshax/isfshax/releases/latest/download/superblock.img.sha", Paths::SlcInstallerSblockSha) ||
         !downloadFile("https://github.com/isfshax/isfshax_installer/releases/latest/download/ios.img", slcFwImgPath))
     {
         return false;
@@ -433,7 +433,7 @@ static bool downloadAndExtractZip(const std::string& repo, const std::string& pa
                 fs::create_directories(p.parent_path());
 
                 std::string data = zip.read(info);
-                int fd = open(fullPath.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+                int fd = fileOpen(fullPath, O_WRONLY | O_CREAT | O_TRUNC, 0644);
                 if (fd >= 0) {
                     write(fd, data.data(), data.size());
                     close(fd);

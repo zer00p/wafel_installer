@@ -103,8 +103,8 @@ bool isDiscMounted() {
 }
 
 bool testStorage(TITLE_LOCATION location) {
-    if (location == TITLE_LOCATION::NAND) return dirExist(convertToPosixPath(Paths::MlcUsrDir));
-    if (location == TITLE_LOCATION::USB) return dirExist(convertToPosixPath(Paths::UsbUsrDir));
+    if (location == TITLE_LOCATION::NAND) return dirExist(Paths::MlcUsrDir);
+    if (location == TITLE_LOCATION::USB) return dirExist(Paths::UsbUsrDir);
     //if (location == TITLE_LOCATION::Disc) return dirExist("storage_odd01:/usr/");
     return false;
 }
@@ -136,7 +136,7 @@ bool isDiscInserted() {
 
 // Wii U libraries will give us paths that use /vol/storage_mlc01/file.txt, but libiosuhax uses the mounted drive paths like storage_mlc01:/file.txt (and wut uses fs:/vol/sys_mlc01/file.txt)
 // Converts a Wii U device path to a posix path
-std::string convertToPosixPath(std::string_view volPath) {
+std::string convertToWiiUFsPath(std::string_view volPath) {
     std::string posixPath;
 
     // volPath has to start with /vol/
@@ -192,14 +192,16 @@ bool isRoot(std::string_view path) {
 }
 
 bool fileExist(const std::string& path) {
-    if (isRoot(path)) return true;
-    if (lstat(path.c_str(), &existStat) == 0 && S_ISREG(existStat.st_mode)) return true;
+    std::string convertedPath = convertToWiiUFsPath(path);
+    if (isRoot(convertedPath)) return true;
+    if (lstat(convertedPath.c_str(), &existStat) == 0 && S_ISREG(existStat.st_mode)) return true;
     return false;
 }
 
 bool dirExist(const std::string& path) {
-    if (isRoot(path)) return true;
-    if (lstat(path.c_str(), &existStat) == 0 && S_ISDIR(existStat.st_mode)) return true;
+    std::string convertedPath = convertToWiiUFsPath(path);
+    if (isRoot(convertedPath)) return true;
+    if (lstat(convertedPath.c_str(), &existStat) == 0 && S_ISDIR(existStat.st_mode)) return true;
     return false;
 }
 
@@ -226,6 +228,25 @@ bool removeFile(const std::string& path) {
 
 bool removeDir(const std::string& path) {
     return rmdir(path.c_str()) == 0;
+}
+
+bool createDirectories(const std::string& path) {
+    std::string convertedPath = convertToWiiUFsPath(path);
+    try {
+        return std::filesystem::create_directories(convertedPath);
+    } catch (...) {
+        return false;
+    }
+}
+
+int fileOpen(const std::string& path, int flags, mode_t mode) {
+    std::string convertedPath = convertToWiiUFsPath(path);
+    return open(convertedPath.c_str(), flags, mode);
+}
+
+FILE* fileFopen(const std::string& path, const char* mode) {
+    std::string convertedPath = convertToWiiUFsPath(path);
+    return fopen(convertedPath.c_str(), mode);
 }
 
 bool deleteDirContent(const std::string& path) {

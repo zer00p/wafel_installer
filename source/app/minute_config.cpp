@@ -18,11 +18,11 @@ namespace fs = std::filesystem;
 
 void ensureMinuteIni() {
     WHBMountSdCard();
-    std::string minuteDir = convertToPosixPath(Paths::SdMinuteDir);
+    std::string minuteDir = Paths::SdMinuteDir;
     std::string iniPath = minuteDir + "/minute.ini";
     fs::create_directories(minuteDir);
     if (!fileExist(iniPath)) {
-        int fd = open(iniPath.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+        int fd = fileOpen(iniPath.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
         if (fd >= 0) {
             const char* content = "[boot]\nautoboot=3\nautoboot_timeout=0\n";
             write(fd, content, strlen(content));
@@ -33,13 +33,13 @@ void ensureMinuteIni() {
 
 void configureMinuteMenu() {
     WHBMountSdCard();
-    std::string iniPath = convertToPosixPath(Paths::SdMinuteDir) + "/minute.ini";
+    std::string iniPath = Paths::SdMinuteDir + "/minute.ini";
 
     int autoboot = 3;
     int timeout = 0;
 
     // Read current values
-    FILE* f = fopen(iniPath.c_str(), "r");
+    FILE* f = fileFopen(iniPath.c_str(), "r");
     if (f) {
         char line[128];
         while (fgets(line, sizeof(line), f)) {
@@ -101,9 +101,9 @@ void configureMinuteMenu() {
                     break;
                 } else if (selectedOption == 2) {
                     // Save
-                    std::string minuteDir = convertToPosixPath(Paths::SdMinuteDir);
+                    std::string minuteDir = Paths::SdMinuteDir;
                     fs::create_directories(minuteDir);
-                    FILE* f = fopen(iniPath.c_str(), "w");
+                    FILE* f = fileFopen(iniPath.c_str(), "w");
                     if (f) {
                         fprintf(f, "[boot]\nautoboot=%d\nautoboot_timeout=%d\n", autoboot, timeout);
                         fclose(f);

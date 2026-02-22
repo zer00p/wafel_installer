@@ -144,20 +144,20 @@ static bool browsePlugins(std::string posixPath) {
 }
 
 static bool syncPlugins(const std::string& sourcePosixPath) {
-    std::string slcPosix = convertToPosixPath(Paths::SlcPluginsDir);
-    std::string sdPosix = convertToPosixPath(Paths::SdPluginsDir);
+    std::string slcPosix = Paths::SlcPluginsDir;
+    std::string sdPosix = Paths::SdPluginsDir;
     std::string destPosixPath;
     std::string sourceFwImg;
     std::string destFwImg;
 
     if (sourcePosixPath == slcPosix) {
         destPosixPath = sdPosix;
-        sourceFwImg = convertToPosixPath(Paths::SlcFwImg);
-        destFwImg = convertToPosixPath(Paths::SdFwImg);
+        sourceFwImg = Paths::SlcFwImg;
+        destFwImg = Paths::SdFwImg;
     } else if (sourcePosixPath == sdPosix) {
         destPosixPath = slcPosix;
-        sourceFwImg = convertToPosixPath(Paths::SdFwImg);
-        destFwImg = convertToPosixPath(Paths::SlcFwImg);
+        sourceFwImg = Paths::SdFwImg;
+        destFwImg = Paths::SlcFwImg;
     } else {
         return false;
     }
@@ -256,8 +256,8 @@ static bool managePlugins(std::string posixPath) {
     bool changed = false;
     std::vector<std::string> plugins;
 
-    std::string slcPosix = convertToPosixPath(Paths::SlcPluginsDir);
-    std::string sdPosix = convertToPosixPath(Paths::SdPluginsDir);
+    std::string slcPosix = Paths::SlcPluginsDir;
+    std::string sdPosix = Paths::SdPluginsDir;
     bool isStandardPath = (posixPath == slcPosix || posixPath == sdPosix);
 
     while(true) {
@@ -374,8 +374,8 @@ static bool managePlugins(std::string posixPath) {
 }
 
 void checkForUpdates() {
-    std::string slcPosix = convertToPosixPath(Paths::SlcPluginsDir);
-    std::string sdPosix = convertToPosixPath(Paths::SdPluginsDir);
+    std::string slcPosix = Paths::SlcPluginsDir;
+    std::string sdPosix = Paths::SdPluginsDir;
     std::string currentPosix = getStroopwafelPluginPosixPath();
 
     std::string targetPosix = "";
@@ -383,19 +383,18 @@ void checkForUpdates() {
 
     if (currentPosix == slcPosix) {
         targetPosix = slcPosix;
-        minutePath = convertToPosixPath(Paths::SlcFwImg);
-    } else if (currentPosix == sdPosix || currentPosix == sdPosix + "/") {
+                    minutePath = Paths::SlcFwImg;    } else if (currentPosix == sdPosix || currentPosix == sdPosix + "/") {
         targetPosix = sdPosix;
-        minutePath = convertToPosixPath(Paths::SdFwImg);
+        minutePath = convertToWiiUFsPath(Paths::SdFwImg);
     } else {
         uint8_t choice = showDialogPrompt(L"Which location do you want to check for updates?", L"SD", L"SLC", L"Cancel");
         if (choice == 0) {
             targetPosix = sdPosix;
-            minutePath = convertToPosixPath(Paths::SdFwImg);
+            minutePath = Paths::SdFwImg;
         } else if (choice == 1) {
             if (!checkSystemAccess()) return;
             targetPosix = slcPosix;
-            minutePath = convertToPosixPath(Paths::SlcFwImg);
+            minutePath = Paths::SlcFwImg;
         } else {
             return;
         }
@@ -553,8 +552,8 @@ void checkForUpdates() {
 
 void showPluginManager() {
     bool anyChanged = false;
-    std::string slcPosix = convertToPosixPath(Paths::SlcPluginsDir);
-    std::string sdPosix = convertToPosixPath(Paths::SdPluginsDir);
+    std::string slcPosix = Paths::SlcPluginsDir;
+    std::string sdPosix = Paths::SdPluginsDir;
     std::string currentPosix = getStroopwafelPluginPosixPath();
 
     std::vector<std::pair<std::wstring, std::string>> options;

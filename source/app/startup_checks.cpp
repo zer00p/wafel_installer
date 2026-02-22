@@ -88,7 +88,7 @@ static void setupUsbStorage(FSAClientHandle fsaHandle, bool& wantsPartitionedSto
 }
 
 void performAromaCheck() {
-    if ((WHBMountSdCard() == 1) && !dirExist(convertToPosixPath(Paths::SdAromaDir))) {
+    if ((WHBMountSdCard() == 1) && !dirExist(Paths::SdAromaDir)) {
         if (showDialogPrompt(L"Aroma is missing on your SD card.\nDo you want to download Aroma by Maschell and the HB Appstore now?", L"Yes", L"No") == 0) {
             downloadAroma();
         }

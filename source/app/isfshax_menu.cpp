@@ -39,7 +39,7 @@ void installIsfshax(bool uninstall, bool manual) {
     }
 
     // For options 0, 1, 2 we need the installer file
-    std::string fwImgPath = convertToPosixPath(Paths::SlcInstallerFwImg);
+    std::string fwImgPath = Paths::SlcInstallerFwImg;
     if (!fileExist(fwImgPath)) {
         uint8_t missingChoice = showDialogPrompt(L"The ISFShax installer (fw.img) is missing.", L"Download", L"Cancel");
         if (missingChoice == 0) {
@@ -56,11 +56,11 @@ void installIsfshax(bool uninstall, bool manual) {
 
     if(uninstall){
         if (confirmIsfshaxAction(L"Uninstall", true)) {
-            std::string slcTmpDir = convertToPosixPath(Paths::SlcTmpDir);
-            std::string slcInstallerDir = convertToPosixPath(Paths::SlcInstallerDir);
-            std::string slcHaxDir = convertToPosixPath(Paths::SlcHaxDir);
+            std::string slcTmpDir = Paths::SlcTmpDir;
+            std::string slcInstallerDir = Paths::SlcInstallerDir;
+            std::string slcHaxDir = Paths::SlcHaxDir;
 
-            std::string srcFwImg = convertToPosixPath(Paths::SlcInstallerFwImg);
+            std::string srcFwImg = Paths::SlcInstallerFwImg;
             std::string destFwImg = slcTmpDir + "/fw.img";
 
             if (!dirExist(slcTmpDir)) {
@@ -115,7 +115,7 @@ void installIsfshaxMenu() {
 void bootInstaller() {
     if (!checkSystemAccess()) return;
 
-    std::string fwImgPath = convertToPosixPath(Paths::SlcInstallerFwImg);
+    std::string fwImgPath = Paths::SlcInstallerFwImg;
     if (!fileExist(fwImgPath)) {
         setErrorPrompt(L"ISFShax installer (fw.img) is missing!");
         showErrorPrompt(L"OK");

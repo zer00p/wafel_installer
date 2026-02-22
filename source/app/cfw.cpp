@@ -58,7 +58,7 @@ CFWVersion testCFW() {
                 fullVolPath = Paths::SdRoot + currentPath.path;
             }
             if (!fullVolPath.empty()) {
-                stroopwafel_plugin_posix_path = convertToPosixPath(fullVolPath);
+                stroopwafel_plugin_posix_path = fullVolPath;
             }
         }
     } else {
