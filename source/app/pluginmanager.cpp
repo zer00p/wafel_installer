@@ -537,7 +537,7 @@ void checkForUpdates() {
             if (allSuccess) {
                 ensureMinuteIni();
                 showSuccessPrompt(L"All files updated successfully!");
-                setShutdownPending(true);
+                setRebootPending(true);
                 showDialogPrompt(L"Updates applied.\nYour console will reboot when you exit.", L"OK");
             } else {
                 showErrorPrompt(L"OK");
@@ -601,9 +601,9 @@ void showPluginManager() {
             }
             if (pressedBack()) {
                 if (anyChanged) {
-                    setShutdownPending(true);
+                    setRebootPending(true);
                     if (showDialogPrompt(L"You have changed plugins.\nDo you want to reboot now to apply changes?", L"Yes", L"No") == 0) {
-                        setShutdownPending(true, true);
+                        exitApplication(true);
                         return;
                     }
                 }

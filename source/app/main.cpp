@@ -44,6 +44,8 @@ int main() {
         }
     }
 
+    bool reboot = getCFWVersion() != MOCHA_FSCLIENT  || isRebootPending();
+
     if (isShutdownPending()) {
         WHBLogFreetypeStartScreen();
         WHBLogPrint("Shutting down now...");
@@ -51,9 +53,16 @@ int main() {
         WHBLogFreetypeDraw();
         sleep_for(3s);
         OSShutdown();
-    } else {
+    } else if (isRebootPending()) {
+        WHBLogFreetypeStartScreen();
+        WHBLogPrint("Rebooting now...");
+        WHBLogPrint("To apply the changes.");
+        WHBLogFreetypeDraw();
+        sleep_for(3s);
+    }
+    else {
         WHBLogPrint("");
-        WHBLogPrint(getCFWVersion() == MOCHA_FSCLIENT ? "Exiting Wafel Installer..." : "Exiting Wafel Installer and rebooting Wii U...");
+        WHBLogPrint(!reboot ? "Exiting Wafel Installer..." : "Exiting Wafel Installer and rebooting Wii U...");
         WHBLogFreetypeDraw();
         sleep_for(5s);
     }
@@ -67,5 +76,5 @@ int main() {
     VPADShutdown();
     shutdownGUI();
 
-    exitApplication(getCFWVersion() != MOCHA_FSCLIENT && USE_DEBUG_STUBS == 0);
+    exitApplication(reboot);
 }

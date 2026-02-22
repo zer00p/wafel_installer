@@ -16,6 +16,8 @@ std::string stroopwafel_plugin_path = "";
 bool pending_shutdown = false;
 bool forced_shutdown = false;
 
+bool pending_reboot = false;
+
 bool stopMochaServer() {
     WHBLogFreetypeClear();
     WHBLogPrint("Opening iosuhax to send stop command...");
@@ -225,4 +227,12 @@ void setShutdownPending(bool pending, bool forced) {
 
 bool isShutdownForced() {
     return forced_shutdown;
+}
+
+bool isRebootPending() {
+    return pending_reboot;
+}
+
+void setRebootPending(bool pending) {
+    pending_reboot = pending;
 }

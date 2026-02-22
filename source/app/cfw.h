@@ -28,3 +28,6 @@ void setStroopwafelPluginPath(const std::string& path);
 bool isShutdownPending();
 void setShutdownPending(bool pending, bool forced = false);
 bool isShutdownForced();
+
+bool isRebootPending();
+void setRebootPending(bool pending);

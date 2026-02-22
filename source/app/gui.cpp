@@ -54,6 +54,12 @@ bool stillRunning() {
 
 void exitApplication(bool rebootOnExit) {
     // Loop through ProcUI messages until it says Wafel Installer should exit
+
+    if(rebootOnExit) {
+        OSForceFullRelaunch();
+        SYSLaunchMenu();
+    }
+
     if (getCFWVersion() == MOCHA_FSCLIENT) {
         SYSLaunchMenu();
 
@@ -72,9 +78,10 @@ void exitApplication(bool rebootOnExit) {
                 continue;
             }
 
-            if (rebootOnExit) OSLaunchTitlel(OS_TITLE_ID_REBOOT, 0);
-            else if (usingHBL) SYSRelaunchTitle(0, nullptr);
+            // if (rebootOnExit) OSLaunchTitlel(OS_TITLE_ID_REBOOT, 0);
+            // else if (usingHBL) SYSRelaunchTitle(0, nullptr);
         }
     }
     ProcUIShutdown();
+    _Exit(0);
 }
