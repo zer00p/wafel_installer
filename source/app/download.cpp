@@ -207,24 +207,27 @@ std::string getPluginUrl(const std::string& fileName) {
     return "";
 }
 
-static bool createHaxDirectories() {
+static bool createIsfsHaxDirectories() {
     if (!checkSystemAccess()) {
         return false;
     }
-
-    std::vector<std::string> dirs = {"/vol/storage_slc/sys/hax", "/vol/storage_slc/sys/hax/installer", "/vol/storage_slc/sys/hax/ios_plugins"};
-    for(const auto& dir : dirs) {
-        std::string posix_path = convertToPosixPath(dir.c_str());
-        WHBLogFreetypePrintf(L"Create directory %S.", toWstring(posix_path).c_str());
-        if (mkdir(posix_path.c_str(), 0755) != 0 && errno != EEXIST) {
-            WHBLogFreetypePrintf(L"Failed to create directory %S. Errno: %d", toWstring(posix_path).c_str(), errno);
-            WHBLogFreetypeDrawScreen();
-            std::wstring error = L"Failed to create directory " + toWstring(posix_path) + L". Errno: " + std::to_wstring(errno);
-            setErrorPrompt(error);
-            return false;
-        }
-    }
+    
+    fs::create_directories(convertToPosixPath("/vol/storage_slc/sys/hax/installer"));
     return true;
+
+    // std::vector<std::string> dirs = {"/vol/storage_slc/sys/hax", "/vol/storage_slc/sys/hax/installer", "/vol/storage_slc/sys/hax/ios_plugins"};
+    // for(const auto& dir : dirs) {
+    //     std::string posix_path = convertToPosixPath(dir.c_str());
+    //     WHBLogFreetypePrintf(L"Create directory %S.", toWstring(posix_path).c_str());
+    //     if (mkdir(posix_path.c_str(), 0755) != 0 && errno != EEXIST) {
+    //         WHBLogFreetypePrintf(L"Failed to create directory %S. Errno: %d", toWstring(posix_path).c_str(), errno);
+    //         WHBLogFreetypeDrawScreen();
+    //         std::wstring error = L"Failed to create directory " + toWstring(posix_path) + L". Errno: " + std::to_wstring(errno);
+    //         setErrorPrompt(error);
+    //         return false;
+    //     }
+    // }
+    // return true;
 }
 
 static bool downloadBasePlugins() {
@@ -264,7 +267,7 @@ bool downloadStroopwafelFiles(bool toSD) {
 }
 
 bool downloadIsfshaxFiles() {
-    if (!createHaxDirectories()) return false;
+    if (!createIsfsHaxDirectories()) return false;
 
     // Check for superblock.img on SD
     WHBMountSdCard();
@@ -319,31 +322,6 @@ bool downloadUsbPartitionPlugin(const std::string& pluginFile, const std::string
     if (fullPath.back() != '/') fullPath += "/";
     fullPath += pluginFile;
     return downloadFile(getPluginUrl(pluginFile), fullPath);
-}
-
-bool download5sdusb(bool toSLC, bool toSD) {
-    bool success = true;
-    if (toSLC) {
-        if (!createHaxDirectories()) return false;
-        std::string slcPath = convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/");
-        success &= downloadFile(getPluginUrl("5sdusb.ipx"), slcPath + "5sdusb.ipx");
-    }
-    if (toSD) {
-        std::string sdPluginPath = "fs:/vol/external01/wiiu/ios_plugins/";
-        fs::create_directories(sdPluginPath);
-        success &= downloadFile(getPluginUrl("5sdusb.ipx"), sdPluginPath + "5sdusb.ipx");
-    }
-    return success;
-}
-
-bool download5upartsd(bool toSLC) {
-    if (toSLC) {
-        if (!createHaxDirectories()) return false;
-        std::string slcPath = convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins/");
-        removeCompetingPlugins(slcPath);
-        return downloadFile(getPluginUrl("5upartsd.ipx"), slcPath + "5upartsd.ipx");
-    }
-    return true;
 }
 
 
@@ -560,7 +538,7 @@ bool downloadInstallerOnly() {
     WHBLogFreetypeDrawScreen();
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    if (!createHaxDirectories()) return false;
+    if (!createIsfsHaxDirectories()) return false;
 
     std::string slcFwImgPath = convertToPosixPath("/vol/storage_slc/sys/hax/installer/fw.img");
 

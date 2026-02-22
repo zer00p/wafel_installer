@@ -19,8 +19,6 @@ bool downloadHaxFiles();
 bool downloadHaxFilesToSD();
 bool downloadStroopwafelFiles(bool toSD);
 bool downloadIsfshaxFiles();
-bool download5sdusb(bool toSLC, bool toSD);
-bool download5upartsd(bool toSLC);
 bool downloadUsbPartitionPlugin(const std::string& pluginFile, const std::string& targetPosixPath);
 bool downloadInstallerOnly();
 bool downloadAroma(const std::string& sdPath = "fs:/vol/external01/");
