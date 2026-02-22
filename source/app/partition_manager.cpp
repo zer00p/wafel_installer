@@ -339,7 +339,6 @@ bool partitionDevice(FSAClientHandle fsaHandle, const char* device, const FSADev
     FatMountGuard guard;
     guard.block();
 
-    uint32_t p1_start_detected = 2048;
     uint8_t* mbr_check = (uint8_t*)memalign(0x40, deviceInfo.deviceSectorSize);
     if (mbr_check) {
         if ((FSStatus)rawRead(fsaHandle, device, 0, 1, mbr_check, deviceInfo.deviceSectorSize) == FS_STATUS_OK) {
@@ -355,11 +354,6 @@ bool partitionDevice(FSAClientHandle fsaHandle, const char* device, const FSADev
                 if (hasFat) {
                     showDialogPrompt(L"Note: If you want to keep the data on your FAT32 partition, you should use a\nPC to resize it. Doing it on the Wii U will DELETE ALL DATA on the device.", L"OK");
                 }
-
-                uint32_t current_p1_start = read32LE(&mbr_check[446 + 8]);
-                if (current_p1_start >= 64 && current_p1_start < 1048576) {
-                    p1_start_detected = current_p1_start;
-                }
             }
         }
         free(mbr_check);
@@ -372,20 +366,16 @@ bool partitionDevice(FSAClientHandle fsaHandle, const char* device, const FSADev
     if (fatPercent > 100) fatPercent = 100;
 
     uint32_t alignSectors = (64 * 1024 * 1024) / deviceInfo.deviceSectorSize;
-    uint32_t p1_start = p1_start_detected;
-    uint32_t final_p1_size = 0;
     uint32_t final_p2_start = 0;
 
     while(true) {
         uint32_t target_p1_size = (uint32_t)(deviceInfo.deviceSizeInSectors * fatPercent / 100.0);
-        uint32_t p2_start = ((p1_start + target_p1_size + alignSectors - 1) / alignSectors) * alignSectors;
+        uint32_t p2_start = ((target_p1_size + alignSectors - 1) / alignSectors) * alignSectors;
         if (p2_start > deviceInfo.deviceSizeInSectors) p2_start = deviceInfo.deviceSizeInSectors;
-        if (p2_start < p1_start) p2_start = p1_start;
 
-        final_p1_size = p2_start - p1_start;
         final_p2_start = p2_start;
 
-        double fatGB = (double)final_p1_size * deviceInfo.deviceSectorSize / (1024.0 * 1024.0 * 1024.0);
+        double fatGB = (double)final_p2_start * deviceInfo.deviceSectorSize / (1024.0 * 1024.0 * 1024.0);
         double ntfsGB = (double)(deviceInfo.deviceSizeInSectors - final_p2_start) * deviceInfo.deviceSectorSize / (1024.0 * 1024.0 * 1024.0);
 
         showDeviceInfoScreen(fsaHandle, device, deviceInfo);
@@ -460,7 +450,8 @@ bool partitionDevice(FSAClientHandle fsaHandle, const char* device, const FSADev
     while (true) {
         WHBLogPrint("Formatting FAT32 partition...");
         WHBLogFreetypeDraw();
-        setCustomFormatSize(final_p1_size);
+        // that also incldues the MBR and alignement gap
+        setCustomFormatSize(final_p2_start);
         WHBUnmountSdCard();
         FSStatus status = (FSStatus)FSA_Format(fsaHandle, device, "fat", 0, 0, 0);
         if (status != FS_STATUS_OK) {
@@ -483,19 +474,25 @@ bool partitionDevice(FSAClientHandle fsaHandle, const char* device, const FSADev
         uint32_t actual_p1_start = read32LE(&mbr[446 + 8]);
         uint32_t actual_p1_size = read32LE(&mbr[446 + 12]);
 
-        uint32_t p2_start = actual_p1_start + actual_p1_size;
-        if (p2_start < deviceInfo.deviceSizeInSectors) {
-            uint32_t p2_size = (uint32_t)(deviceInfo.deviceSizeInSectors - p2_start);
+        if(actual_p1_start + actual_p1_size > final_p2_start){
+            setErrorPrompt(L"Failed to partition, FAT32 partition too large!");
+            if (!showErrorPrompt(L"Cancel", true)) {
+                return false;
+            }
+        }
+
+        if (final_p2_start < deviceInfo.deviceSizeInSectors) {
+            uint32_t p2_size = (uint32_t)(deviceInfo.deviceSizeInSectors - final_p2_start);
 
             uint8_t* pte2 = &mbr[446 + 3 * 16];
             pte2[4] = 0x17;
-            write32LE(&pte2[8], p2_start);
+            write32LE(&pte2[8], final_p2_start);
             write32LE(&pte2[12], p2_size);
 
             WHBLogPrint("Adding second partition to MBR...");
             WHBLogFreetypeDraw();
             if ((FSStatus)rawWrite(fsaHandle, device, 0, 1, mbr, deviceInfo.deviceSectorSize) == FS_STATUS_OK) {
-                writeMbrSignature(fsaHandle, device, p2_start, deviceInfo.deviceSectorSize);
+                writeMbrSignature(fsaHandle, device, final_p2_start, deviceInfo.deviceSectorSize);
             } else {
                 setErrorPrompt(L"Failed to write second partition to MBR!");
                 showErrorPrompt(L"OK");
