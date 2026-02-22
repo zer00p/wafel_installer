@@ -21,7 +21,7 @@
 // Menu screens
 
 void showLoadingScreen() {
-    WHBLogFreetypeSetBackgroundColor(0xEF9B0000);
+    WHBLogFreetypeSetBackgroundColor(0xd4860000);
     WHBLogFreetypeSetFontColor(0xFFFFFFFF);
     WHBLogFreetypeSetFontSize(22);
     WHBLogPrint("Wafel Installer");
