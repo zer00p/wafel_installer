@@ -5,6 +5,7 @@
 #include "fw_img_loader.h"
 #include "download.h"
 #include "filesystem.h"
+#include "common_paths.h"
 #include <isfshax_cmd.h>
 #include <vector>
 #include <string>
@@ -38,8 +39,8 @@ void installIsfshax(bool uninstall, bool manual) {
     }
 
     // For options 0, 1, 2 we need the installer file
-    std::string fwImgPath = convertToPosixPath("/vol/storage_slc/sys/hax/installer/fw.img");
-    if (!fileExist(fwImgPath.c_str())) {
+    std::string fwImgPath = convertToPosixPath(Paths::SlcInstallerFwImg);
+    if (!fileExist(fwImgPath)) {
         uint8_t missingChoice = showDialogPrompt(L"The ISFShax installer (fw.img) is missing.", L"Download", L"Cancel");
         if (missingChoice == 0) {
             if (!downloadIsfshaxFiles()) return;
@@ -55,24 +56,24 @@ void installIsfshax(bool uninstall, bool manual) {
 
     if(uninstall){
         if (confirmIsfshaxAction(L"Uninstall", true)) {
-            std::string slcTmpDir = convertToPosixPath("/vol/storage_slc/sys/tmp");
-            std::string slcInstallerDir = convertToPosixPath("/vol/storage_slc/sys/hax/installer");
-            std::string slcHaxDir = convertToPosixPath("/vol/storage_slc/sys/hax");
+            std::string slcTmpDir = convertToPosixPath(Paths::SlcTmpDir);
+            std::string slcInstallerDir = convertToPosixPath(Paths::SlcInstallerDir);
+            std::string slcHaxDir = convertToPosixPath(Paths::SlcHaxDir);
 
-            std::string srcFwImg = convertToPosixPath("/vol/storage_slc/sys/hax/installer/fw.img");
+            std::string srcFwImg = convertToPosixPath(Paths::SlcInstallerFwImg);
             std::string destFwImg = slcTmpDir + "/fw.img";
 
-            if (!dirExist(slcTmpDir.c_str())) {
+            if (!dirExist(slcTmpDir)) {
                 mkdir(slcTmpDir.c_str(), 0755);
             }
 
-            if (moveFile(srcFwImg.c_str(), destFwImg.c_str())) {
-                deleteDirContent(slcInstallerDir.c_str());
-                removeDir(slcInstallerDir.c_str());
-                if (isDirEmpty(slcHaxDir.c_str())) {
-                    removeDir(slcHaxDir.c_str());
+            if (moveFile(srcFwImg, destFwImg)) {
+                deleteDirContent(slcInstallerDir);
+                removeDir(slcInstallerDir);
+                if (isDirEmpty(slcHaxDir)) {
+                    removeDir(slcHaxDir);
                 }
-                loadFwImg("/vol/system/tmp/fw.img", ISFSHAX_CMD_UNINSTALL, (uint32_t)(ISFSHAX_CMD_POST_REBOOT) << 30 | ISFSHAX_CMD_SOURCE_SLC);
+                loadFwImg(Paths::SystemTmpFwImg, ISFSHAX_CMD_UNINSTALL, (uint32_t)(ISFSHAX_CMD_POST_REBOOT) << 30 | ISFSHAX_CMD_SOURCE_SLC);
             } else {
                 setErrorPrompt(L"Failed to move installer to /sys/tmp!");
                 showErrorPrompt(L"OK");
@@ -83,7 +84,7 @@ void installIsfshax(bool uninstall, bool manual) {
 
 
     if (confirmIsfshaxAction(L"Install")) {
-        loadFwImg("/vol/system/hax/installer/fw.img", ISFSHAX_CMD_INSTALL, (uint32_t)(ISFSHAX_CMD_POST_REBOOT) << 30 | ISFSHAX_CMD_SOURCE_SLC);
+        loadFwImg(Paths::SystemHaxInstallerFwImg, ISFSHAX_CMD_INSTALL, (uint32_t)(ISFSHAX_CMD_POST_REBOOT) << 30 | ISFSHAX_CMD_SOURCE_SLC);
     }
 }
 
@@ -114,8 +115,8 @@ void installIsfshaxMenu() {
 void bootInstaller() {
     if (!checkSystemAccess()) return;
 
-    std::string fwImgPath = convertToPosixPath("/vol/storage_slc/sys/hax/installer/fw.img");
-    if (!fileExist(fwImgPath.c_str())) {
+    std::string fwImgPath = convertToPosixPath(Paths::SlcInstallerFwImg);
+    if (!fileExist(fwImgPath)) {
         setErrorPrompt(L"ISFShax installer (fw.img) is missing!");
         showErrorPrompt(L"OK");
         return;
@@ -125,7 +126,7 @@ void bootInstaller() {
         sleep_for(1s);
         uint8_t choice = showDialogPrompt(L"The ISFShax installer is controlled with the buttons on the main console.\nPOWER: moves the curser\nEJECT: confirm\nPress A to launch into the ISFShax Installer", L"Continue", L"Cancel");
         if (choice == 0) {
-            loadFwImg();
+            loadFwImg(Paths::SystemHaxInstallerFwImg);
             break;
         } else {
             if (showDialogPrompt(L"Are you sure? ISFShax is required for stroopwafel", L"Yes, cancel", L"No, go back") == 0) {

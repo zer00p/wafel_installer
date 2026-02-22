@@ -1085,7 +1085,7 @@ void formatAndPartitionMenu() {
     if (shouldDownloadAroma) {
         sleep_for(2s);
         if (showDialogPrompt(L"Device formatted successfully!\nDo you want to download Aroma now?", L"Yes", L"No") == 0) {
-            downloadAroma("fs:/vol/external01/");
+            downloadAroma();
         }
     }
 

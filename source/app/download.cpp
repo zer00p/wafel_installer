@@ -4,6 +4,7 @@
 #include "menu.h"
 #include "cfw.h"
 #include "filesystem.h"
+#include "common_paths.h"
 #include "common.h"
 #include <curl/curl.h>
 #include <string>
@@ -211,23 +212,8 @@ static bool createIsfsHaxDirectories() {
     if (!checkSystemAccess()) {
         return false;
     }
-    
-    fs::create_directories(convertToPosixPath("/vol/storage_slc/sys/hax/installer"));
+    fs::create_directories(convertToPosixPath(Paths::SlcInstallerDir));
     return true;
-
-    // std::vector<std::string> dirs = {"/vol/storage_slc/sys/hax", "/vol/storage_slc/sys/hax/installer", "/vol/storage_slc/sys/hax/ios_plugins"};
-    // for(const auto& dir : dirs) {
-    //     std::string posix_path = convertToPosixPath(dir.c_str());
-    //     WHBLogFreetypePrintf(L"Create directory %S.", toWstring(posix_path).c_str());
-    //     if (mkdir(posix_path.c_str(), 0755) != 0 && errno != EEXIST) {
-    //         WHBLogFreetypePrintf(L"Failed to create directory %S. Errno: %d", toWstring(posix_path).c_str(), errno);
-    //         WHBLogFreetypeDrawScreen();
-    //         std::wstring error = L"Failed to create directory " + toWstring(posix_path) + L". Errno: " + std::to_wstring(errno);
-    //         setErrorPrompt(error);
-    //         return false;
-    //     }
-    // }
-    // return true;
 }
 
 static bool downloadBasePlugins() {
@@ -235,14 +221,14 @@ static bool downloadBasePlugins() {
     fs::create_directories(pluginPath);
     bool res =  downloadFile(getPluginUrl("00core.ipx"),   pluginPath + "/00core.ipx") &&
                 downloadFile(getPluginUrl("5isfshax.ipx"), pluginPath + "/5isfshax.ipx");
-    bool hasAroma = dirExist("fs:/vol/external01/wiiu/environments/aroma");
+    bool hasAroma = dirExist(convertToPosixPath(Paths::SdAromaDir));
     if(res && hasAroma)
         return downloadFile(getPluginUrl("5payldr.ipx"),  pluginPath + "/5payldr.ipx");
     return res;
 }
 
 bool downloadStroopwafelFiles(bool toSD) {
-    const char *plugin_dir = toSD? "/vol/external01/wiiu/ios_plugins":"/vol/storage_slc/sys/hax/ios_plugins";
+    std::string_view plugin_dir = toSD? Paths::SdPluginsDir : Paths::SlcPluginsDir;
     setStroopwafelPluginPosixPath(convertToPosixPath(plugin_dir));
 
     if (toSD) {
@@ -251,7 +237,7 @@ bool downloadStroopwafelFiles(bool toSD) {
             return false;
         }
         if (!downloadBasePlugins() ||
-            !downloadFile("https://github.com/StroopwafelCFW/minute_minute/releases/latest/download/fw.img", "fs:/vol/external01/fw.img"))
+            !downloadFile("https://github.com/StroopwafelCFW/minute_minute/releases/latest/download/fw.img", convertToPosixPath(Paths::SdFwImg)))
             return false;
 
         ensureMinuteIni();
@@ -259,7 +245,7 @@ bool downloadStroopwafelFiles(bool toSD) {
 
     } else {
         if (!downloadBasePlugins() ||
-            !downloadFile("https://github.com/StroopwafelCFW/minute_minute/releases/latest/download/fw_fastboot.img", convertToPosixPath("/vol/storage_slc/sys/hax/fw.img")))
+            !downloadFile("https://github.com/StroopwafelCFW/minute_minute/releases/latest/download/fw_fastboot.img", convertToPosixPath(Paths::SlcFwImg)))
             return false;
     }
     setStroopwafelDownloadedInSession(true);
@@ -271,16 +257,17 @@ bool downloadIsfshaxFiles() {
 
     // Check for superblock.img on SD
     WHBMountSdCard();
-    if (fileExist("fs:/vol/external01/superblock.img")) {
+    std::string sdRootPosix = convertToPosixPath(Paths::SdRoot);
+    if (fileExist(sdRootPosix + "/superblock.img")) {
         if (showDialogPrompt(L"A superblock.img was found on the SD card.\nDo you want to remove it so the latest one gets used?", L"Yes", L"No") == 0) {
-            remove("fs:/vol/external01/superblock.img");
+            remove((sdRootPosix + "/superblock.img").c_str());
         }
     }
 
-    std::string slcFwImgPath = convertToPosixPath("/vol/storage_slc/sys/hax/installer/fw.img");
+    std::string slcFwImgPath = convertToPosixPath(Paths::SlcInstallerFwImg);
 
-    if (!downloadFile("https://github.com/isfshax/isfshax/releases/latest/download/superblock.img", convertToPosixPath("/vol/storage_slc/sys/hax/installer/sblock.img")) ||
-        !downloadFile("https://github.com/isfshax/isfshax/releases/latest/download/superblock.img.sha", convertToPosixPath("/vol/storage_slc/sys/hax/installer/sblock.sha")) ||
+    if (!downloadFile("https://github.com/isfshax/isfshax/releases/latest/download/superblock.img", convertToPosixPath(Paths::SlcInstallerSblockImg)) ||
+        !downloadFile("https://github.com/isfshax/isfshax/releases/latest/download/superblock.img.sha", convertToPosixPath(Paths::SlcInstallerSblockSha)) ||
         !downloadFile("https://github.com/isfshax/isfshax_installer/releases/latest/download/ios.img", slcFwImgPath))
     {
         return false;
@@ -290,7 +277,7 @@ bool downloadIsfshaxFiles() {
     if (!isSdEmulated() && WHBMountSdCard() == 1) {
         WHBLogFreetypePrintf(L"Copying installer to SD...");
         WHBLogFreetypeDrawScreen();
-        copyFile(slcFwImgPath, "fs:/vol/external01/ios.img");
+        copyFile(slcFwImgPath, sdRootPosix + "/ios.img");
     }
 
     return true;
@@ -464,20 +451,17 @@ static bool downloadAndExtractZip(const std::string& repo, const std::string& pa
     return true;
 }
 
-bool downloadAroma(const std::string& sdPath) {
+bool downloadAroma() {
     WHBLogFreetypeStartScreen();
 
-    if (sdPath == "fs:/vol/external01/") {
-        WHBLogPrint("Mounting SD card...");
-        WHBLogFreetypeDraw();
-        if (WHBMountSdCard() != 1) {
-            setErrorPrompt(L"Failed to mount SD card!");
-            return false;
-        }
+    std::string targetPath = Paths::SdRoot;
+    if (WHBMountSdCard() != 1) {
+        setErrorPrompt(L"Failed to mount SD card!");
+        return false;
     }
 
     // 1. Environment Loader
-    if (!downloadAndExtractZip("wiiu-env/EnvironmentLoader", "EnvironmentLoader", "Environment Loader", sdPath)) {
+    if (!downloadAndExtractZip("wiiu-env/EnvironmentLoader", "EnvironmentLoader", "Environment Loader", targetPath)) {
         return false;
     }
 
@@ -486,17 +470,17 @@ bool downloadAroma(const std::string& sdPath) {
         if (path == "wiiu/payload.elf") return "wiiu/payloads/default/payload.elf";
         return path;
     };
-    if (!downloadAndExtractZip("wiiu-env/CustomRPXLoader", "CustomRPXLoader", "Custom RPX Loader", sdPath, customRpxMapper)) {
+    if (!downloadAndExtractZip("wiiu-env/CustomRPXLoader", "CustomRPXLoader", "Custom RPX Loader", targetPath, customRpxMapper)) {
         return false;
     }
 
     // 3. Payload Loader Payload
-    if (!downloadAndExtractZip("wiiu-env/PayloadLoaderPayload", "PayloadLoaderPayload", "Payload Loader Payload", sdPath)) {
+    if (!downloadAndExtractZip("wiiu-env/PayloadLoaderPayload", "PayloadLoaderPayload", "Payload Loader Payload", targetPath)) {
         return false;
     }
 
     // 4. Aroma
-    if (!downloadAndExtractZip("wiiu-env/Aroma", "aroma", "Aroma", sdPath)) {
+    if (!downloadAndExtractZip("wiiu-env/Aroma", "aroma", "Aroma", targetPath)) {
         return false;
     }
 
@@ -504,7 +488,7 @@ bool downloadAroma(const std::string& sdPath) {
     std::string appstoreUrl = getLatestReleaseAssetUrl("fortheusers/hb-appstore", "appstore.wuhb");
     if (appstoreUrl.empty()) return false;
 
-    std::string appstorePath = sdPath + "wiiu/apps/appstore/";
+    std::string appstorePath = targetPath + "wiiu/apps/appstore/";
     fs::create_directories(appstorePath);
     if (!downloadFile(appstoreUrl, appstorePath + "appstore.wuhb")) {
         return false;
@@ -515,7 +499,7 @@ bool downloadAroma(const std::string& sdPath) {
 
     // Freshly downloaded Aroma, also download payloader plugin if Stroopwafel is present
     std::string pluginPath = getStroopwafelPluginPosixPath();
-    if (!pluginPath.empty() && dirExist(pluginPath.c_str())) {
+    if (!pluginPath.empty() && dirExist(pluginPath)) {
         std::string target = pluginPath;        
         if (target.back() != '/') target += "/";
         target += "5payldr.ipx";
@@ -527,30 +511,6 @@ bool downloadAroma(const std::string& sdPath) {
         } else {
             downloadFile(getPluginUrl("5payldr.ipx"), target);
         }
-    }
-
-    return true;
-}
-
-bool downloadInstallerOnly() {
-    WHBLogFreetypeStartScreen();
-    WHBLogFreetypePrint(L"Starting download of installer...");
-    WHBLogFreetypeDrawScreen();
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-
-    if (!createIsfsHaxDirectories()) return false;
-
-    std::string slcFwImgPath = convertToPosixPath("/vol/storage_slc/sys/hax/installer/fw.img");
-
-    if (!downloadFile("https://github.com/isfshax/isfshax_installer/releases/latest/download/ios.img", slcFwImgPath))
-    {
-        return false;
-    }
-
-    if (!isSdEmulated() && WHBMountSdCard() == 1) {
-        WHBLogFreetypePrintf(L"Copying installer to SD...");
-        WHBLogFreetypeDrawScreen();
-        copyFile(slcFwImgPath, "fs:/vol/external01/ios.img");
     }
 
     return true;

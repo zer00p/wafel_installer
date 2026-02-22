@@ -5,6 +5,7 @@
 #include "partition_manager.h"
 #include "navigation.h"
 #include "filesystem.h"
+#include "common_paths.h"
 #include "gui.h"
 #include "cfw.h"
 #include "fw_img_loader.h"
@@ -61,9 +62,9 @@ void loadArbitraryFwImgMenu() {
         return;
     }
 
-    const char* cfwDir = "fs:/vol/external01/wiiu/cfw";
+    std::string cfwDir = convertToPosixPath(Paths::SdCfwDir);
     if (!dirExist(cfwDir)) {
-        if (mkdir(cfwDir, 0755) != 0 && errno != EEXIST) {
+        if (mkdir(cfwDir.c_str(), 0755) != 0 && errno != EEXIST) {
             setErrorPrompt(L"Failed to create wiiu/cfw directory on SD!");
             showErrorPrompt(L"OK");
             return;
@@ -72,7 +73,7 @@ void loadArbitraryFwImgMenu() {
         return;
     }
 
-    DIR* dir = opendir(cfwDir);
+    DIR* dir = opendir(cfwDir.c_str());
     if (!dir) {
         setErrorPrompt(L"Failed to open wiiu/cfw directory!");
         showErrorPrompt(L"OK");
@@ -95,8 +96,8 @@ void loadArbitraryFwImgMenu() {
 
     uint8_t choice = showDialogPrompt(L"Select a fw.img to load:", files);
     if (choice != 255) {
-        std::string fullPath = "/vol/sdcard/wiiu/cfw/" + toString(files[choice]);
-        loadFwImg(fullPath.c_str());
+        std::string fullPath = Paths::SdCfwDir + "/" + toString(files[choice]);
+        loadFwImg(fullPath);
     }
 }
 

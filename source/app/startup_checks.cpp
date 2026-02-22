@@ -5,6 +5,7 @@
 #include "partition_manager.h"
 #include "navigation.h"
 #include "filesystem.h"
+#include "common_paths.h"
 #include "gui.h"
 #include "cfw.h"
 #include "fw_img_loader.h"
@@ -87,7 +88,7 @@ static void setupUsbStorage(FSAClientHandle fsaHandle, bool& wantsPartitionedSto
 }
 
 void performAromaCheck() {
-    if ((WHBMountSdCard() == 1) && !dirExist("fs:/vol/external01/wiiu/environments/aroma")) {
+    if ((WHBMountSdCard() == 1) && !dirExist(convertToPosixPath(Paths::SdAromaDir))) {
         if (showDialogPrompt(L"Aroma is missing on your SD card.\nDo you want to download Aroma by Maschell and the HB Appstore now?", L"Yes", L"No") == 0) {
             downloadAroma();
         }
@@ -97,7 +98,7 @@ void performAromaCheck() {
 void performStroopwafelCheck(bool wantsPartitionedStorage) {
     bool filesExist = true;
     std::string path = getStroopwafelPluginPosixPath();
-    if (path.empty() || !dirExist(path.c_str())) {
+    if (path.empty() || !dirExist(path)) {
         filesExist = false;
     }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <string_view>
 #include <vector>
 
 struct Plugin {
@@ -20,8 +21,7 @@ bool downloadHaxFilesToSD();
 bool downloadStroopwafelFiles(bool toSD);
 bool downloadIsfshaxFiles();
 bool downloadUsbPartitionPlugin(const std::string& pluginFile, const std::string& targetPosixPath);
-bool downloadInstallerOnly();
-bool downloadAroma(const std::string& sdPath = "fs:/vol/external01/");
+bool downloadAroma(void);
 bool downloadFile(const std::string& url, const std::string& path);
 bool downloadToBuffer(const std::string& url, std::string& buffer);
 std::string getLatestReleaseAssetDigest(const std::string& repo, const std::string& assetName);

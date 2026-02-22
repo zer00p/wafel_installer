@@ -106,7 +106,7 @@ static bool applyPatch(uint32_t addr, const void* data, size_t size, const wchar
 }
 
 
-void loadFwImg(const char* fwPath, uint32_t command, uint32_t parameter) {
+void loadFwImg(const std::string& fwPath, uint32_t command, uint32_t parameter) {
     WHBLogFreetypeStartScreen();
 
     if (command != 0) {
@@ -127,19 +127,18 @@ void loadFwImg(const char* fwPath, uint32_t command, uint32_t parameter) {
 
     if (stroopwafel_available) {
         WHBLogFreetypePrint(L"libstroopwafel is available. Using stroopwafel to change firmware path.");
-        Stroopwafel_SetFwPath(fwPath);
+        Stroopwafel_SetFwPath(fwPath.c_str());
         WHBLogFreetypePrint(L"Path changed using libstroopwafel. Skipping patches.");
     } else {
         WHBLogFreetypePrint(L"libstroopwafel not available. Applying fw.img patches...");
 
         char fwDir[64];
         std::memset(fwDir, 0, sizeof(fwDir));
-        std::string fwPathStr(fwPath);
-        size_t lastSlash = fwPathStr.find_last_of('/');
+        size_t lastSlash = fwPath.find_last_of('/');
         if (lastSlash != std::string::npos) {
-            std::strncpy(fwDir, fwPathStr.substr(0, lastSlash).c_str(), sizeof(fwDir) - 1);
+            std::strncpy(fwDir, fwPath.substr(0, lastSlash).c_str(), sizeof(fwDir) - 1);
         } else {
-            std::strncpy(fwDir, "/vol/system/hax/installer", sizeof(fwDir) - 1);
+            std::strncpy(fwDir, Paths::SlcInstallerDir.c_str(), sizeof(fwDir) - 1);
         }
 
         if (!applyPatch(0x050663B4, fwDir, sizeof(fwDir), L"Applying fw_path...")) return;
@@ -183,7 +182,7 @@ void loadFwImg(const char* fwPath, uint32_t command, uint32_t parameter) {
     }
 
     WHBLogFreetypeClear();
-    if (strcmp(fwPath, "/vol/system/hax/installer/fw.img") == 0) {
+    if (fwPath == Paths::SystemHaxInstallerFwImg) {
         WHBLogFreetypePrint(L"Patches applied. Launching ISFShax Installer...");
     } else {
         WHBLogFreetypePrintf(L"Patches applied. Launching %S...", toWstring(fwPath).c_str());

@@ -3,6 +3,7 @@
 #include "menu.h"
 #include "navigation.h"
 #include "filesystem.h"
+#include "common_paths.h"
 
 #include <mocha/mocha.h>
 #include <stroopwafel/stroopwafel.h> // Assuming this is the correct header
@@ -51,12 +52,12 @@ CFWVersion testCFW() {
         if (Stroopwafel_GetPluginPath(&currentPath) == STROOPWAFEL_RESULT_SUCCESS) {
             std::string fullVolPath;
             if (currentPath.device == STROOPWAFEL_MIN_DEV_SLC) {
-                fullVolPath = "/vol/storage_slc" + std::string(currentPath.path);
+                fullVolPath = Paths::SlcRoot + currentPath.path;
             } else if (currentPath.device == STROOPWAFEL_MIN_DEV_SD) {
-                fullVolPath = "/vol/external01" + std::string(currentPath.path);
+                fullVolPath = Paths::SdRoot + currentPath.path;
             }
             if (!fullVolPath.empty()) {
-                stroopwafel_plugin_posix_path = convertToPosixPath(fullVolPath.c_str());
+                stroopwafel_plugin_posix_path = convertToPosixPath(fullVolPath);
             }
         }
     } else {

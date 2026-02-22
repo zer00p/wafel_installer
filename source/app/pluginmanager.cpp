@@ -3,6 +3,7 @@
 #include "gui.h"
 #include "navigation.h"
 #include "filesystem.h"
+#include "common_paths.h"
 #include "cfw.h"
 #include "download.h"
 #include "minute_config.h"
@@ -143,20 +144,20 @@ static bool browsePlugins(std::string posixPath) {
 }
 
 static bool syncPlugins(const std::string& sourcePosixPath) {
-    std::string slcPosix = convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins");
-    std::string sdPosix = convertToPosixPath("/vol/external01/wiiu/ios_plugins");
+    std::string slcPosix = convertToPosixPath(Paths::SlcPluginsDir);
+    std::string sdPosix = convertToPosixPath(Paths::SdPluginsDir);
     std::string destPosixPath;
     std::string sourceFwImg;
     std::string destFwImg;
 
     if (sourcePosixPath == slcPosix) {
         destPosixPath = sdPosix;
-        sourceFwImg = convertToPosixPath("/vol/storage_slc/sys/hax/fw.img");
-        destFwImg = convertToPosixPath("/vol/external01/fw.img");
+        sourceFwImg = convertToPosixPath(Paths::SlcFwImg);
+        destFwImg = convertToPosixPath(Paths::SdFwImg);
     } else if (sourcePosixPath == sdPosix) {
         destPosixPath = slcPosix;
-        sourceFwImg = convertToPosixPath("/vol/external01/fw.img");
-        destFwImg = convertToPosixPath("/vol/storage_slc/sys/hax/fw.img");
+        sourceFwImg = convertToPosixPath(Paths::SdFwImg);
+        destFwImg = convertToPosixPath(Paths::SlcFwImg);
     } else {
         return false;
     }
@@ -165,7 +166,7 @@ static bool syncPlugins(const std::string& sourcePosixPath) {
     if (showDialogPrompt(msg.c_str(), L"Yes", L"No") != 0) return false;
 
     bool copyFwImg = false;
-    if (fileExist(sourceFwImg.c_str())) {
+    if (fileExist(sourceFwImg)) {
         msg = L"Do you also want to copy the minute (fw.img)?\nSource: " + toWstring(sourceFwImg) + L"\nDestination: " + toWstring(destFwImg);
         if (showDialogPrompt(msg.c_str(), L"Yes", L"No") == 0) {
             copyFwImg = true;
@@ -177,7 +178,7 @@ static bool syncPlugins(const std::string& sourcePosixPath) {
     WHBLogFreetypeDrawScreen();
 
     // Ensure destination directory exists
-    if (!dirExist(destPosixPath.c_str())) {
+    if (!dirExist(destPosixPath)) {
         try {
             std::filesystem::create_directories(destPosixPath);
         } catch (...) {
@@ -255,8 +256,8 @@ static bool managePlugins(std::string posixPath) {
     bool changed = false;
     std::vector<std::string> plugins;
 
-    std::string slcPosix = convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins");
-    std::string sdPosix = convertToPosixPath("/vol/external01/wiiu/ios_plugins");
+    std::string slcPosix = convertToPosixPath(Paths::SlcPluginsDir);
+    std::string sdPosix = convertToPosixPath(Paths::SdPluginsDir);
     bool isStandardPath = (posixPath == slcPosix || posixPath == sdPosix);
 
     while(true) {
@@ -373,8 +374,8 @@ static bool managePlugins(std::string posixPath) {
 }
 
 void checkForUpdates() {
-    std::string slcPosix = convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins");
-    std::string sdPosix = "fs:/vol/external01/wiiu/ios_plugins";
+    std::string slcPosix = convertToPosixPath(Paths::SlcPluginsDir);
+    std::string sdPosix = convertToPosixPath(Paths::SdPluginsDir);
     std::string currentPosix = getStroopwafelPluginPosixPath();
 
     std::string targetPosix = "";
@@ -382,19 +383,19 @@ void checkForUpdates() {
 
     if (currentPosix == slcPosix) {
         targetPosix = slcPosix;
-        minutePath = convertToPosixPath("/vol/storage_slc/sys/hax/fw.img");
-    } else if (currentPosix == sdPosix || currentPosix == "fs:/vol/external01/wiiu/ios_plugins/") {
+        minutePath = convertToPosixPath(Paths::SlcFwImg);
+    } else if (currentPosix == sdPosix || currentPosix == sdPosix + "/") {
         targetPosix = sdPosix;
-        minutePath = "fs:/vol/external01/fw.img";
+        minutePath = convertToPosixPath(Paths::SdFwImg);
     } else {
         uint8_t choice = showDialogPrompt(L"Which location do you want to check for updates?", L"SD", L"SLC", L"Cancel");
         if (choice == 0) {
             targetPosix = sdPosix;
-            minutePath = "fs:/vol/external01/fw.img";
+            minutePath = convertToPosixPath(Paths::SdFwImg);
         } else if (choice == 1) {
             if (!checkSystemAccess()) return;
             targetPosix = slcPosix;
-            minutePath = convertToPosixPath("/vol/storage_slc/sys/hax/fw.img");
+            minutePath = convertToPosixPath(Paths::SlcFwImg);
         } else {
             return;
         }
@@ -484,7 +485,7 @@ void checkForUpdates() {
     }
 
     // Check minute
-    if (fileExist(minutePath.c_str())) {
+    if (fileExist(minutePath)) {
         WHBLogFreetypePrint(L"Checking minute (fw.img)...");
         WHBLogFreetypeDrawScreen();
 
@@ -552,8 +553,8 @@ void checkForUpdates() {
 
 void showPluginManager() {
     bool anyChanged = false;
-    std::string slcPosix = convertToPosixPath("/vol/storage_slc/sys/hax/ios_plugins");
-    std::string sdPosix = convertToPosixPath("/vol/external01/wiiu/ios_plugins");
+    std::string slcPosix = convertToPosixPath(Paths::SlcPluginsDir);
+    std::string sdPosix = convertToPosixPath(Paths::SdPluginsDir);
     std::string currentPosix = getStroopwafelPluginPosixPath();
 
     std::vector<std::pair<std::wstring, std::string>> options;

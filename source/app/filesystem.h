@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.h"
+#include <string_view>
 
 // Functions related to devices
 bool mountSystemDrives();
@@ -13,15 +14,15 @@ bool isSlcMounted();
 bool testStorage(TITLE_LOCATION location);
 
 // Filesystem helper functions
-std::string convertToPosixPath(const char* volPath);
-bool fileExist(const char* path);
-bool dirExist(const char* path);
-bool isDirEmpty(const char* path);
+std::string convertToPosixPath(std::string_view volPath);
+bool fileExist(const std::string& path);
+bool dirExist(const std::string& path);
+bool isDirEmpty(const std::string& path);
 bool copyFile(const std::string& src, const std::string& dest);
-bool moveFile(const char* src, const char* dest);
-bool removeFile(const char* path);
-bool removeDir(const char* path);
-bool deleteDirContent(const char* path);
+bool moveFile(const std::string& src, const std::string& dest);
+bool removeFile(const std::string& path);
+bool removeDir(const std::string& path);
+bool deleteDirContent(const std::string& path);
 
-TITLE_LOCATION deviceToLocation(const char* device);
-TITLE_LOCATION pathToLocation(const char* device);
+TITLE_LOCATION deviceToLocation(std::string_view device);
+TITLE_LOCATION pathToLocation(std::string_view device);

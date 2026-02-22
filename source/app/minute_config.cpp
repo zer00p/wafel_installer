@@ -3,6 +3,7 @@
 #include "navigation.h"
 #include "gui.h"
 #include "filesystem.h"
+#include "common_paths.h"
 #include "common.h"
 #include <whb/sdcard.h>
 #include <cstdio>
@@ -17,10 +18,10 @@ namespace fs = std::filesystem;
 
 void ensureMinuteIni() {
     WHBMountSdCard();
-    std::string minuteDir = "fs:/vol/external01/minute";
+    std::string minuteDir = convertToPosixPath(Paths::SdMinuteDir);
     std::string iniPath = minuteDir + "/minute.ini";
     fs::create_directories(minuteDir);
-    if (!fileExist(iniPath.c_str())) {
+    if (!fileExist(iniPath)) {
         int fd = open(iniPath.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
         if (fd >= 0) {
             const char* content = "[boot]\nautoboot=3\nautoboot_timeout=0\n";
@@ -32,7 +33,7 @@ void ensureMinuteIni() {
 
 void configureMinuteMenu() {
     WHBMountSdCard();
-    std::string iniPath = "fs:/vol/external01/minute/minute.ini";
+    std::string iniPath = convertToPosixPath(Paths::SdMinuteDir) + "/minute.ini";
 
     int autoboot = 3;
     int timeout = 0;
@@ -100,7 +101,7 @@ void configureMinuteMenu() {
                     break;
                 } else if (selectedOption == 2) {
                     // Save
-                    std::string minuteDir = "fs:/vol/external01/minute";
+                    std::string minuteDir = convertToPosixPath(Paths::SdMinuteDir);
                     fs::create_directories(minuteDir);
                     FILE* f = fopen(iniPath.c_str(), "w");
                     if (f) {

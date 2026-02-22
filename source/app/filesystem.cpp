@@ -1,4 +1,5 @@
 #include "filesystem.h"
+#include "common_paths.h"
 #include "cfw.h"
 #include "gui.h"
 #include "progress.h"
@@ -21,7 +22,7 @@ bool unmountDefaultDevoptab() {
 
     FSCmdBlock cmd;
     FSInitCmdBlock(&cmd);
-    if (FSStatus res = FSUnmount(__wut_devoptab_fs_client, &cmd, "/vol/external01", FS_ERROR_FLAG_ALL); res != FS_STATUS_OK) {
+    if (FSStatus res = FSUnmount(__wut_devoptab_fs_client, &cmd, Paths::SdRoot.c_str(), FS_ERROR_FLAG_ALL); res != FS_STATUS_OK) {
         WHBLogPrintf("Couldn't unmount default devoptab with path %s! Error = %X", mountPath, res);
         WHBLogFreetypeDraw();
         return false;
@@ -102,8 +103,8 @@ bool isDiscMounted() {
 }
 
 bool testStorage(TITLE_LOCATION location) {
-    if (location == TITLE_LOCATION::NAND) return dirExist(convertToPosixPath("/vol/storage_mlc01/usr/").c_str());
-    if (location == TITLE_LOCATION::USB) return dirExist(convertToPosixPath("/vol/storage_usb01/usr/").c_str());
+    if (location == TITLE_LOCATION::NAND) return dirExist(convertToPosixPath(Paths::MlcUsrDir));
+    if (location == TITLE_LOCATION::USB) return dirExist(convertToPosixPath(Paths::UsbUsrDir));
     //if (location == TITLE_LOCATION::Disc) return dirExist("storage_odd01:/usr/");
     return false;
 }
@@ -135,57 +136,70 @@ bool isDiscInserted() {
 
 // Wii U libraries will give us paths that use /vol/storage_mlc01/file.txt, but libiosuhax uses the mounted drive paths like storage_mlc01:/file.txt (and wut uses fs:/vol/sys_mlc01/file.txt)
 // Converts a Wii U device path to a posix path
-std::string convertToPosixPath(const char* volPath) {
+std::string convertToPosixPath(std::string_view volPath) {
     std::string posixPath;
 
     // volPath has to start with /vol/
-    if (strncmp("/vol/", volPath, 5) != 0) return "";
+    if (!volPath.starts_with("/vol/")) return "";
 
     if (USE_LIBMOCHA()) {
+        // Handle /vol/system/ as an alias for /vol/storage_slc/sys/
+        if (volPath.substr(5, 6) == "system" && (volPath.size() == 11 || volPath[11] == '/')) {
+            std::string path = "storage_slc:/sys";
+            if (volPath.size() > 11) path += volPath.substr(11);
+            else path += "/";
+            return path;
+        }
+
         // For the SD card, we want to use the fs: prefix since it's not mounted via mocha
-        if (strncmp(volPath + 5, "external01", 10) == 0) {
-            return std::string("fs:") + volPath;
+        if (volPath.substr(5, 10) == "external01") {
+            std::string path = "fs:";
+            path += volPath;
+            return path;
         }
 
         // Get and append the mount path
-        const char *drivePathEnd = strchr(volPath + 5, '/');
-        if (drivePathEnd == nullptr) {
+        size_t drivePathEnd = volPath.find('/', 5);
+        if (drivePathEnd == std::string_view::npos) {
             // Return just the mount path
-            posixPath.append(volPath + 5);
+            posixPath.append(volPath.substr(5));
             posixPath.append(":");
         } else {
             // Return mount path + the path after it
-            posixPath.append(volPath, 5, drivePathEnd - (volPath + 5));
+            posixPath.append(volPath.substr(5, drivePathEnd - 5));
             posixPath.append(":/");
-            posixPath.append(drivePathEnd + 1);
+            posixPath.append(volPath.substr(drivePathEnd + 1));
         }
         return posixPath;
     }
-    else return std::string("fs:") + volPath;
+    else {
+        std::string path = "fs:";
+        path += volPath;
+        return path;
+    }
 }
 
 
 struct stat existStat;
 const std::regex rootFilesystem(R"(^fs:\/vol\/[^\/:]+\/?$)");
-bool isRoot(const char* path) {
-    std::string newPath(path);
-    if (newPath.size() >= 2 && newPath.rbegin()[0] == ':') return true;
-    if (newPath.size() >= 3 && newPath.rbegin()[1] == ':' && newPath.rbegin()[0] == '/') return true;
+bool isRoot(std::string_view path) {
+    if (path.size() >= 2 && path.back() == ':') return true;
+    if (path.size() >= 3 && path[path.size() - 2] == ':' && path.back() == '/') return true;
     if (true/*!IS_CEMU_PRESENT()*/) {
-        if (std::regex_match(newPath, rootFilesystem)) return true;
+        if (std::regex_match(path.begin(), path.end(), rootFilesystem)) return true;
     }
     return false;
 }
 
-bool fileExist(const char* path) {
+bool fileExist(const std::string& path) {
     if (isRoot(path)) return true;
-    if (lstat(path, &existStat) == 0 && S_ISREG(existStat.st_mode)) return true;
+    if (lstat(path.c_str(), &existStat) == 0 && S_ISREG(existStat.st_mode)) return true;
     return false;
 }
 
-bool dirExist(const char* path) {
+bool dirExist(const std::string& path) {
     if (isRoot(path)) return true;
-    if (lstat(path, &existStat) == 0 && S_ISDIR(existStat.st_mode)) return true;
+    if (lstat(path.c_str(), &existStat) == 0 && S_ISDIR(existStat.st_mode)) return true;
     return false;
 }
 
@@ -197,8 +211,8 @@ bool copyFile(const std::string& src, const std::string& dest) {
     }
 }
 
-bool moveFile(const char* src, const char* dest) {
-    if (rename(src, dest) == 0) return true;
+bool moveFile(const std::string& src, const std::string& dest) {
+    if (rename(src.c_str(), dest.c_str()) == 0) return true;
     if (copyFile(src, dest)) {
         removeFile(src);
         return true;
@@ -206,31 +220,31 @@ bool moveFile(const char* src, const char* dest) {
     return false;
 }
 
-bool removeFile(const char* path) {
-    return unlink(path) == 0;
+bool removeFile(const std::string& path) {
+    return unlink(path.c_str()) == 0;
 }
 
-bool removeDir(const char* path) {
-    return rmdir(path) == 0;
+bool removeDir(const std::string& path) {
+    return rmdir(path.c_str()) == 0;
 }
 
-bool deleteDirContent(const char* path) {
+bool deleteDirContent(const std::string& path) {
     DIR* dirHandle;
-    if ((dirHandle = opendir(path)) == nullptr) return false;
+    if ((dirHandle = opendir(path.c_str())) == nullptr) return false;
 
     struct dirent *dirEntry;
     while((dirEntry = readdir(dirHandle)) != nullptr) {
         if (strcmp(dirEntry->d_name, ".") == 0 || strcmp(dirEntry->d_name, "..") == 0) continue;
 
-        std::string fullPath = std::string(path);
+        std::string fullPath = path;
         if (fullPath.back() != '/') fullPath += "/";
         fullPath += dirEntry->d_name;
 
         if ((dirEntry->d_type & DT_DIR) == DT_DIR) {
-            deleteDirContent(fullPath.c_str());
-            removeDir(fullPath.c_str());
+            deleteDirContent(fullPath);
+            removeDir(fullPath);
         } else {
-            removeFile(fullPath.c_str());
+            removeFile(fullPath);
         }
     }
 
@@ -238,9 +252,9 @@ bool deleteDirContent(const char* path) {
     return true;
 }
 
-bool isDirEmpty(const char* path) {
+bool isDirEmpty(const std::string& path) {
     DIR* dirHandle;
-    if ((dirHandle = opendir(path)) == nullptr) return true;
+    if ((dirHandle = opendir(path.c_str())) == nullptr) return true;
 
     struct dirent *dirEntry;
     while((dirEntry = readdir(dirHandle)) != nullptr) {
