@@ -55,7 +55,28 @@ void installIsfshax(bool uninstall, bool manual) {
 
     if(uninstall){
         if (confirmIsfshaxAction(L"Uninstall", true)) {
-            loadFwImg("/vol/system/hax/installer/fw.img", ISFSHAX_CMD_UNINSTALL, (uint32_t)(ISFSHAX_CMD_POST_REBOOT) << 30 | ISFSHAX_CMD_SOURCE_SLC);
+            std::string slcTmpDir = convertToPosixPath("/vol/storage_slc/sys/tmp");
+            std::string slcInstallerDir = convertToPosixPath("/vol/storage_slc/sys/hax/installer");
+            std::string slcHaxDir = convertToPosixPath("/vol/storage_slc/sys/hax");
+
+            std::string srcFwImg = convertToPosixPath("/vol/storage_slc/sys/hax/installer/fw.img");
+            std::string destFwImg = slcTmpDir + "/fw.img";
+
+            if (!dirExist(slcTmpDir.c_str())) {
+                mkdir(slcTmpDir.c_str(), 0755);
+            }
+
+            if (moveFile(srcFwImg.c_str(), destFwImg.c_str())) {
+                deleteDirContent(slcInstallerDir.c_str());
+                removeDir(slcInstallerDir.c_str());
+                if (isDirEmpty(slcHaxDir.c_str())) {
+                    removeDir(slcHaxDir.c_str());
+                }
+                loadFwImg("/vol/system/tmp/fw.img", ISFSHAX_CMD_UNINSTALL, (uint32_t)(ISFSHAX_CMD_POST_REBOOT) << 30 | ISFSHAX_CMD_SOURCE_SLC);
+            } else {
+                setErrorPrompt(L"Failed to move installer to /sys/tmp!");
+                showErrorPrompt(L"OK");
+            }
         }
         return;
     }
