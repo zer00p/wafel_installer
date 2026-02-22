@@ -193,7 +193,6 @@ void showMainMenu() {
             WHBLogFreetypeDrawScreen();
 
             // Loop until there's new input
-            sleep_for(200ms); // Cooldown between each button press
             updateInputs();
             while(!startSelectedOption) {
                 if (isShutdownForced()) return;
@@ -223,7 +222,6 @@ void showMainMenu() {
                     }
                     else break;
                 }
-                sleep_for(50ms);
             }
         }
 
@@ -265,8 +263,6 @@ void showMainMenu() {
             default:
                 break;
         }
-
-        sleep_for(500ms);
     }
 }
 
@@ -274,7 +270,6 @@ void showMainMenu() {
 // Helper functions
 
 uint8_t showDialogPrompt(const wchar_t* message, const std::vector<std::wstring>& buttons, uint8_t defaultOption, bool clearScreen) {
-    sleep_for(100ms);
     uint8_t selectedOption = defaultOption;
     uint8_t numButtons = buttons.size();
     uint32_t startPos = clearScreen ? 0 : WHBLogFreetypeGetScreenPosition();
@@ -301,7 +296,6 @@ uint8_t showDialogPrompt(const wchar_t* message, const std::vector<std::wstring>
         WHBLogFreetypeDrawScreen();
 
         // Input loop
-        sleep_for(400ms);
         updateInputs();
         while (true) {
             updateInputs();
@@ -324,8 +318,6 @@ uint8_t showDialogPrompt(const wchar_t* message, const std::vector<std::wstring>
                 WHBLogFreetypeStartScreen();
                 return 255;
             }
-
-            sleep_for(50ms);
         }
     }
 }
@@ -373,7 +365,6 @@ bool showErrorPrompt(const wchar_t* button, bool retryAllowed) {
     while(true) {
         updateInputs();
         if (pressedOk()) break;
-        sleep_for(50ms);
     }
 
     std::wstring promptMessage(L"An error occurred:\n");
@@ -389,7 +380,6 @@ bool showErrorPrompt(const wchar_t* button, bool retryAllowed) {
 }
 
 void showSuccessPrompt(const wchar_t* message) {
-    sleep_for(2s);
     showDialogPrompt(message, L"OK");
 }
 

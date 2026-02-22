@@ -44,7 +44,7 @@ void updateInputs() {
 // Check whether the Gamepad is pressing the specified button
 bool vpadButtonPressed(VPADButtons button) {
     if (vpadError == VPAD_READ_SUCCESS) {
-        if (vpadBuffer[0].hold & button) return true;
+        if (vpadBuffer[0].trigger & button) return true;
     }
     return false;
 }
@@ -71,31 +71,31 @@ bool kpadButtonPressed(WPADButton button) {
         if (!pad.connected) continue;
 
         if (pad.status.extensionType == KPADExtensionType::WPAD_EXT_CORE || pad.status.extensionType == KPADExtensionType::WPAD_EXT_NUNCHUK || pad.status.extensionType == KPADExtensionType::WPAD_EXT_MPLUS_NUNCHUK) {
-            if (button == WPAD_BUTTON_A) return pad.status.hold & WPAD_BUTTON_A;
-            if (button == WPAD_BUTTON_B) return pad.status.hold & WPAD_BUTTON_B;
-            if (button == WPAD_BUTTON_PLUS) return pad.status.hold & WPAD_BUTTON_PLUS;
-            if (button == WPAD_BUTTON_UP) return pad.status.hold & WPAD_BUTTON_UP;
-            if (button == WPAD_BUTTON_DOWN) return pad.status.hold & WPAD_BUTTON_DOWN;
-            if (button == WPAD_BUTTON_LEFT) return pad.status.hold & WPAD_BUTTON_LEFT;
-            if (button == WPAD_BUTTON_RIGHT) return pad.status.hold & WPAD_BUTTON_DOWN;
+            if (button == WPAD_BUTTON_A) return pad.status.trigger & WPAD_BUTTON_A;
+            if (button == WPAD_BUTTON_B) return pad.status.trigger & WPAD_BUTTON_B;
+            if (button == WPAD_BUTTON_PLUS) return pad.status.trigger & WPAD_BUTTON_PLUS;
+            if (button == WPAD_BUTTON_UP) return pad.status.trigger & WPAD_BUTTON_UP;
+            if (button == WPAD_BUTTON_DOWN) return pad.status.trigger & WPAD_BUTTON_DOWN;
+            if (button == WPAD_BUTTON_LEFT) return pad.status.trigger & WPAD_BUTTON_LEFT;
+            if (button == WPAD_BUTTON_RIGHT) return pad.status.trigger & WPAD_BUTTON_RIGHT;
         }
         else if (pad.status.extensionType == KPADExtensionType::WPAD_EXT_CLASSIC || pad.status.extensionType == KPADExtensionType::WPAD_EXT_MPLUS_CLASSIC) {
-            if (button == WPAD_BUTTON_A) return pad.status.classic.hold & WPAD_CLASSIC_BUTTON_A;
-            if (button == WPAD_BUTTON_B) return pad.status.classic.hold & WPAD_CLASSIC_BUTTON_B;
-            if (button == WPAD_BUTTON_PLUS) return pad.status.classic.hold & WPAD_CLASSIC_BUTTON_PLUS;
-            if (button == WPAD_BUTTON_UP) return pad.status.classic.hold & WPAD_CLASSIC_BUTTON_UP;
-            if (button == WPAD_BUTTON_DOWN) return pad.status.classic.hold & WPAD_CLASSIC_BUTTON_DOWN;
-            if (button == WPAD_BUTTON_LEFT) return pad.status.classic.hold & WPAD_CLASSIC_BUTTON_LEFT;
-            if (button == WPAD_BUTTON_RIGHT) return pad.status.classic.hold & WPAD_CLASSIC_BUTTON_RIGHT;
+            if (button == WPAD_BUTTON_A) return pad.status.classic.trigger & WPAD_CLASSIC_BUTTON_A;
+            if (button == WPAD_BUTTON_B) return pad.status.classic.trigger & WPAD_CLASSIC_BUTTON_B;
+            if (button == WPAD_BUTTON_PLUS) return pad.status.classic.trigger & WPAD_CLASSIC_BUTTON_PLUS;
+            if (button == WPAD_BUTTON_UP) return pad.status.classic.trigger & WPAD_CLASSIC_BUTTON_UP;
+            if (button == WPAD_BUTTON_DOWN) return pad.status.classic.trigger & WPAD_CLASSIC_BUTTON_DOWN;
+            if (button == WPAD_BUTTON_LEFT) return pad.status.classic.trigger & WPAD_CLASSIC_BUTTON_LEFT;
+            if (button == WPAD_BUTTON_RIGHT) return pad.status.classic.trigger & WPAD_CLASSIC_BUTTON_RIGHT;
         }
         else if (pad.status.extensionType == KPADExtensionType::WPAD_EXT_PRO_CONTROLLER) {
-            if (button == WPAD_BUTTON_A) return pad.status.pro.hold & WPAD_PRO_BUTTON_A;
-            if (button == WPAD_BUTTON_B) return pad.status.pro.hold & WPAD_PRO_BUTTON_B;
-            if (button == WPAD_BUTTON_PLUS) return pad.status.pro.hold & WPAD_PRO_BUTTON_PLUS;
-            if (button == WPAD_BUTTON_UP) return pad.status.pro.hold & WPAD_PRO_BUTTON_UP;
-            if (button == WPAD_BUTTON_DOWN) return pad.status.pro.hold & WPAD_PRO_BUTTON_DOWN;
-            if (button == WPAD_BUTTON_LEFT) return pad.status.pro.hold & WPAD_PRO_BUTTON_LEFT;
-            if (button == WPAD_BUTTON_RIGHT) return pad.status.pro.hold & WPAD_PRO_BUTTON_RIGHT;
+            if (button == WPAD_BUTTON_A) return pad.status.pro.trigger & WPAD_PRO_BUTTON_A;
+            if (button == WPAD_BUTTON_B) return pad.status.pro.trigger & WPAD_PRO_BUTTON_B;
+            if (button == WPAD_BUTTON_PLUS) return pad.status.pro.trigger & WPAD_PRO_BUTTON_PLUS;
+            if (button == WPAD_BUTTON_UP) return pad.status.pro.trigger & WPAD_PRO_BUTTON_UP;
+            if (button == WPAD_BUTTON_DOWN) return pad.status.pro.trigger & WPAD_PRO_BUTTON_DOWN;
+            if (button == WPAD_BUTTON_LEFT) return pad.status.pro.trigger & WPAD_PRO_BUTTON_LEFT;
+            if (button == WPAD_BUTTON_RIGHT) return pad.status.pro.trigger & WPAD_PRO_BUTTON_RIGHT;
         }
     }
     return false;
