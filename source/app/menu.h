@@ -19,3 +19,4 @@ void setErrorPrompt(const wchar_t* message);
 void setErrorPrompt(std::wstring message);
 bool showErrorPrompt(const wchar_t* button, bool retryAllowed = false);
 void showSuccessPrompt(const wchar_t* message);
+void showUninstallMenu();

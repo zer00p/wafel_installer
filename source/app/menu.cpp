@@ -15,11 +15,13 @@
 #include <string>
 #include <dirent.h>
 #include <whb/sdcard.h>
+#include <mocha/fsa.h>
+#include "fw_img_loader.h"
 
 // Menu screens
 
 void showLoadingScreen() {
-    WHBLogFreetypeSetBackgroundColor(0x0b5d5e00);
+    WHBLogFreetypeSetBackgroundColor(0xEF9B0000);
     WHBLogFreetypeSetFontColor(0xFFFFFFFF);
     WHBLogFreetypeSetFontSize(22);
     WHBLogPrint("Wafel Installer");
@@ -133,7 +135,9 @@ void installStroopwafelMenu() {
 }
 
 void installAromaMenu() {
-    if (showDialogPrompt(L"Do you want to download Aroma by Maschell and the HB Appstore now?\n\nNote: Aroma plugins like Inkay (Pretendo) or FTP can be downloaded with the Aroma Updater later.", L"Download", L"Cancel") != 0) {
+    if (showDialogPrompt(L"Do you want to download Aroma by Maschell and the HB Appstore now?\n \n"
+                         L"Note: Aroma plugins like Inkay (Pretendo) or FTP can be\n"
+                         L"downloaded with the Aroma Updater later.", L"Download", L"Cancel") != 0) {
         return;
     }
 
@@ -168,6 +172,7 @@ void showMainMenu() {
             WHBLogFreetypePrintf(L"%C Set up SDUSB", OPTION(7));
             WHBLogFreetypePrintf(L"%C Set up USB Partition", OPTION(8));
             WHBLogFreetypePrintf(L"%C Configure Minute Autoboot", OPTION(9));
+            WHBLogFreetypePrintf(L"%C Guided Uninstall", OPTION(10));
             WHBLogFreetypePrint(L" ");
 
             WHBLogFreetypeScreenPrintBottom(L"===============================");
@@ -201,7 +206,7 @@ void showMainMenu() {
                     }
                 }
                 if (navigatedDown()) {
-                    if (selectedOption < 9) {
+                    if (selectedOption < 10) {
                         selectedOption++;
                         break;
                     }
@@ -253,6 +258,9 @@ void showMainMenu() {
                 break;
             case 9:
                 configureMinuteMenu();
+                break;
+            case 10:
+                showUninstallMenu();
                 break;
             default:
                 break;
@@ -384,3 +392,153 @@ void showSuccessPrompt(const wchar_t* message) {
     sleep_for(2s);
     showDialogPrompt(message, L"OK");
 }
+
+static uint32_t read32LE(const uint8_t* p) {
+    return (uint32_t)p[0] | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);
+}
+
+void showUninstallMenu() {
+    const wchar_t* warningMessage =
+        L"Please read carefully:\n \n"
+        L"Reinstalling ISFShax won't fix any issue. It is recommended\n"
+        L"to always keep ISFShax.\n \n"
+        L"This will undo all modifications this tool might have made to\n"
+        L"the console, turning it stock again. It will also offer to reset\n"
+        L"the SD card if it was partitioned.\n"
+        L"Modifications made by other tools might still persist.\n \n"
+        L"IMPORTANT: If you installed custom keyboards or themes, you\n"
+        L"MUST undo these changes BEFORE uninstalling. Removing\n"
+        L"stroopwafel/isfshax otherwise might cause a BRICK.\n \n";
+
+    if (showDialogPrompt(warningMessage, L"Continue", L"Cancel", nullptr, nullptr, 1) != 0) {
+        return;
+    }
+
+    // SD Card Check
+    if (WHBMountSdCard() == 1) {
+        FSAClientHandle fsaHandle = FSAAddClient(nullptr);
+        if (fsaHandle >= 0) {
+            FSADeviceInfo deviceInfo;
+            if ((FSStatus)FSAGetDeviceInfo(fsaHandle, "/dev/sdcard01", &deviceInfo) == FS_STATUS_OK) {
+                uint8_t* mbr = (uint8_t*)memalign(0x40, deviceInfo.deviceSectorSize);
+                if (mbr) {
+                    bool askFormat = false;
+                    IOSHandle handle = -1;
+                    if (FSAEx_RawOpenEx(fsaHandle, "/dev/sdcard01", &handle) >= 0) {
+                        if ((FSStatus)FSAEx_RawReadEx(fsaHandle, mbr, deviceInfo.deviceSectorSize, 1, 0, handle) == FS_STATUS_OK) {
+                            if (mbr[510] == 0x55 && mbr[511] == 0xAA) {
+                                int partitionCount = 0;
+                                uint32_t lastOccupiedSector = 0;
+                                for (int i = 0; i < 4; i++) {
+                                    uint8_t type = mbr[446 + i * 16 + 4];
+                                    if (type != 0) {
+                                        partitionCount++;
+                                        uint32_t start = read32LE(&mbr[446 + i * 16 + 8]);
+                                        uint32_t sectors = read32LE(&mbr[446 + i * 16 + 12]);
+                                        if (start + sectors > lastOccupiedSector) {
+                                            lastOccupiedSector = start + sectors;
+                                        }
+                                    }
+                                }
+                                if (partitionCount > 1) {
+                                    askFormat = true;
+                                }
+                                // If more than 1MB is unallocated
+                                if (deviceInfo.deviceSizeInSectors > lastOccupiedSector + (1 * 1024 * 1024 / deviceInfo.deviceSectorSize)) {
+                                    askFormat = true;
+                                }
+                            }
+                        }
+                        FSAEx_RawCloseEx(fsaHandle, handle);
+                    }
+                    free(mbr);
+
+                    if (askFormat) {
+                        if (showDialogPrompt(L"Your SD card seems to have multiple partitions or unallocated\nspace. Do you want to format the entire SD card to FAT32?\nThis will delete ALL data on it.", L"Yes, format SD", L"No, keep as is") == 0) {
+                            if (!formatWholeDrive(fsaHandle, "/dev/sdcard01", deviceInfo)) {
+                                showErrorPrompt(L"Failed to format SD card. Continuing with uninstall...");
+                            } else {
+                                showSuccessPrompt(L"SD card formatted successfully.");
+                            }
+                        }
+                    }
+                }
+            }
+            FSADelClient(fsaHandle);
+        }
+    }
+    WHBUnmountSdCard();
+
+
+    // Stroopwafel removal
+    bool stroopOnSlc = dirExist(Paths::SlcPluginsDir) || fileExist(Paths::SlcFwImg);
+    bool stroopOnSd = dirExist(Paths::SdPluginsDir) || fileExist(Paths::SdFwImg) || dirExist(Paths::SdMinuteDir);
+
+    uint8_t stroopChoice = 255;
+    if (stroopOnSlc && stroopOnSd) {
+        stroopChoice = showDialogPrompt(L"Stroopwafel files found on both SLC and SD card.\nWhere do you want to remove them from?", L"Both", L"SLC only", L"SD card only", L"Skip");
+    } else if (stroopOnSlc) {
+        if (showDialogPrompt(L"Stroopwafel files found on SLC.\nDo you want to remove them?", L"Yes", L"No") == 0) {
+            stroopChoice = 1; // SLC only
+        }
+    } else if (stroopOnSd) {
+        if (showDialogPrompt(L"Stroopwafel files found on SD card.\nDo you want to remove them?", L"Yes", L"No") == 0) {
+            stroopChoice = 2; // SD only
+        }
+    }
+
+    if (stroopChoice != 255 && stroopChoice != 3) {
+        WHBLogFreetypeStartScreen();
+        WHBLogFreetypePrint(L"Removing Stroopwafel files...");
+        WHBLogFreetypeDraw();
+
+        // Remove from SLC
+        if (stroopChoice == 0 || stroopChoice == 1) {
+            if (checkSystemAccess()) {
+                WHBLogFreetypePrint(L"Removing SLC files...");
+                WHBLogFreetypeDraw();
+                deleteDirContent(Paths::SlcPluginsDir);
+                removeDir(Paths::SlcPluginsDir);
+                removeFile(Paths::SlcFwImg);
+                if (isDirEmpty(Paths::SlcHaxDir)) {
+                     removeDir(Paths::SlcHaxDir);
+                }
+            }
+        }
+        // Remove from SD
+        if (stroopChoice == 0 || stroopChoice == 2) {
+            if (WHBMountSdCard() == 1) {
+                WHBLogFreetypePrint(L"Removing SD files...");
+                WHBLogFreetypeDraw();
+                deleteDirContent(Paths::SdPluginsDir);
+                removeDir(Paths::SdPluginsDir);
+                removeFile(Paths::SdFwImg);
+                deleteDirContent(Paths::SdMinuteDir);
+                removeDir(Paths::SdMinuteDir);
+                WHBUnmountSdCard();
+            }
+        }
+        WHBLogFreetypePrint(L"Done removing Stroopwafel files.");
+        WHBLogFreetypeDraw();
+        sleep_for(2s);
+    }
+
+
+    // ISFShax removal
+    if (isIsfshaxInstalled()) {
+        const wchar_t* isfshaxMessage =
+            L"Do you want to uninstall ISFShax?\n \n"
+            L"WARNING: It is STRONGLY recommended to KEEP ISFShax installed.\n"
+            L"It provides brick protection\n"
+            L"There is usually no reason to uninstall it.";
+        if (showDialogPrompt(isfshaxMessage, L"Yes, uninstall ISFShax", L"No, keep ISFShax", nullptr, nullptr, 1) == 0) {
+            if (checkSystemAccess()) {
+                installIsfshax(true, false); // Uninstall
+                // The console will reboot here if successful
+            }
+        }
+    }
+
+    showSuccessPrompt(L"Uninstall process finished!");
+}
+
