@@ -218,7 +218,7 @@ static bool createIsfsHaxDirectories() {
 
 static bool downloadBasePlugins() {
     std::string pluginPath = getStroopwafelPluginPosixPath();
-    fs::create_directories(pluginPath);
+    createDirectories(pluginPath);
     bool res =  downloadFile(getPluginUrl("00core.ipx"),   pluginPath + "/00core.ipx") &&
                 downloadFile(getPluginUrl("5isfshax.ipx"), pluginPath + "/5isfshax.ipx");
     bool hasAroma = dirExist(Paths::SdAromaDir);
@@ -228,8 +228,8 @@ static bool downloadBasePlugins() {
 }
 
 bool downloadStroopwafelFiles(bool toSD) {
-    std::string_view plugin_dir = toSD? Paths::SdPluginsDir : Paths::SlcPluginsDir;
-    setStroopwafelPluginPosixPath(convertToWiiUFsPath(plugin_dir));
+    std::string plugin_dir = toSD? Paths::SdPluginsDir : Paths::SlcPluginsDir;
+    setStroopwafelPluginPosixPath(plugin_dir);
 
     if (toSD) {
         if (WHBMountSdCard() != 1) {
