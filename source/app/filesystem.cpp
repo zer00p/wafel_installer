@@ -216,7 +216,9 @@ bool copyFile(const std::string& src, const std::string& dest) {
 }
 
 bool moveFile(const std::string& src, const std::string& dest) {
-    if (rename(src.c_str(), dest.c_str()) == 0) return true;
+    std::string convertedSrc = convertToWiiUFsPath(src);
+    std::string convertedDest = convertToWiiUFsPath(dest);
+    if (rename(convertedSrc.c_str(), convertedDest.c_str()) == 0) return true;
     if (copyFile(src, dest)) {
         removeFile(src);
         return true;
@@ -225,11 +227,13 @@ bool moveFile(const std::string& src, const std::string& dest) {
 }
 
 bool removeFile(const std::string& path) {
-    return unlink(path.c_str()) == 0;
+    std::string convertedPath = convertToWiiUFsPath(path);
+    return unlink(convertedPath.c_str()) == 0;
 }
 
 bool removeDir(const std::string& path) {
-    return rmdir(path.c_str()) == 0;
+    std::string convertedPath = convertToWiiUFsPath(path);
+    return rmdir(convertedPath.c_str()) == 0;
 }
 
 bool createDirectories(const std::string& path) {
