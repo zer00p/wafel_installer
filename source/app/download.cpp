@@ -255,15 +255,6 @@ bool downloadStroopwafelFiles(bool toSD) {
 bool downloadIsfshaxFiles() {
     if (!createIsfsHaxDirectories()) return false;
 
-    // Check for superblock.img on SD
-    WHBMountSdCard();
-    std::string sdRootPosix = Paths::SdRoot;
-    if (fileExist(sdRootPosix + "/superblock.img")) {
-        if (showDialogPrompt(L"A superblock.img was found on the SD card.\nDo you want to remove it so the latest one gets used?", L"Yes", L"No") == 0) {
-            remove((sdRootPosix + "/superblock.img").c_str());
-        }
-    }
-
     std::string slcFwImgPath = Paths::SlcInstallerFwImg;
 
     if (!downloadFile("https://github.com/isfshax/isfshax/releases/latest/download/superblock.img", Paths::SlcInstallerSblockImg) ||
@@ -277,23 +268,10 @@ bool downloadIsfshaxFiles() {
     if (!isSdEmulated() && WHBMountSdCard() == 1) {
         WHBLogFreetypePrintf(L"Copying installer to SD...");
         WHBLogFreetypeDrawScreen();
-        copyFile(slcFwImgPath, sdRootPosix + "/ios.img");
+        copyFile(slcFwImgPath, Paths::SdRoot + "/ios.img");
     }
 
     return true;
-}
-
-bool downloadHaxFiles() {
-    WHBLogFreetypeStartScreen();
-    WHBLogFreetypePrint(L"Starting download of hax files...");
-    WHBLogFreetypeDrawScreen();
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-
-    return downloadStroopwafelFiles(false) && downloadIsfshaxFiles();
-}
-
-bool downloadHaxFilesToSD() {
-    return downloadStroopwafelFiles(true);
 }
 
 static void removeCompetingPlugins(std::string posixPath) {

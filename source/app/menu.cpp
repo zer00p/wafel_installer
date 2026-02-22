@@ -397,7 +397,38 @@ static uint32_t read32LE(const uint8_t* p) {
     return (uint32_t)p[0] | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);
 }
 
+static bool isRedNAND() {
+    if (WHBMountSdCard() != 1) {
+        return false;
+    }
+    std::string iniPath = Paths::SdMinuteDir + "/minute.ini";
+    if (!fileExist(iniPath)) {
+        WHBUnmountSdCard();
+        return false;
+    }
+
+    int autoboot = -1;
+    FILE* f = fileFopen(iniPath.c_str(), "r");
+    if (f) {
+        char line[128];
+        while (fgets(line, sizeof(line), f)) {
+            if (strstr(line, "autoboot=")) {
+                sscanf(line, "autoboot=%d", &autoboot);
+                break; // Found it
+            }
+        }
+        fclose(f);
+    }
+    WHBUnmountSdCard();
+    return autoboot == 2;
+}
+
 void showUninstallMenu() {
+    if (isRedNAND()) {
+        showDialogPrompt(L"redNAND is detected.\nStroopwafel and ISFShax are required for redNAND.\nUninstallation is not possible.", L"OK");
+        return;
+    }
+
     const wchar_t* warningMessage =
         L"Please read carefully:\n \n"
         L"Reinstalling ISFShax won't fix any issue. It is recommended\n"
@@ -408,7 +439,7 @@ void showUninstallMenu() {
         L"Modifications made by other tools might still persist.\n \n"
         L"IMPORTANT: If you installed custom keyboards or themes, you\n"
         L"MUST undo these changes BEFORE uninstalling. Removing\n"
-        L"stroopwafel/isfshax otherwise might cause a BRICK.\n \n";
+        L"stroopwafel/isfshax otherwise might cause a BRICK.\n";
 
     if (showDialogPrompt(warningMessage, L"Continue", L"Cancel", nullptr, nullptr, 1) != 0) {
         return;
@@ -455,10 +486,16 @@ void showUninstallMenu() {
 
                     if (askFormat) {
                         if (showDialogPrompt(L"Your SD card seems to have multiple partitions or unallocated\nspace. Do you want to format the entire SD card to FAT32?\nThis will delete ALL data on it.", L"Yes, format SD", L"No, keep as is") == 0) {
-                            if (!formatWholeDrive(fsaHandle, "/dev/sdcard01", deviceInfo)) {
-                                showErrorPrompt(L"Failed to format SD card. Continuing with uninstall...");
+                            if (dirExist(Paths::SdAromaDir)) {
+                                showDialogPrompt(L"Aroma is detected. Formatting the SD card while running\n"
+                                                 L"Aroma is not possible from here.\n \n"
+                                                 L"Please come back by using wafel.xyz after uninstalling stroopwafel\n", L"OK");
                             } else {
-                                showSuccessPrompt(L"SD card formatted successfully.");
+                                if (!formatWholeDrive(fsaHandle, "/dev/sdcard01", deviceInfo)) {
+                                    showErrorPrompt(L"Failed to format SD card. Continuing with uninstall...");
+                                } else {
+                                    showSuccessPrompt(L"SD card formatted successfully.");
+                                }
                             }
                         }
                     }

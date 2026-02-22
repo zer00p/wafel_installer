@@ -39,9 +39,10 @@ void installIsfshax(bool uninstall, bool manual) {
         if (!downloadIsfshaxFiles()) return;
     }
 
-    // For options 0, 1, 2 we need the installer file
-    std::string fwImgPath = Paths::SlcInstallerFwImg;
-    if (!fileExist(fwImgPath)) {
+    bool installer_exists = fileExist(Paths::SlcInstallerFwImg);
+
+    // For we need the installer file, uninstall will download later
+    if (!uninstall && !installer_exists) {
         uint8_t missingChoice = showDialogPrompt(L"The ISFShax installer (fw.img) is missing.", L"Download", L"Cancel");
         if (missingChoice == 0) {
             if (!downloadIsfshaxFiles()) return;
@@ -57,28 +58,26 @@ void installIsfshax(bool uninstall, bool manual) {
 
     if(uninstall){
         if (confirmIsfshaxAction(L"Uninstall", true)) {
-            std::string slcTmpDir = Paths::SlcTmpDir;
-            std::string slcInstallerDir = Paths::SlcInstallerDir;
-            std::string slcHaxDir = Paths::SlcHaxDir;
-
-            std::string srcFwImg = Paths::SlcInstallerFwImg;
-            std::string destFwImg = slcTmpDir + "/fw.img";
-
-            if (!dirExist(slcTmpDir)) {
-                mkdir(slcTmpDir.c_str(), 0755);
-            }
-
-            if (moveFile(srcFwImg, destFwImg)) {
-                deleteDirContent(slcInstallerDir);
-                removeDir(slcInstallerDir);
-                if (isDirEmpty(slcHaxDir)) {
-                    removeDir(slcHaxDir);
+            if(installer_exists){
+                if (moveFile(Paths::SlcInstallerFwImg, Paths::SystemTmpFwImg)) {
+                    deleteDirContent(Paths::SlcInstallerDir);
+                    removeDir(Paths::SlcInstallerDir);
+                    if (isDirEmpty(Paths::SlcHaxDir)) {
+                        removeDir(Paths::SlcHaxDir);
+                    }
+                } else {
+                    setErrorPrompt(L"Failed to move installer to /sys/tmp!");
+                    showErrorPrompt(L"OK");
+                    return;
                 }
-                loadFwImg(Paths::SystemTmpFwImg, ISFSHAX_CMD_UNINSTALL, (uint32_t)(ISFSHAX_CMD_POST_REBOOT) << 30 | ISFSHAX_CMD_SOURCE_SLC);
             } else {
-                setErrorPrompt(L"Failed to move installer to /sys/tmp!");
-                showErrorPrompt(L"OK");
+                if(!downloadFile("https://github.com/isfshax/isfshax_installer/releases/latest/download/ios.img", Paths::SystemTmpFwImg)){
+                    setErrorPrompt(L"Failed to download ISFShax installer to /sys/tmp!");
+                    showErrorPrompt(L"OK");
+                    return;
+                }
             }
+            loadFwImg(Paths::SystemTmpFwImg, ISFSHAX_CMD_UNINSTALL, (uint32_t)(ISFSHAX_CMD_POST_REBOOT) << 30 | ISFSHAX_CMD_SOURCE_SLC);
         }
         return;
     }

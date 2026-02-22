@@ -16,8 +16,6 @@ bool fetchPluginList(bool force = false);
 const std::vector<Plugin>& getCachedPluginList();
 std::string getPluginUrl(const std::string& fileName);
 
-bool downloadHaxFiles();
-bool downloadHaxFilesToSD();
 bool downloadStroopwafelFiles(bool toSD);
 bool downloadIsfshaxFiles();
 bool downloadUsbPartitionPlugin(const std::string& pluginFile, const std::string& targetPosixPath);
