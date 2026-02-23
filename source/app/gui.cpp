@@ -57,31 +57,24 @@ void exitApplication(bool rebootOnExit) {
 
     if(rebootOnExit) {
         OSForceFullRelaunch();
-        SYSLaunchMenu();
     }
 
-    if (getCFWVersion() == MOCHA_FSCLIENT) {
-        SYSLaunchMenu();
+    SYSLaunchMenu();
 
-        while(stillRunning()) {
-            sleep_for(100ms);
+    ProcUIStatus status;
+    while((status = ProcUIProcessMessages(true)) != PROCUI_STATUS_EXITING) {
+        if (status == PROCUI_STATUS_RELEASE_FOREGROUND) {
+            ProcUIDrawDoneRelease();
         }
-    }
-    else {
-        ProcUIStatus status;
-        while((status = ProcUIProcessMessages(true)) != PROCUI_STATUS_EXITING) {
-            if (status == PROCUI_STATUS_RELEASE_FOREGROUND) {
-                ProcUIDrawDoneRelease();
-            }
 
-            if (status != PROCUI_STATUS_IN_FOREGROUND) {
-                continue;
-            }
+        // if (status != PROCUI_STATUS_IN_FOREGROUND) {
+        //     continue;
+        // }
 
-            // if (rebootOnExit) OSLaunchTitlel(OS_TITLE_ID_REBOOT, 0);
-            // else if (usingHBL) SYSRelaunchTitle(0, nullptr);
-        }
+        // if (rebootOnExit) OSLaunchTitlel(OS_TITLE_ID_REBOOT, 0);
+        // else if (usingHBL) SYSRelaunchTitle(0, nullptr);
     }
+
     ProcUIShutdown();
     _Exit(0);
 }
