@@ -95,7 +95,7 @@ void performAromaCheck() {
     }
 }
 
-void performStroopwafelCheck(bool wantsPartitionedStorage) {
+void performStroopwafelCheck(void) {
     bool filesExist = true;
     std::string path = getStroopwafelPluginPath();
     if (path.empty() || !dirExist(path)) {
@@ -116,36 +116,36 @@ void performStroopwafelCheck(bool wantsPartitionedStorage) {
     }
 }
 
-void performIsfshaxCheck(bool usingUSB, bool wantsPartitionedStorage) {
-    if (!isIsfshaxInstalled()) {
-        uint8_t choice = showDialogPrompt(L"ISFShax is not detected.\nDo you want to install ISFShax by rw_r_r_0644?\nThis is required for Stroopwafel.", L"Yes", L"No");
-        if (choice == 0) {
-            installIsfshax(false, false);
-        } else if (choice == 1 || choice == 255) {
-            if (usingUSB || wantsPartitionedStorage) {
-                showDialogPrompt(L"You chose not to setup ISFShax.\nNote that USB-as-SD and partitioned storage REQUIRE Stroopwafel and ISFShax to work!", L"OK");
-            }
+bool performIsfshaxCheck(bool usingUSB, bool wantsPartitionedStorage) {
+    if (isIsfshaxInstalled())
+        return true;
+    // TODO: add message for SDUSB / USB Partition
+    uint8_t choice = showDialogPrompt(L"ISFShax is not detected.\nDo you want to install ISFShax by rw_r_r_0644?\nThis is required for Stroopwafel.", L"Yes", L"No");
+    if (choice == 0) {
+        installIsfshax(false, false);
+    } else if (choice == 1 || choice == 255) {
+        if (usingUSB || wantsPartitionedStorage) {
+            showDialogPrompt(L"You chose not to setup ISFShax.\nNote that USB-as-SD and partitioned storage REQUIRE Stroopwafel and ISFShax to work!", L"OK");
         }
     }
+    return false;
 }
 
-void performPostSetupChecks(bool usingUSB, bool wantsPartitionedStorage) {
+bool performPostSetupChecks(bool usingUSB, bool sdUsb) {
     performAromaCheck();
-    performStroopwafelCheck(wantsPartitionedStorage);
-    performIsfshaxCheck(usingUSB, wantsPartitionedStorage);
-
+    performStroopwafelCheck();
     std::string pluginTarget = getStroopwafelPluginPath();
-    if (pluginTarget.empty()) return;
-
-    if (usingUSB) {
-        if (isSdEmulated()) {
-            downloadUsbPartitionPlugin("5upartsd.ipx", pluginTarget);
-        } else if (wantsPartitionedStorage) {
-            downloadUsbPartitionPlugin("5usbpart.ipx", pluginTarget);
+    bool ret = true;
+    if (!pluginTarget.empty()) {
+        if(usingUSB){
+            ret = downloadUsbPartitionPlugin("5upartsd.ipx", pluginTarget);
         }
-    } else if (wantsPartitionedStorage) {
-        downloadUsbPartitionPlugin("5sdusb.ipx", pluginTarget);
+        if(sdUsb){
+            ret = downloadUsbPartitionPlugin("5sdusb.ipx", pluginTarget);
+        }
     }
+    ret |= performIsfshaxCheck(usingUSB, sdUsb);
+    return ret;
 }
 
 bool performStartupChecks() {

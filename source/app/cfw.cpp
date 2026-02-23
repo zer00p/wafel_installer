@@ -221,8 +221,8 @@ bool isShutdownPending() {
 }
 
 void setShutdownPending(bool pending, bool forced) {
-    pending_shutdown = pending;
-    if (forced) forced_shutdown = true;
+    pending_shutdown |= pending | forced;
+    forced_shutdown |= forced;
 }
 
 bool isShutdownForced() {

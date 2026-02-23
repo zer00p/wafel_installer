@@ -608,7 +608,7 @@ bool checkAndFixPartitionOrder(FSAClientHandle fsaHandle, const char* device, co
     return false;
 }
 
-static bool handlePartitionActionMenu(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, bool& wantsPartitionedStorage, const wchar_t* deviceTypeName, bool isSdCard) {
+static bool handlePartitionActionMenu(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, const wchar_t* deviceTypeName, bool needWFS) {
     uint8_t* mbr = (uint8_t*)memalign(0x40, deviceInfo.deviceSectorSize);
     if (!mbr) {
         setErrorPrompt(L"Failed to allocate memory for MBR!");
@@ -649,7 +649,7 @@ static bool handlePartitionActionMenu(FSAClientHandle fsaHandle, const FSADevice
         int optRepartition = -1;
         int optCancel = -1;
 
-        if (hasFat32) {
+        if (hasFat32 && (!needWFS || hasWfs)) {
             optKeep = (int)buttons.size();
             buttons.push_back(L"Keep current partitioning");
         }
@@ -668,7 +668,6 @@ static bool handlePartitionActionMenu(FSAClientHandle fsaHandle, const FSADevice
 
         if (choice == optKeep) {
             partitionSuccess = true;
-            wantsPartitionedStorage = hasWfs;
         } else if (optCreate != -1 && choice == optCreate) {
             struct Partition {
                 uint8_t data[16];
@@ -704,7 +703,6 @@ static bool handlePartitionActionMenu(FSAClientHandle fsaHandle, const FSADevice
                     writeMbrSignature(fsaHandle, "/dev/sdcard01", p_start, deviceInfo.deviceSectorSize);
                     showDialogPrompt(L"WFS partition created successfully!", L"OK");
                     partitionSuccess = true;
-                    wantsPartitionedStorage = true;
                 } else {
                     setErrorPrompt(L"Failed to write MBR!");
                     showErrorPrompt(L"OK");
@@ -712,19 +710,17 @@ static bool handlePartitionActionMenu(FSAClientHandle fsaHandle, const FSADevice
             }
         } else if (choice == optRepartition) {
             partitionSuccess = partitionDevice(fsaHandle, "/dev/sdcard01", deviceInfo);
-            if (partitionSuccess) wantsPartitionedStorage = true;
         } else if (choice == optCancel || choice == 255) {
-            free(mbr);
-            return false;
+            break;
         }
     }
 
     free(mbr);
-    return true;
+    return partitionSuccess;
 }
 
-bool handleSDUSBAction(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, bool& wantsPartitionedStorage, FatMountGuard& guard) {
-    if (handlePartitionActionMenu(fsaHandle, deviceInfo, wantsPartitionedStorage, L"SD card", true)) {
+bool handleSDUSBAction(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, FatMountGuard& guard) {
+    if (handlePartitionActionMenu(fsaHandle, deviceInfo, L"SD card", true)) {
         guard.unblock();
         WHBMountSdCard();
         return true;
@@ -732,11 +728,10 @@ bool handleSDUSBAction(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInf
     return false;
 }
 
-bool handleUSBAsSDAction(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, bool& wantsPartitionedStorage, FatMountGuard& guard) {
+bool handleUSBAsSDAction(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, FatMountGuard& guard) {
     bool dummyRepartitioned = false;
     if (!checkAndFixPartitionOrder(fsaHandle, "/dev/sdcard01", deviceInfo, dummyRepartitioned)) {
         if (dummyRepartitioned) {
-            wantsPartitionedStorage = true;
             guard.unblock();
             WHBMountSdCard();
             return true;
@@ -744,7 +739,7 @@ bool handleUSBAsSDAction(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceI
         else return false;
     }
 
-    if (handlePartitionActionMenu(fsaHandle, deviceInfo, wantsPartitionedStorage, L"USB device", false)) {
+    if (handlePartitionActionMenu(fsaHandle, deviceInfo, L"USB device", false)) {
         guard.unblock();
         WHBMountSdCard();
         return true;
@@ -1144,10 +1139,9 @@ void setupSDUSBMenu() {
             continue;
         }
 
-        bool wantsPartitionedStorage = false;
-        if (handleSDUSBAction(fsaHandle, deviceInfo, wantsPartitionedStorage, guard)) {
+        if (handleSDUSBAction(fsaHandle, deviceInfo, guard)) {
             FSADelClient(fsaHandle);
-            performPostSetupChecks(false, wantsPartitionedStorage);
+            performPostSetupChecks(false, true);
             return;
         }
     }
@@ -1159,24 +1153,29 @@ void setupPartitionedUSBMenu() {
     uint8_t emulationChoice = showDialogPrompt(L"Do you want to use the first FAT32 partition as an emulated SD card?\nThis should ONLY be used if you don't intend to use a real SD card.", L"Yes (SD Emulation)", L"No", L"Cancel", nullptr, 1);
     if (emulationChoice == 2 || emulationChoice == 255) return;
 
+    std::string pluginTarget = getStroopwafelPluginPath();
     bool sdEmulation = (emulationChoice == 0);
 
-    if (!sdEmulation) {
-        if (getStroopwafelPluginPath().empty()) {
-            if (showDialogPrompt(L"Stroopwafel is not detected. It is required for partitioned USB storage.\nDo you want to install it now?", L"Yes", L"Cancel") != 0) return;
-            uint8_t loc = showDialogPrompt(L"Where do you want to install Stroopwafel?", L"SD Card", L"SLC");
-            if (loc == 255) return;
-            if (!downloadStroopwafelFiles(loc == 0)) return;
-        }
-
-        if (!isIsfshaxInstalled()) {
-            if (showDialogPrompt(L"ISFShax is not detected.\nIt is REQUIRED for partitioned USB devices.\nDo you want to install it now?", L"Yes", L"Cancel") != 0) return;
-            if (downloadIsfshaxFiles()) {
-                bootInstaller();
-            }
+    if(sdEmulation && pluginTarget != Paths::SlcPluginsDir){
+        if(showDialogPrompt(L"To use SD Emulation, stroopwafel needs to be installed to the SLC", L"OK", L"Abort", nullptr, nullptr, 1, false) != 0){
             return;
         }
+        setStroopwafelPluginPath(Paths::SlcPluginsDir);
     }
+
+    if (pluginTarget.empty() || !dirExist(pluginTarget)) {
+        if (showDialogPrompt(L"Stroopwafel is not detected. It is required for partitioned USB storage.\nDo you want to install it now?", L"Yes", L"Cancel") != 0) return;
+        uint8_t loc = 1; 
+        if(!sdEmulation){
+            loc = showDialogPrompt(L"Where do you want to install Stroopwafel?", L"SD Card", L"SLC");
+            if (loc == 255) return;
+        }         // TODO: add option to copy existing stroopwafel install for SD emulation, if it exists on SD
+        if (!downloadStroopwafelFiles(loc == 0)) return;
+    }
+
+    std::string pluginName = sdEmulation ? "5upartsd.ipx" : "5usbpart.ipx";
+    if(!downloadUsbPartitionPlugin(pluginName, pluginTarget))
+        return;
 
     WHBLogPrint("Opening /dev/fsa...");
     WHBLogFreetypeDraw();
@@ -1199,6 +1198,7 @@ void setupPartitionedUSBMenu() {
         WHBLogFreetypeDraw();
     }
 
+    bool shutdown = false;
     FatMountGuard guard;
     while (true) {
         if (!waitForDevice(fsaHandle, L"USB device", guard)) {
@@ -1222,30 +1222,26 @@ void setupPartitionedUSBMenu() {
             continue;
         }
 
-        bool wantsPartitionedStorage = false;
         if (sdEmulation) {
-            if (handleUSBAsSDAction(fsaHandle, deviceInfo, wantsPartitionedStorage, guard)) {
-                FSADelClient(fsaHandle);
-                performPostSetupChecks(true, wantsPartitionedStorage);
-                usbAsSd(false);
-                return;
+            if (!handleUSBAsSDAction(fsaHandle, deviceInfo, guard)) {
+                goto exit;
             }
+            performAromaCheck();
         } else {
-            if (handlePartitionActionMenu(fsaHandle, deviceInfo, wantsPartitionedStorage, L"USB device", false)) {
-                guard.unblock();
-                FSADelClient(fsaHandle);
-                performPostSetupChecks(true, wantsPartitionedStorage);
-
-                setShutdownPending(true);
-                if (showDialogPrompt(L"USB partitioned successfully!\nIt is recommended to shutdown the console now\nand plug your SD card back in.\nDo you want to shutdown now?", L"Yes", L"No") == 0) {
-                    setShutdownPending(true, true);
-                }
-                usbAsSd(false);
-                return;
+            if (!handlePartitionActionMenu(fsaHandle, deviceInfo, L"USB device", false)) {
+                goto exit;
             }
         }
     }
 
+    if(!performIsfshaxCheck(true, false)){
+        goto exit;
+    }
+
+    shutdown = showDialogPrompt(L"USB partitioned successfully!\nIt is recommended to shutdown the console now\nand plug your SD card back in.\nDo you want to shutdown now?", L"Yes", L"No") == 0;
+    setShutdownPending(true, shutdown);
+
+exit:
     usbAsSd(false);
     FSADelClient(fsaHandle);
 }
