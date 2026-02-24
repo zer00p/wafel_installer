@@ -4,6 +4,6 @@
 
 bool performStartupChecks();
 void performAromaCheck();
-void performStroopwafelCheck();
+bool performStroopwafelCheck();
 bool performIsfshaxCheck(bool usingUSB, bool wantsPartitionedStorage);
 bool performPostSetupChecks(bool usingUSB, bool sdUsb);

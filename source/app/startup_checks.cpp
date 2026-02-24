@@ -60,7 +60,7 @@ static void setupUsbStorage(FSAClientHandle fsaHandle, bool& wantsPartitionedSto
                 if (!showDialogPrompt(L"USB device detected.\nDo you want to repartition it to store Wii U games on or keep as is?",  L"Keep as is", L"Repartition", nullptr, nullptr, 0, false) == 0) {
                     wantsPartitionedStorage = true;
                     guard.block();
-                    if (partitionDevice(fsaHandle, "/dev/sdcard01", devInfo)) {
+                    if (handlePartitionActionMenu(fsaHandle, devInfo, L"SD card", true)) {
                         guard.unblock();
                         WHBMountSdCard();
                     }
@@ -71,7 +71,7 @@ static void setupUsbStorage(FSAClientHandle fsaHandle, bool& wantsPartitionedSto
                 if (showDialogPrompt(L"USB device cannot be mounted.\nDo you want to use the full drive for homebrew or also store Wii U games on it?", L"Homebrew only", L"Homebrew + Games", nullptr, nullptr, 0, false) == 1) {
                     wantsPartitionedStorage = true;
                     guard.block();
-                    if (partitionDevice(fsaHandle, "/dev/sdcard01", devInfo)) {
+                    if (handlePartitionActionMenu(fsaHandle, devInfo, L"USB device", true)) {
                         guard.unblock();
                         WHBMountSdCard();
                     }
@@ -95,7 +95,7 @@ void performAromaCheck() {
     }
 }
 
-void performStroopwafelCheck(void) {
+bool performStroopwafelCheck(void) {
     bool filesExist = true;
     std::string path = getStroopwafelPluginPath();
     if (path.empty() || !dirExist(path)) {
@@ -111,9 +111,11 @@ void performStroopwafelCheck(void) {
             } else {
                 toSD = (showDialogPrompt(L"Where do you want to download Stroopwafel?\nSD card is recommended.", L"SD Card", L"SLC") == 0);
             }
-            downloadStroopwafelFiles(toSD);
+            return downloadStroopwafelFiles(toSD);
         }
+        return false;
     }
+    return true;
 }
 
 bool performIsfshaxCheck(bool usingUSB, bool wantsPartitionedStorage) {
@@ -133,15 +135,14 @@ bool performIsfshaxCheck(bool usingUSB, bool wantsPartitionedStorage) {
 
 bool performPostSetupChecks(bool usingUSB, bool sdUsb) {
     performAromaCheck();
-    performStroopwafelCheck();
-    std::string pluginTarget = getStroopwafelPluginPath();
+    bool stroopwafel = performStroopwafelCheck();
     bool ret = true;
-    if (!pluginTarget.empty()) {
+    if (stroopwafel) {
         if(usingUSB){
-            ret = downloadUsbPartitionPlugin("5upartsd.ipx", pluginTarget);
+            ret = downloadUsbPartitionPlugin(true);
         }
         if(sdUsb){
-            ret = downloadUsbPartitionPlugin("5sdusb.ipx", pluginTarget);
+            ret =  downloadPlugin("5sdusb.ipx");
         }
     }
     ret |= performIsfshaxCheck(usingUSB, sdUsb);

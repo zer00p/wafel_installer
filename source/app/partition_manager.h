@@ -19,6 +19,7 @@ public:
     ~FatMountGuard();
     void block();
     void unblock();
+    void silent_unblock();
 private:
     bool active;
 };
@@ -27,4 +28,4 @@ void showDeviceInfoScreen(FSAClientHandle fsaHandle, const char* device, const F
 bool waitForDevice(FSAClientHandle fsaHandle, const wchar_t* deviceName, FatMountGuard& guard);
 void usbAsSd(bool enable);
 bool handleSDUSBAction(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, bool& wantsPartitionedStorage, FatMountGuard& guard);
-bool handleUSBAsSDAction(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, bool& wantsPartitionedStorage, FatMountGuard& guard);
+bool handlePartitionActionMenu(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, const wchar_t* deviceTypeName, bool needWFS);

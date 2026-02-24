@@ -18,7 +18,8 @@ std::string getPluginUrl(const std::string& fileName);
 
 bool downloadStroopwafelFiles(bool toSD);
 bool downloadIsfshaxFiles();
-bool downloadUsbPartitionPlugin(const std::string& pluginFile, const std::string& targetPosixPath);
+bool downloadPlugin(std::string pluginFile);
+bool downloadUsbPartitionPlugin(bool sdEmulation);
 bool downloadAroma(void);
 bool downloadFile(const std::string& url, const std::string& path);
 bool downloadToBuffer(const std::string& url, std::string& buffer);

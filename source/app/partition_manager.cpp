@@ -92,6 +92,13 @@ void FatMountGuard::unblock() {
     }
 }
 
+void FatMountGuard::silent_unblock() {
+    if (active) {
+        unblock_fat_mount();
+        active = false;
+    }
+}
+
 static int32_t FSA_Format(FSAClientHandle handle, const char* device, const char* filesystem, uint32_t flags, uint32_t param_5, uint32_t param_6) {
     FSAIpcData* data = (FSAIpcData*)memalign(0x40, sizeof(FSAIpcData));
     if (!data) return -1;
@@ -608,7 +615,7 @@ bool checkAndFixPartitionOrder(FSAClientHandle fsaHandle, const char* device, co
     return false;
 }
 
-static bool handlePartitionActionMenu(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, const wchar_t* deviceTypeName, bool needWFS) {
+bool handlePartitionActionMenu(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, const wchar_t* deviceTypeName, bool needWFS) {
     uint8_t* mbr = (uint8_t*)memalign(0x40, deviceInfo.deviceSectorSize);
     if (!mbr) {
         setErrorPrompt(L"Failed to allocate memory for MBR!");
@@ -616,30 +623,30 @@ static bool handlePartitionActionMenu(FSAClientHandle fsaHandle, const FSADevice
         return false;
     }
 
-    bool partitionSuccess = false;
-    while (!partitionSuccess) {
-        bool hasFat32 = false;
-        bool hasWfs = false;
-        int partitionCount = 0;
-        uint32_t lastOccupiedSector = 1;
-        if ((FSStatus)rawRead(fsaHandle, "/dev/sdcard01", 0, 1, mbr, deviceInfo.deviceSectorSize) == FS_STATUS_OK) {
-            if (mbr[510] == 0x55 && mbr[511] == 0xAA) {
-                for (int i = 0; i < 4; i++) {
-                    uint8_t type = mbr[446 + i * 16 + 4];
-                    if (type != 0) {
-                        partitionCount++;
-                        if (i == 0 && (type == 0x0B || type == 0x0C)) hasFat32 = true;
-                        if (i > 0 && (type == 0x07 || type == 0x17)) hasWfs = true;
-                        uint32_t start = read32LE(&mbr[446 + i * 16 + 8]);
-                        uint32_t sectors = read32LE(&mbr[446 + i * 16 + 12]);
-                        if (start + sectors > lastOccupiedSector) {
-                            lastOccupiedSector = start + sectors;
-                        }
+    bool hasFat32 = false;
+    bool hasWfs = false;
+    int partitionCount = 0;
+    uint32_t lastOccupiedSector = 1;
+    if ((FSStatus)rawRead(fsaHandle, "/dev/sdcard01", 0, 1, mbr, deviceInfo.deviceSectorSize) == FS_STATUS_OK) {
+        if (mbr[510] == 0x55 && mbr[511] == 0xAA) {
+            for (int i = 0; i < 4; i++) {
+                uint8_t type = mbr[446 + i * 16 + 4];
+                if (type != 0) {
+                    partitionCount++;
+                    if (i == 0 && (type == 0x0B || type == 0x0C)) hasFat32 = true;
+                    if (i > 0 && (type == 0x07 || type == 0x17)) hasWfs = true;
+                    uint32_t start = read32LE(&mbr[446 + i * 16 + 8]);
+                    uint32_t sectors = read32LE(&mbr[446 + i * 16 + 12]);
+                    if (start + sectors > lastOccupiedSector) {
+                        lastOccupiedSector = start + sectors;
                     }
                 }
             }
         }
+    }
 
+    bool partitionSuccess = false;
+    while (!partitionSuccess) {
         uint64_t unallocatedSpaceEnd = (uint64_t)(deviceInfo.deviceSizeInSectors - lastOccupiedSector) * deviceInfo.deviceSectorSize;
         bool hasSpace = (unallocatedSpaceEnd > 4ULL * 1024 * 1024 * 1024) && (partitionCount < 4) && (partitionCount > 0);
 
@@ -721,25 +728,6 @@ static bool handlePartitionActionMenu(FSAClientHandle fsaHandle, const FSADevice
 
 bool handleSDUSBAction(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, FatMountGuard& guard) {
     if (handlePartitionActionMenu(fsaHandle, deviceInfo, L"SD card", true)) {
-        guard.unblock();
-        WHBMountSdCard();
-        return true;
-    }
-    return false;
-}
-
-bool handleUSBAsSDAction(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, FatMountGuard& guard) {
-    bool dummyRepartitioned = false;
-    if (!checkAndFixPartitionOrder(fsaHandle, "/dev/sdcard01", deviceInfo, dummyRepartitioned)) {
-        if (dummyRepartitioned) {
-            guard.unblock();
-            WHBMountSdCard();
-            return true;
-        }
-        else return false;
-    }
-
-    if (handlePartitionActionMenu(fsaHandle, deviceInfo, L"USB device", false)) {
         guard.unblock();
         WHBMountSdCard();
         return true;
@@ -1173,8 +1161,7 @@ void setupPartitionedUSBMenu() {
         if (!downloadStroopwafelFiles(loc == 0)) return;
     }
 
-    std::string pluginName = sdEmulation ? "5upartsd.ipx" : "5usbpart.ipx";
-    if(!downloadUsbPartitionPlugin(pluginName, pluginTarget))
+    if(!downloadUsbPartitionPlugin(sdEmulation))
         return;
 
     WHBLogPrint("Opening /dev/fsa...");
@@ -1200,9 +1187,10 @@ void setupPartitionedUSBMenu() {
 
     bool shutdown = false;
     FatMountGuard guard;
-    while (true) {
+    bool partitioned = false;
+    do {
         if (!waitForDevice(fsaHandle, L"USB device", guard)) {
-            break;
+            goto exit;
         }
 
         FSADeviceInfo deviceInfo;
@@ -1212,7 +1200,7 @@ void setupPartitionedUSBMenu() {
             WHBLogFreetypeDraw();
             setErrorPrompt(L"Failed to get device info!");
             if (!showErrorPrompt(L"Cancel", true)) {
-                break;
+                goto exit;
             }
             continue;
         }
@@ -1222,24 +1210,28 @@ void setupPartitionedUSBMenu() {
             continue;
         }
 
-        if (sdEmulation) {
-            if (!handleUSBAsSDAction(fsaHandle, deviceInfo, guard)) {
-                goto exit;
-            }
-            performAromaCheck();
-        } else {
-            if (!handlePartitionActionMenu(fsaHandle, deviceInfo, L"USB device", false)) {
-                goto exit;
-            }
-        }
+        checkAndFixPartitionOrder(fsaHandle, "/dev/sdcard01", deviceInfo, partitioned);
+
+        if(!partitioned)
+            partitioned = handlePartitionActionMenu(fsaHandle, deviceInfo, L"USB device", !sdEmulation);            
+    } while (!partitioned);
+
+    if(sdEmulation){
+        guard.unblock();
+        WHBMountSdCard();
+        performAromaCheck();
+    } else {
+        guard.silent_unblock();
     }
 
     if(!performIsfshaxCheck(true, false)){
         goto exit;
     }
-
-    shutdown = showDialogPrompt(L"USB partitioned successfully!\nIt is recommended to shutdown the console now\nand plug your SD card back in.\nDo you want to shutdown now?", L"Yes", L"No") == 0;
-    setShutdownPending(true, shutdown);
+        
+    if(!sdEmulation){
+        shutdown = showDialogPrompt(L"USB partitioned successfully!\nIt is recommended to shutdown the console now\nand plug your SD card back in.\nDo you want to shutdown now?", L"Yes", L"No") == 0;
+        setShutdownPending(true, shutdown);
+    }
 
 exit:
     usbAsSd(false);

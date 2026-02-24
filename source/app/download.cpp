@@ -274,19 +274,25 @@ bool downloadIsfshaxFiles() {
     return true;
 }
 
-static void removeCompetingPlugins(std::string posixPath) {
-    if (posixPath.empty()) return;
-    if (posixPath.back() != '/') posixPath += "/";
-    remove((posixPath + "5usbpart.ipx").c_str());
-    remove((posixPath + "5upartsd.ipx").c_str());
+static void removeCompetingPlugins() {
+    std::string path = getStroopwafelPluginPath();
+    if (path.empty()) return;
+    if (path.back() != '/') path += "/";
+    removeFile(path + "5usbpart.ipx");
+    removeFile(path + "5upartsd.ipx");
 }
 
-bool downloadUsbPartitionPlugin(const std::string& pluginFile, const std::string& targetPosixPath) {
-    removeCompetingPlugins(targetPosixPath);
-    std::string fullPath = targetPosixPath;
-    if (fullPath.back() != '/') fullPath += "/";
-    fullPath += pluginFile;
-    return downloadFile(getPluginUrl(pluginFile), fullPath);
+bool downloadPlugin(std::string pluginFile) {
+    std::string path = getStroopwafelPluginPath();
+    if (path.back() != '/') path += "/";
+    path += pluginFile;
+    return downloadFile(getPluginUrl(pluginFile), path);
+}
+
+bool downloadUsbPartitionPlugin(bool sdEmulation) {
+    std::string pluginFile = sdEmulation ? "5upartsd.ipx" : "5usbpart.ipx";
+    removeCompetingPlugins();
+    return downloadPlugin(pluginFile);
 }
 
 
