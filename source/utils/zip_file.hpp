@@ -2,6 +2,8 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmisleading-indentation"
 
+// This is a third-party library: miniz-cpp (https://github.com/tfussell/miniz-cpp)
+
 // Copyright (c) 2014-2017 Thomas Fussell
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy

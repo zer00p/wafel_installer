@@ -38,6 +38,7 @@ You don't need to run/have Mocha CFW or Haxchi, just launch Wafel Installer from
  - The wiiu-env developers (especially Maschell) for Aroma.
  - [shinyquagsire23](https://github.com/shinyquagsire23) for stroopwafel.
  - rw_r_r_0644 for ISFShax.
+ - [Maschell](https://github.com/Maschell) for Aroma and especially the [AromaUpdater](https://github.com/wiiu-env/AromaUpdater) for code and inspiration
  - The [fortheusers](https://github.com/fortheusers) team for the Homebrew Appstore.
  - FIX94, Maschell, Quarky, GaryOderNichts and koolkdev for making and maintaining homebrew (libraries)
  - smea, plutoo, yellows8, naehrwert, derrek, dimok and kanye_west for making the exploits and CFW possible

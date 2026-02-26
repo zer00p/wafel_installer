@@ -24,6 +24,11 @@
 #include <sstream>
 #include <functional>
 
+/**
+ * Inspired by AromaUpdater's download and extraction logic by Maschell.
+ * https://github.com/wiiu-env/AromaUpdater
+ */
+
 namespace fs = std::filesystem;
 
 static size_t write_data_posix(void *ptr, size_t size, size_t nmemb, void *stream) {
