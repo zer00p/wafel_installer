@@ -36,6 +36,9 @@ You don't need to run/have Mocha CFW or Haxchi, just launch Wafel Installer from
  - [wut](https://github.com/devkitpro/wut) for providing the Wii U toolchain that Wafel Installer is built with
  - Dimok for the original fw_img_payload.
  - The wiiu-env developers (especially Maschell) for Aroma.
+ - [shinyquagsire23](https://github.com/shinyquagsire23) for stroopwafel.
+ - rw_r_r_0644 for ISFShax.
+ - The [fortheusers](https://github.com/fortheusers) team for the Homebrew Appstore.
  - FIX94, Maschell, Quarky, GaryOderNichts and koolkdev for making and maintaining homebrew (libraries)
  - smea, plutoo, yellows8, naehrwert, derrek, dimok and kanye_west for making the exploits and CFW possible
  - Google Jules
