@@ -12,7 +12,7 @@ Use [wafel.xyz](https://wafel.xyz) on your Wii U to launch Wafel Installer witho
 Use the Wii U App Store to download ot. See Dumpling's page [here](https://apps.fortheusers.org/wiiu/wafel_installer). (comming soon)
 
 **Method 2:**  
-Download the [latest release from GitHub](https://github.com/zer00p/wafel_installer/releases), and extract the `wafel_installer.zip` file to the root of your SD card.
+Download the [latest release from GitHub](https://zer00p/wafel_installer/releases), and extract the `wafel_installer.zip` file to the root of your SD card.
 
 ## How to use
 
@@ -34,15 +34,15 @@ You don't need to run/have Mocha CFW or Haxchi, just launch Wafel Installer from
  - [zer00p](https://github.com/zer00p) for Wafel Installer
  - chriz, Tomk007 and Jaimie for testing
  - [wut](https://github.com/devkitpro/wut) for providing the Wii U toolchain that Wafel Installer is built with
- - Dimok for the original fw_img_payload.
- - The wiiu-env developers (especially Maschell) for Aroma.
+ - [Dimok](https://github.com/dimok789) for the original fw_img_payload.
+ - The wiiu-env developers (especially [Maschell](https://github.com/Maschell)) for Aroma.
  - [shinyquagsire23](https://github.com/shinyquagsire23) for stroopwafel.
- - rw_r_r_0644 for ISFShax.
+ - [rw_r_r_0644](https://github.com/rw_r_r_0644) for ISFShax.
  - [Maschell](https://github.com/Maschell) for Aroma and especially the [AromaUpdater](https://github.com/wiiu-env/AromaUpdater) for code and inspiration
  - The [fortheusers](https://github.com/fortheusers) team for the Homebrew Appstore.
- - FIX94, Maschell, Quarky, GaryOderNichts and koolkdev for making and maintaining homebrew (libraries)
- - smea, plutoo, yellows8, naehrwert, derrek, dimok and kanye_west for making the exploits and CFW possible
- - Google Jules
+ - [FIX94](https://github.com/FIX94), [Maschell](https://github.com/Maschell), [Quarky](https://github.com/ashquarky), [GaryOderNichts](https://github.com/GaryOderNichts) and [koolkdev](https://github.com/koolkdev) for making and maintaining homebrew (libraries)
+ - [smea](https://github.com/smealum), [plutoo](https://github.com/plutooo), [yellows8](https://github.com/yellows8), [naehrwert](https://github.com/naehrwert), derrek, [dimok](https://github.com/dimok789) and kanye_west for making the exploits and CFW possible
+ - [Google Jules](https://jules.google.com)
 
 ## License
 
