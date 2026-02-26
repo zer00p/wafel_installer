@@ -32,7 +32,7 @@ You don't need to run/have Mocha CFW or Haxchi, just launch Wafel Installer from
  - [Crementif](https://github.com/Crementif) for the original [dumpling](https://github.com/dumpling-app/dumpling)
  - [emiyl](https://github.com/emiyl) for [dumpling-classic](https://github.com/emiyl/dumpling-classic)
  - [zer00p](https://github.com/zer00p) for Wafel Installer
- - chriz, Tomk007 and Jaimie for testing
+ - chriz, Tomk007 and Jaimie for testing (dumpling)
  - [wut](https://github.com/devkitpro/wut) for providing the Wii U toolchain that Wafel Installer is built with
  - [Dimok](https://github.com/dimok789) for the original fw_img_payload.
  - The [wiiu-env](https://github.com/wiiu-env) developers (especially [Maschell](https://github.com/Maschell)) for Aroma.
