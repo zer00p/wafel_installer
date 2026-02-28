@@ -23,6 +23,8 @@
 #include <filesystem>
 #include <sstream>
 #include <functional>
+#include <random>
+#include <algorithm> // Required for std::generate_n
 
 /**
  * Inspired by AromaUpdater's download and extraction logic by Maschell.
@@ -31,12 +33,59 @@
 
 namespace fs = std::filesystem;
 
-static size_t write_data_posix(void *ptr, size_t size, size_t nmemb, void *stream) {
-    int fd = *(int*)stream;
-    ssize_t written = write(fd, ptr, size * nmemb);
+// Helper function to generate a random alphanumeric string of a given length
+static std::string generateRandomString(size_t length) {
+    auto randchar = []() -> char {
+        const char charset[] =
+            "0123456789"
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            "abcdefghijklmnopqrstuvwxyz";
+        const size_t max_index = (sizeof(charset) - 1);
+        std::random_device rd;
+        std::mt19937 generator(rd());
+        std::uniform_int_distribution<size_t> distribution(0, max_index);
+        return charset[distribution(generator)];
+    };
+    std::string str(length, 0);
+    std::generate_n(str.begin(), length, randchar);
+    return str;
+}
+
+std::string getTempDownloadPath(const std::string& finalPath) {
+    std::string tempDir;
+
+    if (isSlcPath(finalPath)) {
+        tempDir = "/vol/system/tmp/";
+    } else {
+        tempDir = Paths::SdRoot + "/tmp/"; // SD card temporary directory
+    }
+
+    createDirectories(tempDir); // Ensure temporary directory exists
+
+    // "dl_" + 9 random chars = 12 chars, max 12 chars allowed on SLC;
+    return tempDir + "dl_" + generateRandomString(9); 
+}
+
+struct WriteDataParams {
+    int fd;
+    long long* bytesWritten;
+    long long maxBytes; // 0 for no limit
+};
+
+static size_t write_data(void *ptr, size_t size, size_t nmemb, void *stream) {
+    WriteDataParams* params = (WriteDataParams*)stream;
+    long long bytesToWrite = size * nmemb;
+
+    if (params->maxBytes > 0 && (*params->bytesWritten + bytesToWrite) > params->maxBytes) {
+        // Exceeded size limit, abort download
+        return 0;
+    }
+
+    ssize_t written = write(params->fd, ptr, bytesToWrite);
     if (written == -1) {
         return 0; // Signal error to curl
     }
+    *params->bytesWritten += written;
     return written;
 }
 
@@ -45,29 +94,44 @@ bool downloadFile(const std::string& url, const std::string& path) {
         WHBLogFreetypePrintf(L"Downloading %S to %S...", toWstring(url).c_str(), toWstring(path).c_str());
         WHBLogFreetypeDrawScreen();
 
+        std::string tempPath = getTempDownloadPath(path);
+        long long bytesWritten = 0;
+        long long maxBytes = 0;
+        if (isSlcPath(path)) {
+            maxBytes = 10 * 1024 * 1024; // 10MB limit for SLC
+        }
+
         CURL *curl_handle = curl_easy_init();
         if (!curl_handle) {
             WHBLogFreetypePrintf(L"Failed to initialize curl!");
             WHBLogFreetypeDrawScreen();
             setErrorPrompt(L"Failed to initialize curl!");
-            if (showErrorPrompt(L"Cancel", true)) continue;
+            if (showErrorPrompt(L"Cancel", true)) {
+                removeFile(tempPath); // Clean up temp file
+                continue;
+            }
             return false;
         }
 
-        int fd = fileOpen(path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+        int fd = fileOpen(tempPath, O_WRONLY | O_CREAT | O_TRUNC, 0644);
         if (fd < 0) {
-            WHBLogFreetypePrintf(L"Failed to open %S for writing!\nErrno: %d", toWstring(path).c_str(), errno);
+            WHBLogFreetypePrintf(L"Failed to open %S for writing!\nErrno: %d", toWstring(tempPath).c_str(), errno);
             WHBLogFreetypeDrawScreen();
-            std::wstring error = L"Failed to open " + toWstring(path) + L" for writing!\nErrno: " + std::to_wstring(errno);
+            std::wstring error = L"Failed to open " + toWstring(tempPath) + L" for writing!\nErrno: " + std::to_wstring(errno);
             setErrorPrompt(error);
             curl_easy_cleanup(curl_handle);
-            if (showErrorPrompt(L"Cancel", true)) continue;
+            if (showErrorPrompt(L"Cancel", true)) {
+                removeFile(tempPath); // Clean up temp file
+                continue;
+            }
             return false;
         }
 
+        WriteDataParams params = {fd, &bytesWritten, maxBytes};
+
         curl_easy_setopt(curl_handle, CURLOPT_URL, url.c_str());
-        curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, write_data_posix);
-        curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &fd);
+        curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, write_data);
+        curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &params);
         curl_easy_setopt(curl_handle, CURLOPT_FAILONERROR, 1L);
         curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "wafel_installer/1.0");
         curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
@@ -89,9 +153,28 @@ bool downloadFile(const std::string& url, const std::string& path) {
             std::wstring error = L"Curl failed: " + toWstring(curl_easy_strerror(res));
             if (res == CURLE_PEER_FAILED_VERIFICATION || res == CURLE_SSL_CONNECT_ERROR) {
                 error += L"\nPlease check if your system date and time are correct!";
+            } else if (res == CURLE_WRITE_ERROR && maxBytes > 0 && bytesWritten >= maxBytes) {
+                error = L"Download aborted: File size exceeded " + std::to_wstring(maxBytes / (1024 * 1024)) + L"MB limit for SLC!";
             }
             setErrorPrompt(error);
-            if (showErrorPrompt(L"Cancel", true)) continue;
+            if (showErrorPrompt(L"Cancel", true)) {
+                removeFile(tempPath); // Clean up temp file
+                continue;
+            }
+            removeFile(tempPath); // Clean up temp file on other errors
+            return false;
+        }
+
+        // If download was successful, move the temporary file to the final path
+        if (!moveFile(tempPath, path)) {
+            WHBLogFreetypePrintf(L"Failed to move downloaded file from %S to %S", toWstring(tempPath).c_str(), toWstring(path).c_str());
+            WHBLogFreetypeDrawScreen();
+            setErrorPrompt(L"Failed to move downloaded file!");
+            if (showErrorPrompt(L"Cancel", true)) {
+                removeFile(tempPath); // Clean up temp file
+                continue;
+            }
+            removeFile(tempPath); // Clean up temp file on error
             return false;
         }
 

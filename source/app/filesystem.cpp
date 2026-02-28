@@ -260,6 +260,10 @@ DIR* dirOpen(const std::string& path) {
     return opendir(convertedPath.c_str());
 }
 
+bool isSlcPath(const std::string& path) {
+    return path.rfind(Paths::SlcRoot, 0) == 0 || path.rfind(Paths::SystemRoot, 0) == 0;
+}
+
 bool deleteDirContent(const std::string& path) {
     DIR* dirHandle;
     if ((dirHandle = dirOpen(path.c_str())) == nullptr) return false;

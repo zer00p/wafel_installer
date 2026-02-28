@@ -26,3 +26,4 @@ bool downloadToBuffer(const std::string& url, std::string& buffer);
 std::string getLatestReleaseAssetDigest(const std::string& repo, const std::string& assetName);
 std::string getDigestFromResponse(const std::string& apiResponse, const std::string& assetName);
 std::string getRepoFromUrl(const std::string& url);
+std::string getTempDownloadPath(const std::string& finalPath);

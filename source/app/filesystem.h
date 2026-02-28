@@ -29,6 +29,8 @@ int fileOpen(const std::string& path, int flags, mode_t mode);
 FILE* fileFopen(const std::string& path, const char* mode);
 DIR* dirOpen(const std::string& path);
 
+bool isSlcPath(const std::string& path);
+
 bool deleteDirContent(const std::string& path);
 
 TITLE_LOCATION deviceToLocation(std::string_view device);
