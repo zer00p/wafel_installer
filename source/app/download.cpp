@@ -66,26 +66,12 @@ std::string getTempDownloadPath(const std::string& finalPath) {
     return tempDir + "dl_" + generateRandomString(9); 
 }
 
-struct WriteDataParams {
-    int fd;
-    long long* bytesWritten;
-    long long maxBytes; // 0 for no limit
-};
-
 static size_t write_data(void *ptr, size_t size, size_t nmemb, void *stream) {
-    WriteDataParams* params = (WriteDataParams*)stream;
-    long long bytesToWrite = size * nmemb;
-
-    if (params->maxBytes > 0 && (*params->bytesWritten + bytesToWrite) > params->maxBytes) {
-        // Exceeded size limit, abort download
-        return 0;
-    }
-
-    ssize_t written = write(params->fd, ptr, bytesToWrite);
+    int fd = *(int*)stream;
+    ssize_t written = write(fd, ptr, size * nmemb);
     if (written == -1) {
         return 0; // Signal error to curl
     }
-    *params->bytesWritten += written;
     return written;
 }
 
@@ -95,11 +81,6 @@ bool downloadFile(const std::string& url, const std::string& path) {
         WHBLogFreetypeDrawScreen();
 
         std::string tempPath = getTempDownloadPath(path);
-        long long bytesWritten = 0;
-        long long maxBytes = 0;
-        if (isSlcPath(path)) {
-            maxBytes = 10 * 1024 * 1024; // 10MB limit for SLC
-        }
 
         CURL *curl_handle = curl_easy_init();
         if (!curl_handle) {
@@ -127,11 +108,12 @@ bool downloadFile(const std::string& url, const std::string& path) {
             return false;
         }
 
-        WriteDataParams params = {fd, &bytesWritten, maxBytes};
-
         curl_easy_setopt(curl_handle, CURLOPT_URL, url.c_str());
         curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, write_data);
-        curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &params);
+        curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, &fd);
+        if (isSlcPath(path)) {
+            curl_easy_setopt(curl_handle, CURLOPT_MAXFILESIZE, 10 * 1024 * 1024L); // 10MB limit for SLC
+        }
         curl_easy_setopt(curl_handle, CURLOPT_FAILONERROR, 1L);
         curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "wafel_installer/1.0");
         curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
@@ -153,8 +135,8 @@ bool downloadFile(const std::string& url, const std::string& path) {
             std::wstring error = L"Curl failed: " + toWstring(curl_easy_strerror(res));
             if (res == CURLE_PEER_FAILED_VERIFICATION || res == CURLE_SSL_CONNECT_ERROR) {
                 error += L"\nPlease check if your system date and time are correct!";
-            } else if (res == CURLE_WRITE_ERROR && maxBytes > 0 && bytesWritten >= maxBytes) {
-                error = L"Download aborted: File size exceeded " + std::to_wstring(maxBytes / (1024 * 1024)) + L"MB limit for SLC!";
+            } else if (res == CURLE_FILESIZE_EXCEEDED) {
+                error = L"Download aborted: File size exceeded 10MB limit for SLC!";
             }
             setErrorPrompt(error);
             if (showErrorPrompt(L"Cancel", true)) {
