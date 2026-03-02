@@ -109,7 +109,7 @@ static bool browsePlugins(std::string pluginsPath) {
                             std::wstring msg = L"Warning: " + toWstring(incompatibleFile) + L" is already installed and is incompatible with " + toWstring(p.fileName) + L"!\nDo you want to delete the incompatible plugin first?";
                             uint8_t res = showDialogPrompt(msg.c_str(), L"Delete", L"Keep both", L"Cancel");
                             if (res == 0) { // Delete
-                                if (remove(fullPath.c_str()) == 0) {
+                                if (removeFile(fullPath.c_str()) == 0) {
                                     showSuccessPrompt(L"Incompatible plugin deleted.");
                                 } else {
                                     setErrorPrompt(L"Failed to delete incompatible plugin!");
@@ -226,7 +226,7 @@ static bool syncPlugins(const std::string& sourcePath) {
                     std::string destFile = destPath;
                     if (destFile.back() != '/') destFile += "/";
                     destFile += fileName;
-                    remove(destFile.c_str());
+                    removeFile(destFile.c_str());
                 }
             }
         }
@@ -349,7 +349,7 @@ static bool managePlugins(std::string pluginsPath) {
                         std::string fullPath = pluginsPath;
                         if (fullPath.back() != '/') fullPath += "/";
                         fullPath += pluginName;
-                        if (remove(fullPath.c_str()) == 0) {
+                        if (removeFile(fullPath.c_str()) == 0) {
                             showSuccessPrompt(L"Plugin deleted successfully!");
                             if (selectedOption > 0 && selectedOption == plugins.size() - 1) {
                                 selectedOption--;
