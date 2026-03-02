@@ -6,6 +6,7 @@
 
 #include <dirent.h>
 #include <sys/unistd.h>
+#include <sys/statvfs.h>
 
 static bool systemSLCMounted = false;
 static bool systemMLCMounted = false;
@@ -262,6 +263,15 @@ DIR* dirOpen(const std::string& path) {
 
 bool isSlcPath(const std::string& path) {
     return path.rfind(Paths::SlcRoot, 0) == 0 || path.rfind(Paths::SystemRoot, 0) == 0;
+}
+
+uint64_t getFreeSpace(const std::string& path) {
+    std::string convertedPath = convertToWiiUFsPath(path);
+    struct statvfs s;
+    if (statvfs(convertedPath.c_str(), &s) == 0) {
+        return (uint64_t)s.f_bavail * s.f_frsize;
+    }
+    return 0;
 }
 
 bool deleteDirContent(const std::string& path) {

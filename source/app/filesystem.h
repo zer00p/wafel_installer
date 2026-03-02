@@ -31,6 +31,8 @@ DIR* dirOpen(const std::string& path);
 
 bool isSlcPath(const std::string& path);
 
+uint64_t getFreeSpace(const std::string& path);
+
 bool deleteDirContent(const std::string& path);
 
 TITLE_LOCATION deviceToLocation(std::string_view device);

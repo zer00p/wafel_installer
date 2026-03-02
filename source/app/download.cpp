@@ -80,6 +80,15 @@ bool downloadFile(const std::string& url, const std::string& path) {
         WHBLogFreetypePrintf(L"Downloading %S to %S...", toWstring(url).c_str(), toWstring(path).c_str());
         WHBLogFreetypeDrawScreen();
 
+        if (isSlcPath(path)) {
+            uint64_t freeSpace = getFreeSpace(path);
+            if (freeSpace < 30 * 1024 * 1024L) {
+                setErrorPrompt(L"Download aborted: Less than 30MB free space on SLC!");
+                if (showErrorPrompt(L"Cancel", true)) continue;
+                return false;
+            }
+        }
+
         std::string tempPath = getTempDownloadPath(path);
 
         CURL *curl_handle = curl_easy_init();
@@ -467,6 +476,14 @@ static bool downloadAndExtractZip(const std::string& repo, const std::string& pa
 
     WHBLogFreetypePrintf(L"Extracting %S...", toWstring(displayName).c_str());
     WHBLogFreetypeDrawScreen();
+
+    if (isSlcPath(path)) {
+        uint64_t freeSpace = getFreeSpace(path);
+        if (freeSpace < 30 * 1024 * 1024L) {
+            setErrorPrompt(L"Extraction aborted: Less than 30MB free space on SLC!");
+            return false;
+        }
+    }
 
     try {
         std::istringstream iss(zipData);
