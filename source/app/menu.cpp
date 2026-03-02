@@ -164,8 +164,8 @@ void showMainMenu() {
             WHBLogFreetypePrint(L"===============================");
             WHBLogFreetypePrintf(L"%C Stroopwafel Plugin Manager", OPTION(0));
             WHBLogFreetypePrintf(L"%C Load custom fw.img", OPTION(1));
-            WHBLogFreetypePrintf(L"%C Install Stroopwafel by shinyquagsire23", OPTION(2));
-            WHBLogFreetypePrintf(L"%C (Un)Install ISFShax by rw_r_r_0644", OPTION(3));
+            WHBLogFreetypePrintf(L"%C Stroopwafel", OPTION(2));
+            WHBLogFreetypePrintf(L"%C ISFShax by rw_r_r_0644", OPTION(3));
             WHBLogFreetypePrintf(L"%C Check for Updates", OPTION(4));
             WHBLogFreetypePrintf(L"%C Download Aroma by Maschell", OPTION(5));
             WHBLogFreetypePrintf(L"%C Format and Partition", OPTION(6));
@@ -234,7 +234,7 @@ void showMainMenu() {
                 loadArbitraryFwImgMenu();
                 break;
             case 2:
-                installStroopwafelMenu();
+                showStroopwafelMenu();
                 break;
             case 3:
                 installIsfshaxMenu();
@@ -413,6 +413,117 @@ static bool isRedNAND() {
     return autoboot == 2;
 }
 
+void uninstallStroopwafelMenu(bool showWarning) {
+    if (showWarning) {
+        if (isRedNAND()) {
+            showDialogPrompt(L"redNAND is detected.\nStroopwafel is required for redNAND.\nUninstallation is not possible.", L"OK");
+            return;
+        }
+
+        const wchar_t* warningMessage =
+            L"Please read carefully:\n \n"
+            L"This will remove Stroopwafel from your console.\n"
+            L"Modifications made by other tools might still persist.\n \n"
+            L"IMPORTANT: If you installed custom keyboards or themes, you\n"
+            L"MUST undo these changes BEFORE uninstalling. Removing\n"
+            L"Stroopwafel otherwise might cause a BRICK.\n";
+
+        if (showDialogPrompt(warningMessage, L"Continue", L"Cancel", nullptr, nullptr, 1) != 0) {
+            return;
+        }
+    }
+
+    // Stroopwafel removal
+    bool stroopOnSlc = dirExist(Paths::SlcPluginsDir) || fileExist(Paths::SlcFwImg);
+    bool stroopOnSd = dirExist(Paths::SdPluginsDir) || fileExist(Paths::SdFwImg) || dirExist(Paths::SdMinuteDir);
+
+    uint8_t stroopChoice = 255;
+    if (stroopOnSlc && stroopOnSd) {
+        stroopChoice = showDialogPrompt(L"Stroopwafel files found on both SLC and SD card.\nWhere do you want to remove them from?", L"Both", L"SLC only", L"SD card only", L"Skip");
+    } else if (stroopOnSlc) {
+        if (showDialogPrompt(L"Stroopwafel files found on SLC.\nDo you want to remove them?", L"Yes", L"No") == 0) {
+            stroopChoice = 1; // SLC only
+        }
+    } else if (stroopOnSd) {
+        if (showDialogPrompt(L"Stroopwafel files found on SD card.\nDo you want to remove them?", L"Yes", L"No") == 0) {
+            stroopChoice = 2; // SD only
+        }
+    }
+
+    if (stroopChoice != 255 && stroopChoice != 3) {
+        WHBLogFreetypeStartScreen();
+        WHBLogFreetypePrint(L"Removing Stroopwafel files...");
+        WHBLogFreetypeDraw();
+
+        // Remove from SLC
+        if (stroopChoice == 0 || stroopChoice == 1) {
+            if (checkSystemAccess()) {
+                WHBLogFreetypePrint(L"Removing SLC files...");
+                WHBLogFreetypeDraw();
+                deleteDirContent(Paths::SlcPluginsDir);
+                removeDir(Paths::SlcPluginsDir);
+                removeFile(Paths::SlcFwImg);
+                if (isDirEmpty(Paths::SlcHaxDir)) {
+                     removeDir(Paths::SlcHaxDir);
+                }
+            }
+        }
+        // Remove from SD
+        if (stroopChoice == 0 || stroopChoice == 2) {
+            if (WHBMountSdCard() == 1) {
+                WHBLogFreetypePrint(L"Removing SD files...");
+                WHBLogFreetypeDraw();
+                deleteDirContent(Paths::SdPluginsDir);
+                removeDir(Paths::SdPluginsDir);
+                removeFile(Paths::SdFwImg);
+                deleteDirContent(Paths::SdMinuteDir);
+                removeDir(Paths::SdMinuteDir);
+                WHBUnmountSdCard();
+            }
+        }
+        WHBLogFreetypePrint(L"Done removing Stroopwafel files.");
+        WHBLogFreetypeDraw();
+        sleep_for(2s);
+    }
+}
+
+void showStroopwafelMenu() {
+    uint8_t selectedOption = 0;
+    while(true) {
+        if (isShutdownForced()) return;
+
+        WHBLogFreetypeStartScreen();
+        WHBLogFreetypePrint(L"Stroopwafel Menu");
+        WHBLogFreetypePrint(L"===============================");
+        WHBLogFreetypePrintf(L"%C Download / Install Stroopwafel", OPTION(0));
+        WHBLogFreetypePrintf(L"%C Uninstall Stroopwafel", OPTION(1));
+        WHBLogFreetypePrint(L" ");
+        WHBLogFreetypeScreenPrintBottom(L"===============================");
+        WHBLogFreetypeScreenPrintBottom(L"\uE000 Button = Select Option \uE001 Button = Back");
+        WHBLogFreetypeDrawScreen();
+
+        updateInputs();
+        while(true) {
+            if (isShutdownForced()) return;
+            updateInputs();
+            if (navigatedUp() && selectedOption > 0) {
+                selectedOption--;
+                break;
+            }
+            if (navigatedDown() && selectedOption < 1) {
+                selectedOption++;
+                break;
+            }
+            if (pressedOk()) {
+                if (selectedOption == 0) installStroopwafelMenu();
+                else if (selectedOption == 1) uninstallStroopwafelMenu();
+                break;
+            }
+            if (pressedBack()) return;
+        }
+    }
+}
+
 void showUninstallMenu() {
     if (isRedNAND()) {
         showDialogPrompt(L"redNAND is detected.\nStroopwafel and ISFShax are required for redNAND.\nUninstallation is not possible.", L"OK");
@@ -501,58 +612,7 @@ void showUninstallMenu() {
     WHBUnmountSdCard();
 
 
-    // Stroopwafel removal
-    bool stroopOnSlc = dirExist(Paths::SlcPluginsDir) || fileExist(Paths::SlcFwImg);
-    bool stroopOnSd = dirExist(Paths::SdPluginsDir) || fileExist(Paths::SdFwImg) || dirExist(Paths::SdMinuteDir);
-
-    uint8_t stroopChoice = 255;
-    if (stroopOnSlc && stroopOnSd) {
-        stroopChoice = showDialogPrompt(L"Stroopwafel files found on both SLC and SD card.\nWhere do you want to remove them from?", L"Both", L"SLC only", L"SD card only", L"Skip");
-    } else if (stroopOnSlc) {
-        if (showDialogPrompt(L"Stroopwafel files found on SLC.\nDo you want to remove them?", L"Yes", L"No") == 0) {
-            stroopChoice = 1; // SLC only
-        }
-    } else if (stroopOnSd) {
-        if (showDialogPrompt(L"Stroopwafel files found on SD card.\nDo you want to remove them?", L"Yes", L"No") == 0) {
-            stroopChoice = 2; // SD only
-        }
-    }
-
-    if (stroopChoice != 255 && stroopChoice != 3) {
-        WHBLogFreetypeStartScreen();
-        WHBLogFreetypePrint(L"Removing Stroopwafel files...");
-        WHBLogFreetypeDraw();
-
-        // Remove from SLC
-        if (stroopChoice == 0 || stroopChoice == 1) {
-            if (checkSystemAccess()) {
-                WHBLogFreetypePrint(L"Removing SLC files...");
-                WHBLogFreetypeDraw();
-                deleteDirContent(Paths::SlcPluginsDir);
-                removeDir(Paths::SlcPluginsDir);
-                removeFile(Paths::SlcFwImg);
-                if (isDirEmpty(Paths::SlcHaxDir)) {
-                     removeDir(Paths::SlcHaxDir);
-                }
-            }
-        }
-        // Remove from SD
-        if (stroopChoice == 0 || stroopChoice == 2) {
-            if (WHBMountSdCard() == 1) {
-                WHBLogFreetypePrint(L"Removing SD files...");
-                WHBLogFreetypeDraw();
-                deleteDirContent(Paths::SdPluginsDir);
-                removeDir(Paths::SdPluginsDir);
-                removeFile(Paths::SdFwImg);
-                deleteDirContent(Paths::SdMinuteDir);
-                removeDir(Paths::SdMinuteDir);
-                WHBUnmountSdCard();
-            }
-        }
-        WHBLogFreetypePrint(L"Done removing Stroopwafel files.");
-        WHBLogFreetypeDraw();
-        sleep_for(2s);
-    }
+    uninstallStroopwafelMenu(false);
 
 
     // ISFShax removal
