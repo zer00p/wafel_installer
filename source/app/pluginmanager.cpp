@@ -129,6 +129,13 @@ static bool browsePlugins(std::string pluginsPath) {
                         std::string fullPath = pluginsPath;
                         if (fullPath.back() != '/') fullPath += "/";
                         fullPath += p.fileName;
+
+                        if (isSlcPath(pluginsPath) && countFiles(pluginsPath) >= 50 && !fileExist(fullPath)) {
+                            setErrorPrompt(L"Download aborted: More than 50 plugins on SLC!");
+                            showErrorPrompt(L"OK");
+                            goto next_loop;
+                        }
+
                         if (downloadFile(p.downloadPath, fullPath)) {
                             showSuccessPrompt(L"Plugin downloaded successfully!");
                             changed = true;
@@ -175,6 +182,20 @@ static bool syncPlugins(const std::string& sourcePath) {
     WHBLogFreetypePrint(L"Syncing plugins...");
     WHBLogFreetypeDrawScreen();
 
+    // Safegards for SLC
+    if (isSlcPath(destPath)) {
+        if (getFreeSpace(destPath) < 30 * 1024 * 1024L) {
+            setErrorPrompt(L"Sync aborted: Less than 30MB free space on SLC!");
+            showErrorPrompt(L"OK");
+            return false;
+        }
+        if (countFiles(sourcePath) > 50) {
+            setErrorPrompt(L"Sync aborted: More than 50 plugins in source!");
+            showErrorPrompt(L"OK");
+            return false;
+        }
+    }
+
     // Ensure destination directory exists
     if (!dirExist(destPath)) {
         try {
@@ -204,6 +225,14 @@ static bool syncPlugins(const std::string& sourcePath) {
 
                 WHBLogFreetypePrintf(L"Copying %S...", toWstring(fileName).c_str());
                 WHBLogFreetypeDrawScreen();
+
+                if (isSlcPath(destPath) && getFileSize(srcFile) > 10 * 1024 * 1024L) {
+                    WHBLogFreetypePrintf(L"Skipping %S: size > 10MB", toWstring(fileName).c_str());
+                    WHBLogFreetypeDrawScreen();
+                    sleep_for(1s);
+                    continue;
+                }
+
                 if (!copyFile(srcFile, destFile)) {
                      WHBLogFreetypePrintf(L"Failed to copy %S", toWstring(fileName).c_str());
                      WHBLogFreetypeDrawScreen();
@@ -237,7 +266,12 @@ static bool syncPlugins(const std::string& sourcePath) {
     if (copyFwImg) {
         WHBLogFreetypePrint(L"Copying fw.img...");
         WHBLogFreetypeDrawScreen();
-        if (!copyFile(sourceFwImg, destFwImg)) {
+
+        if (isSlcPath(destFwImg) && getFileSize(sourceFwImg) > 10 * 1024 * 1024L) {
+            WHBLogFreetypePrint(L"Skipping fw.img: size > 10MB");
+            WHBLogFreetypeDrawScreen();
+            sleep_for(2s);
+        } else if (!copyFile(sourceFwImg, destFwImg)) {
             WHBLogFreetypePrint(L"Failed to copy fw.img!");
             WHBLogFreetypeDrawScreen();
             sleep_for(2s);

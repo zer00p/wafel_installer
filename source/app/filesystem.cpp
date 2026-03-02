@@ -274,6 +274,29 @@ uint64_t getFreeSpace(const std::string& path) {
     return 0;
 }
 
+uint64_t getFileSize(const std::string& path) {
+    std::string convertedPath = convertToWiiUFsPath(path);
+    struct stat s;
+    if (lstat(convertedPath.c_str(), &s) == 0) {
+        return s.st_size;
+    }
+    return 0;
+}
+
+size_t countFiles(const std::string& path) {
+    DIR* dir = dirOpen(path);
+    if (!dir) return 0;
+    size_t count = 0;
+    struct dirent* ent;
+    while ((ent = readdir(dir)) != nullptr) {
+        if (ent->d_type == DT_REG) {
+            count++;
+        }
+    }
+    closedir(dir);
+    return count;
+}
+
 bool deleteDirContent(const std::string& path) {
     DIR* dirHandle;
     if ((dirHandle = dirOpen(path.c_str())) == nullptr) return false;

@@ -32,6 +32,8 @@ DIR* dirOpen(const std::string& path);
 bool isSlcPath(const std::string& path);
 
 uint64_t getFreeSpace(const std::string& path);
+uint64_t getFileSize(const std::string& path);
+size_t countFiles(const std::string& path);
 
 bool deleteDirContent(const std::string& path);
 
