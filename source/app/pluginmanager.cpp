@@ -175,6 +175,18 @@ static bool syncPlugins(const std::string& sourcePath) {
         return false;
     }
 
+    if (!dirExist(sourcePath)) {
+        setErrorPrompt(L"Source directory does not exist!");
+        showErrorPrompt(L"OK");
+        return false;
+    }
+
+    if (!fileExist(sourcePath + "/00core.ipx") || !fileExist(sourcePath + "/5isfshax.ipx")) {
+        setErrorPrompt(L"Source is missing required plugins (00core.ipx and 5isfshax.ipx)!");
+        showErrorPrompt(L"OK");
+        return false;
+    }
+
     std::wstring msg = L"Do you want to sync all plugins from\n" + toWstring(sourcePath) + L"\nto\n" + toWstring(destPath) + L"?\nExisting plugins will be overwritten and others deleted.";
     if (showDialogPrompt(msg.c_str(), L"Yes", L"No") != 0) return false;
 
