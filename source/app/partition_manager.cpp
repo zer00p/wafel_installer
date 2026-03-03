@@ -1,4 +1,5 @@
 #include "partition_manager.h"
+#include "common_paths.h"
 #include "startup_checks.h"
 #include "menu.h"
 #include "isfshax_menu.h"
@@ -1080,6 +1081,127 @@ void formatAndPartitionMenu() {
     }
 
     usbAsSd(false);
+}
+
+bool uninstallSDUSB() {
+    WHBMountSdCard();
+    bool removed = false;
+    std::string sdPlugin = Paths::SdPluginsDir + "/5sdusb.ipx";
+    std::string slcPlugin = Paths::SlcPluginsDir + "/5sdusb.ipx";
+
+    if (fileExist(sdPlugin)) {
+        if (removeFile(sdPlugin)) {
+            removed = true;
+        }
+    }
+    if (fileExist(slcPlugin)) {
+        if (removeFile(slcPlugin)) {
+            removed = true;
+        }
+    }
+
+    if (removed) {
+        showSuccessPrompt(L"SDUSB plugin removed successfully.");
+    } else {
+        showDialogPrompt(L"SDUSB plugin not found.", L"OK");
+    }
+
+    if (showDialogPrompt(L"Do you want to unpartition the SD card now?\nThis will DELETE ALL DATA on it.", L"Yes, format SD", L"No") == 0) {
+        FSAClientHandle fsaHandle = FSAAddClient(NULL);
+        if (fsaHandle >= 0) {
+            usbAsSd(false);
+            WHBUnmountSdCard();
+            FatMountGuard guard;
+            if (waitForDevice(fsaHandle, L"SD card", guard)) {
+                FSADeviceInfo deviceInfo;
+                if ((FSStatus)FSAGetDeviceInfo(fsaHandle, "/dev/sdcard01", &deviceInfo) == FS_STATUS_OK) {
+                    if (formatWholeDrive(fsaHandle, "/dev/sdcard01", deviceInfo)) {
+                        guard.unblock();
+                        WHBMountSdCard();
+
+                        // Check if stroopwafel was on SD
+                        std::string stroopPath = getStroopwafelPluginPath();
+                        bool stroopOnSd = (stroopPath.find(Paths::SdRoot) != std::string::npos) || fileExist(Paths::SdFwImg);
+
+                        if (stroopOnSd) {
+                            if (showDialogPrompt(L"Stroopwafel was installed on the SD card.\nDo you want to redownload it now?", L"Yes", L"No") == 0) {
+                                downloadStroopwafelFiles(true);
+                            }
+                        }
+
+                        if (showDialogPrompt(L"Do you want to redownload Aroma now?", L"Yes", L"No") == 0) {
+                            downloadAroma();
+                        }
+                        
+                        showSuccessPrompt(L"SD card unpartitioned successfully.");
+                    }
+                }
+            }
+            FSADelClient(fsaHandle);
+        }
+    }
+
+    return true;
+}
+
+void showSDUSBMenu() {
+    uint8_t selectedOption = 0;
+    while (true) {
+        if (isShutdownForced()) return;
+
+        WHBLogFreetypeStartScreen();
+        WHBLogFreetypePrint(L"SDUSB Menu");
+        WHBLogFreetypePrint(L"===============================");
+        WHBLogFreetypePrintf(L"%C Set up SDUSB", (selectedOption == 0 ? L'>' : L' '));
+        WHBLogFreetypePrintf(L"%C Uninstall SDUSB", (selectedOption == 1 ? L'>' : L' '));
+        WHBLogFreetypePrintf(L"%C Unpartition SD card (format whole card)", (selectedOption == 2 ? L'>' : L' '));
+        WHBLogFreetypePrint(L" ");
+        WHBLogFreetypeScreenPrintBottom(L"===============================");
+        WHBLogFreetypeScreenPrintBottom(L"\uE000 Button = Select Option \uE001 Button = Back");
+        WHBLogFreetypeDrawScreen();
+
+        updateInputs();
+        while (true) {
+            if (isShutdownForced()) return;
+            updateInputs();
+            if (navigatedUp() && selectedOption > 0) {
+                selectedOption--;
+                break;
+            }
+            if (navigatedDown() && selectedOption < 2) {
+                selectedOption++;
+                break;
+            }
+            if (pressedOk()) {
+                if (selectedOption == 0) {
+                    setupSDUSBMenu();
+                } else if (selectedOption == 1) {
+                    uninstallSDUSB();
+                } else if (selectedOption == 2) {
+                    // Unpartition SD Card
+                    FSAClientHandle fsaHandle = FSAAddClient(NULL);
+                    if (fsaHandle >= 0) {
+                        usbAsSd(false);
+                        WHBUnmountSdCard();
+                        FatMountGuard guard;
+                        if (waitForDevice(fsaHandle, L"SD card", guard)) {
+                            FSADeviceInfo deviceInfo;
+                            if ((FSStatus)FSAGetDeviceInfo(fsaHandle, "/dev/sdcard01", &deviceInfo) == FS_STATUS_OK) {
+                                if (formatWholeDrive(fsaHandle, "/dev/sdcard01", deviceInfo)) {
+                                    showSuccessPrompt(L"SD card formatted successfully.");
+                                    guard.unblock();
+                                    WHBMountSdCard();
+                                }
+                            }
+                        }
+                        FSADelClient(fsaHandle);
+                    }
+                }
+                break;
+            }
+            if (pressedBack()) return;
+        }
+    }
 }
 
 void setupSDUSBMenu() {

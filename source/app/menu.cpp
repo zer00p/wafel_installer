@@ -169,7 +169,7 @@ void showMainMenu() {
             WHBLogFreetypePrintf(L"%C Check for Updates", OPTION(4));
             WHBLogFreetypePrintf(L"%C Download Aroma by Maschell", OPTION(5));
             WHBLogFreetypePrintf(L"%C Format and Partition", OPTION(6));
-            WHBLogFreetypePrintf(L"%C Set up SDUSB", OPTION(7));
+            WHBLogFreetypePrintf(L"%C SDUSB", OPTION(7));
             WHBLogFreetypePrintf(L"%C Set up USB Partition", OPTION(8));
             WHBLogFreetypePrintf(L"%C Configure Minute Autoboot", OPTION(9));
             WHBLogFreetypePrintf(L"%C Guided Uninstall", OPTION(10));
@@ -249,7 +249,7 @@ void showMainMenu() {
                 formatAndPartitionMenu();
                 break;
             case 7:
-                setupSDUSBMenu();
+                showSDUSBMenu();
                 break;
             case 8:
                 setupPartitionedUSBMenu();
