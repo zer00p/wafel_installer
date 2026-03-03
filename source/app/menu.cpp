@@ -17,6 +17,7 @@
 #include <whb/sdcard.h>
 #include <mocha/fsa.h>
 #include "fw_img_loader.h"
+#include "startup_checks.h"
 
 // Menu screens
 
@@ -121,14 +122,7 @@ void installStroopwafelMenu() {
 
     if (downloadStroopwafelFiles(toSD)) {
         showSuccessPrompt(L"Stroopwafel files downloaded successfully!");
-
-        if (!isIsfshaxInstalled()) {
-            if (showDialogPrompt(L"ISFShax is not detected.\nDo you want to download the ISFShax installer and superblock files now?", L"Yes", L"No") == 0) {
-                if (downloadIsfshaxFiles()) {
-                    bootInstaller();
-                }
-            }
-        }
+        performIsfshaxCheck(false, false);
     } else {
         showErrorPrompt(L"OK");
     }
@@ -164,7 +158,7 @@ void showMainMenu() {
             WHBLogFreetypePrint(L"===============================");
             WHBLogFreetypePrintf(L"%C Stroopwafel Plugin Manager", OPTION(0));
             WHBLogFreetypePrintf(L"%C Load custom fw.img", OPTION(1));
-            WHBLogFreetypePrintf(L"%C Stroopwafel", OPTION(2));
+            WHBLogFreetypePrintf(L"%C Stroopwafel by shinyquagsire23", OPTION(2));
             WHBLogFreetypePrintf(L"%C ISFShax by rw_r_r_0644", OPTION(3));
             WHBLogFreetypePrintf(L"%C Check for Updates", OPTION(4));
             WHBLogFreetypePrintf(L"%C Download Aroma by Maschell", OPTION(5));
