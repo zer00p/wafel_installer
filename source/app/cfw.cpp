@@ -17,6 +17,7 @@ bool pending_shutdown = false;
 bool forced_shutdown = false;
 
 bool pending_reboot = false;
+bool pending_full_reboot = false;
 
 bool stopMochaServer() {
     WHBLogFreetypeClear();
@@ -235,4 +236,12 @@ bool isRebootPending() {
 
 void setRebootPending(bool pending) {
     pending_reboot = pending;
+}
+
+bool isFullRebootPending() {
+    return pending_full_reboot;
+}
+
+void setFullRebootPending(bool pending) {
+    pending_full_reboot = pending;
 }

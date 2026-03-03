@@ -448,15 +448,16 @@ void uninstallStroopwafelMenu(bool showWarning) {
         WHBLogFreetypeStartScreen();
         WHBLogFreetypePrint(L"Removing Stroopwafel files...");
         WHBLogFreetypeDraw();
+        setFullRebootPending(true);
 
         // Remove from SLC
         if (stroopChoice == 0 || stroopChoice == 1) {
             if (checkSystemAccess()) {
                 WHBLogFreetypePrint(L"Removing SLC files...");
                 WHBLogFreetypeDraw();
+                removeFile(Paths::SlcFwImg);
                 deleteDirContent(Paths::SlcPluginsDir);
                 removeDir(Paths::SlcPluginsDir);
-                removeFile(Paths::SlcFwImg);
                 if (isDirEmpty(Paths::SlcHaxDir)) {
                      removeDir(Paths::SlcHaxDir);
                 }
@@ -467,9 +468,9 @@ void uninstallStroopwafelMenu(bool showWarning) {
             if (WHBMountSdCard() == 1) {
                 WHBLogFreetypePrint(L"Removing SD files...");
                 WHBLogFreetypeDraw();
+                removeFile(Paths::SdFwImg);
                 deleteDirContent(Paths::SdPluginsDir);
                 removeDir(Paths::SdPluginsDir);
-                removeFile(Paths::SdFwImg);
                 deleteDirContent(Paths::SdMinuteDir);
                 removeDir(Paths::SdMinuteDir);
                 WHBUnmountSdCard();

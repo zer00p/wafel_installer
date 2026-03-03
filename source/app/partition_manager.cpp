@@ -292,6 +292,9 @@ bool waitForDevice(FSAClientHandle fsaHandle, const wchar_t* deviceName, FatMoun
 
     guard.block();
 
+    // stroopwafel might be gone now, better do a full reboot
+    setFullRebootPending(true);
+
     std::wstring pluginMsg = L"Plug in ONLY the " + std::wstring(deviceName) + L" you want to work with.\nPlugging in other devices may lead to DATA LOSS!";
     while (true) {
         WHBLogFreetypeStartScreen();

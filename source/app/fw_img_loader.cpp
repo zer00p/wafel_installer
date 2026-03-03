@@ -214,9 +214,6 @@ void loadFwImg(const std::string& fwPath, uint32_t command, uint32_t parameter) 
 
     shutdownCFW();
 
-    OSForceFullRelaunch();
-    SYSLaunchMenu();
-
-    exitApplication(false);
+    exitApplication(true, false);
     _Exit(0);
 }

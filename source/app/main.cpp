@@ -76,5 +76,5 @@ int main() {
     VPADShutdown();
     shutdownGUI();
 
-    exitApplication(reboot);
+    exitApplication(reboot, isFullRebootPending());
 }

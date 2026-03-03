@@ -5,4 +5,4 @@
 
 bool initializeGUI();
 void shutdownGUI();
-void exitApplication(bool shutdown);
+void exitApplication(bool reboot, bool fullReboot);

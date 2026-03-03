@@ -31,3 +31,6 @@ bool isShutdownForced();
 
 bool isRebootPending();
 void setRebootPending(bool pending);
+
+bool isFullRebootPending();
+void setFullRebootPending(bool pending);

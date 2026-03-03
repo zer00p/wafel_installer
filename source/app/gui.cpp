@@ -52,8 +52,12 @@ bool stillRunning() {
     return true;
 }
 
-void exitApplication(bool rebootOnExit) {
+void exitApplication(bool rebootOnExit, bool fullReboot) {
     // Loop through ProcUI messages until it says Wafel Installer should exit
+
+    if(fullReboot) {
+        OSLaunchTitlel(OS_TITLE_ID_REBOOT, 0);
+    }
 
     if(rebootOnExit) {
         OSForceFullRelaunch();
