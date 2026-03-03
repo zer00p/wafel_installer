@@ -21,10 +21,11 @@
 #define OPTION(n) (selectedOption == (n) ? L'>' : L' ')
 
 static bool browsePlugins(std::string pluginsPath) {
-    if (!fetchPluginList(false)) return false;
+    const auto* pluginList = getPluginList(false);
+    if (!pluginList) return false;
 
     bool changed = false;
-    const auto& cachedPluginList = getCachedPluginList();
+    const auto& cachedPluginList = *pluginList;
     uint8_t selectedOption = 0;
     while (true) {
         WHBLogFreetypeStartScreen();
@@ -314,12 +315,12 @@ static bool managePlugins(std::string pluginsPath) {
         if (plugins.empty()) {
             WHBLogFreetypePrint(L"No plugins found.");
         } else {
-            const auto& cachedPluginList = getCachedPluginList();
+            const auto* pluginList = getPluginList();
             for (size_t i = 0; i < plugins.size(); i++) {
                 std::wstring fileName = toWstring(plugins[i]);
                 std::wstring shortDesc = L"";
-                if (!cachedPluginList.empty()) {
-                    for (const auto& p : cachedPluginList) {
+                if (pluginList) {
+                    for (const auto& p : *pluginList) {
                         if (p.fileName == plugins[i]) {
                             shortDesc = toWstring(p.shortDescription);
                             break;
@@ -434,7 +435,8 @@ void checkForUpdates() {
     WHBLogFreetypePrint(L"Checking for updates...");
     WHBLogFreetypeDrawScreen();
 
-    if (!fetchPluginList(false)) {
+    const auto* pluginList = getPluginList(false);
+    if (!pluginList) {
         showErrorPrompt(L"OK");
         return;
     }
@@ -467,7 +469,7 @@ void checkForUpdates() {
         while ((ent = readdir(dir)) != nullptr) {
             if (ent->d_type == DT_REG) {
                 std::string fileName = ent->d_name;
-                for (const auto& p : getCachedPluginList()) {
+                for (const auto& p : *pluginList) {
                     if (p.fileName == fileName) {
                         WHBLogFreetypePrintf(L"Checking %S...", toWstring(fileName).c_str());
                         WHBLogFreetypeDrawScreen();

@@ -225,27 +225,23 @@ bool downloadToBuffer(const std::string& url, std::string& buffer) {
 static std::vector<Plugin> cachedPluginList;
 static bool failedToFetch = false;
 
-const std::vector<Plugin>& getCachedPluginList() {
-    return cachedPluginList;
-}
-
-bool fetchPluginList(bool force) {
-    if (!cachedPluginList.empty() && !force) return true;
-    if (failedToFetch && !force) return false;
+const std::vector<Plugin>* getPluginList(bool force) {
+    if (!cachedPluginList.empty() && !force) return &cachedPluginList;
+    if (failedToFetch && !force) return nullptr;
 
     std::string csvData;
     std::string url = "https://raw.githubusercontent.com/zer00p/wafel_installer/refs/heads/master/plugins.csv";
 
     if (!downloadToBuffer(url, csvData)) {
         failedToFetch = true;
-        return false;
+        return nullptr;
     }
     failedToFetch = false;
 
     std::stringstream ss(csvData);
     std::string line;
     // skip header
-    if (!std::getline(ss, line)) return false;
+    if (!std::getline(ss, line)) return nullptr;
 
     cachedPluginList.clear();
     while (std::getline(ss, line)) {
@@ -274,12 +270,15 @@ bool fetchPluginList(bool force) {
         }
     }
 
-    return !cachedPluginList.empty();
+    if (cachedPluginList.empty()) return nullptr;
+    return &cachedPluginList;
 }
 
 std::string getPluginUrl(const std::string& fileName) {
-    fetchPluginList(false);
-    for (const auto& p : getCachedPluginList()) {
+    const auto* pluginList = getPluginList(false);
+    if (!pluginList) return "";
+
+    for (const auto& p : *pluginList) {
         if (p.fileName == fileName) {
             return p.downloadPath;
         }

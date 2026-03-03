@@ -12,8 +12,7 @@ struct Plugin {
     std::string incompatiblePlugins;
 };
 
-bool fetchPluginList(bool force = false);
-const std::vector<Plugin>& getCachedPluginList();
+const std::vector<Plugin>* getPluginList(bool force = false);
 std::string getPluginUrl(const std::string& fileName);
 
 bool downloadStroopwafelFiles(bool toSD);
