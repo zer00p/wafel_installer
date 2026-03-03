@@ -21,7 +21,7 @@
 #define OPTION(n) (selectedOption == (n) ? L'>' : L' ')
 
 static bool browsePlugins(std::string pluginsPath) {
-    if (!fetchPluginList(true)) return false;
+    if (!fetchPluginList(false)) return false;
 
     bool changed = false;
     const auto& cachedPluginList = getCachedPluginList();
@@ -434,7 +434,7 @@ void checkForUpdates() {
     WHBLogFreetypePrint(L"Checking for updates...");
     WHBLogFreetypeDrawScreen();
 
-    if (!fetchPluginList(true)) {
+    if (!fetchPluginList(false)) {
         showErrorPrompt(L"OK");
         return;
     }

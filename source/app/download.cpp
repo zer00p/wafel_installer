@@ -278,7 +278,7 @@ bool fetchPluginList(bool force) {
 }
 
 std::string getPluginUrl(const std::string& fileName) {
-    fetchPluginList();
+    fetchPluginList(false);
     for (const auto& p : getCachedPluginList()) {
         if (p.fileName == fileName) {
             return p.downloadPath;
