@@ -17,6 +17,7 @@
 #include <unistd.h>
 #include <filesystem>
 #include <stroopwafel/stroopwafel.h>
+#include <whb/sdcard.h>
 
 #define OPTION(n) (selectedOption == (n) ? L'>' : L' ')
 
@@ -152,6 +153,12 @@ static bool browsePlugins(std::string pluginsPath) {
 }
 
 static bool syncPlugins(const std::string& sourcePath) {
+    if(WHBMountSdCard() < 1) {
+        setErrorPrompt(L"Can't mount SD");
+        showErrorPrompt(L"OK");
+        return false;
+    }
+
     std::string destPath;
     std::string sourceFwImg;
     std::string destFwImg;
@@ -628,8 +635,14 @@ void showPluginManager() {
             if (pressedOk()) {
                 bool slcSelected = (options[selectedOption].second == Paths::SlcPluginsDir);
                 if (slcSelected && !checkSystemAccess()) {
-                    break;
+                    continue;
                 }
+                if(!slcSelected && WHBMountSdCard() < 1) {
+                    setErrorPrompt(L"Can't mount SD");
+                    showErrorPrompt(L"OK");
+                    continue;
+                }
+
                 if (managePlugins(options[selectedOption].second)) {
                     anyChanged = true;
                 }
