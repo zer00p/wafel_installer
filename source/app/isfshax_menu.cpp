@@ -6,6 +6,7 @@
 #include "download.h"
 #include "filesystem.h"
 #include "common_paths.h"
+#include "urls.h"
 #include <isfshax_cmd.h>
 #include <vector>
 #include <string>
@@ -71,7 +72,7 @@ void installIsfshax(bool uninstall, bool manual) {
                     return;
                 }
             } else {
-                if(!downloadFile("https://github.com/isfshax/isfshax_installer/releases/latest/download/ios.img", Paths::SystemTmpFwImg)){
+                if(!downloadFile(URLs::IsfshaxInstallerIosImg, Paths::SystemTmpFwImg)){
                     setErrorPrompt(L"Failed to download ISFShax installer to /sys/tmp!");
                     showErrorPrompt(L"OK");
                     return;

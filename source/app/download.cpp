@@ -5,6 +5,7 @@
 #include "cfw.h"
 #include "filesystem.h"
 #include "common_paths.h"
+#include "urls.h"
 #include "common.h"
 #include <curl/curl.h>
 #include <string>
@@ -230,7 +231,7 @@ const std::vector<Plugin>* getPluginList(bool force) {
     if (failedToFetch && !force) return nullptr;
 
     std::string csvData;
-    std::string url = "https://raw.githubusercontent.com/zer00p/wafel_installer/refs/heads/master/plugins.csv";
+    std::string url = URLs::PluginsCsv;
 
     if (!downloadToBuffer(url, csvData)) {
         failedToFetch = true;
@@ -315,7 +316,7 @@ bool downloadStroopwafelFiles(bool toSD) {
             return false;
         }
         if (!downloadBasePlugins() ||
-            !downloadFile("https://github.com/StroopwafelCFW/minute_minute/releases/latest/download/fw.img", Paths::SdFwImg))
+            !downloadFile(URLs::MinuteFwImg, Paths::SdFwImg))
             return false;
 
         ensureMinuteIni();
@@ -323,7 +324,7 @@ bool downloadStroopwafelFiles(bool toSD) {
 
     } else {
         if (!downloadBasePlugins() ||
-            !downloadFile("https://github.com/StroopwafelCFW/minute_minute/releases/latest/download/fw_fastboot.img", Paths::SlcFwImg))
+            !downloadFile(URLs::MinuteFwFastbootImg, Paths::SlcFwImg))
             return false;
     }
     setStroopwafelDownloadedInSession(true);
@@ -335,9 +336,9 @@ bool downloadIsfshaxFiles() {
 
     std::string slcFwImgPath = Paths::SlcInstallerFwImg;
 
-    if (!downloadFile("https://github.com/isfshax/isfshax/releases/latest/download/superblock.img", Paths::SlcInstallerSblockImg) ||
-        !downloadFile("https://github.com/isfshax/isfshax/releases/latest/download/superblock.img.sha", Paths::SlcInstallerSblockSha) ||
-        !downloadFile("https://github.com/isfshax/isfshax_installer/releases/latest/download/ios.img", slcFwImgPath))
+    if (!downloadFile(URLs::IsfshaxSblockImg, Paths::SlcInstallerSblockImg) ||
+        !downloadFile(URLs::IsfshaxSblockSha, Paths::SlcInstallerSblockSha) ||
+        !downloadFile(URLs::IsfshaxInstallerIosImg, slcFwImgPath))
     {
         return false;
     }
@@ -376,7 +377,7 @@ bool downloadUsbPartitionPlugin(bool sdEmulation) {
 
 static std::string getLatestReleaseAssetUrl(const std::string& repo, const std::string& pattern) {
     std::string apiResponse;
-    if (!downloadToBuffer("https://api.github.com/repos/" + repo + "/releases/latest", apiResponse)) {
+    if (!downloadToBuffer(URLs::GitHubApiLatestRelease + repo + "/releases/latest", apiResponse)) {
         // downloadToBuffer already set the error prompt
         return "";
     }
@@ -404,7 +405,7 @@ static std::string getLatestReleaseAssetUrl(const std::string& repo, const std::
 
 std::string getLatestReleaseAssetDigest(const std::string& repo, const std::string& assetName) {
     std::string apiResponse;
-    if (!downloadToBuffer("https://api.github.com/repos/" + repo + "/releases/latest", apiResponse)) {
+    if (!downloadToBuffer(URLs::GitHubApiLatestRelease + repo + "/releases/latest", apiResponse)) {
         return "";
     }
     return getDigestFromResponse(apiResponse, assetName);
@@ -531,7 +532,7 @@ bool downloadAroma() {
     }
 
     // 1. Environment Loader
-    if (!downloadAndExtractZip("wiiu-env/EnvironmentLoader", "EnvironmentLoader", "Environment Loader", targetPath)) {
+    if (!downloadAndExtractZip(URLs::RepoEnvironmentLoader, "EnvironmentLoader", "Environment Loader", targetPath)) {
         return false;
     }
 
@@ -540,22 +541,22 @@ bool downloadAroma() {
         if (path == "wiiu/payload.elf") return "wiiu/payloads/default/payload.elf";
         return path;
     };
-    if (!downloadAndExtractZip("wiiu-env/CustomRPXLoader", "CustomRPXLoader", "Custom RPX Loader", targetPath, customRpxMapper)) {
+    if (!downloadAndExtractZip(URLs::RepoCustomRPXLoader, "CustomRPXLoader", "Custom RPX Loader", targetPath, customRpxMapper)) {
         return false;
     }
 
     // 3. Payload Loader Payload
-    if (!downloadAndExtractZip("wiiu-env/PayloadLoaderPayload", "PayloadLoaderPayload", "Payload Loader Payload", targetPath)) {
+    if (!downloadAndExtractZip(URLs::RepoPayloadLoaderPayload, "PayloadLoaderPayload", "Payload Loader Payload", targetPath)) {
         return false;
     }
 
     // 4. Aroma
-    if (!downloadAndExtractZip("wiiu-env/Aroma", "aroma", "Aroma", targetPath)) {
+    if (!downloadAndExtractZip(URLs::RepoAroma, "aroma", "Aroma", targetPath)) {
         return false;
     }
 
     // 5. HB App Store
-    std::string appstoreUrl = getLatestReleaseAssetUrl("fortheusers/hb-appstore", "appstore.wuhb");
+    std::string appstoreUrl = getLatestReleaseAssetUrl(URLs::RepoAppstore, "appstore.wuhb");
     if (appstoreUrl.empty()) return false;
 
     std::string appstorePath = targetPath + "/wiiu/apps/appstore/";
@@ -566,7 +567,7 @@ bool downloadAroma() {
 
     // 6. Wafel Installer
     createDirectories(Paths::SdWafelInstallerDir);
-    if (!downloadFile("https://github.com/zer00p/wafel_installer/releases/latest/download/wafel_installer.wuhb", Paths::SdWafelInstallerWuhb)) {
+    if (!downloadFile(URLs::WafelInstallerWuhb, Paths::SdWafelInstallerWuhb)) {
         return false;
     }
 

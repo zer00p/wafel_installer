@@ -7,6 +7,7 @@
 #include "cfw.h"
 #include "download.h"
 #include "minute_config.h"
+#include "urls.h"
 #include "../utils/sha256.h"
 #include <dirent.h>
 #include <algorithm>
@@ -472,7 +473,7 @@ void checkForUpdates() {
     auto getCachedResponse = [&](const std::string& repo) -> std::string {
         if (repoCache.find(repo) == repoCache.end()) {
             std::string response;
-            if (downloadToBuffer("https://api.github.com/repos/" + repo + "/releases/latest", response)) {
+            if (downloadToBuffer(URLs::GitHubApiLatestRelease + repo + "/releases/latest", response)) {
                 repoCache[repo] = response;
             } else {
                 repoCache[repo] = "";
@@ -563,7 +564,7 @@ void checkForUpdates() {
                     WHBLogFreetypePrint(L"Minute is outdated!");
                     WHBLogFreetypeDrawScreen();
                     bool isSd = (minutePath.find("external01") != std::string::npos);
-                    std::string downloadUrl = isSd ? "https://github.com/StroopwafelCFW/minute_minute/releases/latest/download/fw.img" : "https://github.com/StroopwafelCFW/minute_minute/releases/latest/download/fw_fastboot.img";
+                    std::string downloadUrl = isSd ? URLs::MinuteFwImg : URLs::MinuteFwFastbootImg;
                     outdatedFiles.push_back({"fw.img", repo, downloadUrl, minutePath});
                 }
             } else {
