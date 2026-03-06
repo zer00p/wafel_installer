@@ -228,6 +228,30 @@ static FSError writeMbrSignature(FSAClientHandle fsaHandle, const char* device, 
     return res;
 }
 
+bool deleteMbr(FSAClientHandle fsaHandle, const char* device, const FSADeviceInfo& deviceInfo) {
+    uint8_t* zeroSector = (uint8_t*)memalign(0x40, deviceInfo.deviceSectorSize);
+    if (!zeroSector) {
+        setErrorPrompt(L"Failed to allocate memory for zeroing MBR!");
+        showErrorPrompt(L"OK");
+        return false;
+    }
+
+    memset(zeroSector, 0, deviceInfo.deviceSectorSize);
+    WHBLogPrint("Deleting MBR...");
+    WHBLogFreetypeDraw();
+    FSError res = rawWrite(fsaHandle, device, 0, 1, zeroSector, deviceInfo.deviceSectorSize);
+    free(zeroSector);
+
+    if ((FSStatus)res == FS_STATUS_OK) {
+        showDialogPrompt(L"MBR deleted successfully!", L"OK");
+        return true;
+    } else {
+        setErrorPrompt(L"Failed to delete MBR!");
+        showErrorPrompt(L"OK");
+        return false;
+    }
+}
+
 std::wstring getDeviceSummary(FSAClientHandle fsaHandle, const char* device, const FSADeviceInfo& deviceInfo) {
     std::wstringstream ss;
     uint64_t totalSize = (uint64_t)deviceInfo.deviceSizeInSectors * deviceInfo.deviceSectorSize;
@@ -1039,21 +1063,9 @@ void formatAndPartitionMenu() {
                 } else if (optDeleteMbr != -1 && formatChoice == optDeleteMbr) {
                     showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", deviceInfo);
                     if (showDialogPrompt(L"WARNING: This will DELETE the MBR and ALL partition information.\nDo you want to continue?", L"Yes", L"No", nullptr, nullptr, 1, false) == 0) {
-                        uint8_t* zeroSector = (uint8_t*)memalign(0x40, deviceInfo.deviceSectorSize);
-                        if (zeroSector) {
-                            memset(zeroSector, 0, deviceInfo.deviceSectorSize);
-                            WHBLogPrint("Deleting MBR...");
-                            WHBLogFreetypeDraw();
-                            if ((FSStatus)rawWrite(fsaHandle, "/dev/sdcard01", 0, 1, zeroSector, deviceInfo.deviceSectorSize) == FS_STATUS_OK) {
-                                showDialogPrompt(L"MBR deleted successfully!", L"OK");
-                                free(zeroSector);
-                                actionCompleted = true;
-                                break;
-                            } else {
-                                setErrorPrompt(L"Failed to delete MBR!");
-                                showErrorPrompt(L"OK");
-                            }
-                            free(zeroSector);
+                        if (deleteMbr(fsaHandle, "/dev/sdcard01", deviceInfo)) {
+                            actionCompleted = true;
+                            break;
                         }
                     }
                 }
@@ -1147,11 +1159,51 @@ bool uninstallSDUSB() {
     return true;
 }
 
+bool uninstallUSBPartition() {
+    bool removed = false;
+    std::string sdPlugins[] = { Paths::SdPluginsDir + "/5usbpart.ipx", Paths::SdPluginsDir + "/5upartsd.ipx" };
+    std::string slcPlugins[] = { Paths::SlcPluginsDir + "/5usbpart.ipx", Paths::SlcPluginsDir + "/5upartsd.ipx" };
+
+    for (const auto& p : sdPlugins) {
+        if (fileExist(p)) {
+            if (removeFile(p)) removed = true;
+        }
+    }
+    for (const auto& p : slcPlugins) {
+        if (fileExist(p)) {
+            if (removeFile(p)) removed = true;
+        }
+    }
+
+    if (removed) {
+        showSuccessPrompt(L"USB Partition plugin removed successfully.");
+    } else {
+        showDialogPrompt(L"USB Partition plugin not found.", L"OK");
+    }
+
+    if (showDialogPrompt(L"Do you want to unpartition the USB drive now?\nThis will DELETE ALL DATA on it.", L"Yes, zero MBR", L"No") == 0) {
+        FSAClientHandle fsaHandle = FSAAddClient(NULL);
+        if (fsaHandle >= 0) {
+            usbAsSd(true);
+            WHBUnmountSdCard();
+            FatMountGuard guard;
+            if (waitForDevice(fsaHandle, L"USB device", guard)) {
+                FSADeviceInfo deviceInfo;
+                if ((FSStatus)FSAGetDeviceInfo(fsaHandle, "/dev/sdcard01", &deviceInfo) == FS_STATUS_OK) {
+                    deleteMbr(fsaHandle, "/dev/sdcard01", deviceInfo);
+                }
+            }
+            FSADelClient(fsaHandle);
+            usbAsSd(false);
+        }
+    }
+
+    return true;
+}
+
 void showSDUSBMenu() {
     uint8_t selectedOption = 0;
     while (true) {
-        if (isShutdownForced()) return;
-
         WHBLogFreetypeStartScreen();
         WHBLogFreetypePrint(L"SDUSB Menu");
         WHBLogFreetypePrint(L"===============================");
@@ -1165,7 +1217,6 @@ void showSDUSBMenu() {
 
         updateInputs();
         while (true) {
-            if (isShutdownForced()) return;
             updateInputs();
             if (navigatedUp() && selectedOption > 0) {
                 selectedOption--;
@@ -1262,6 +1313,62 @@ void setupSDUSBMenu() {
     FSADelClient(fsaHandle);
 }
 
+void showUSBPartitionMenu() {
+    uint8_t selectedOption = 0;
+    while (true) {
+        WHBLogFreetypeStartScreen();
+        WHBLogFreetypePrint(L"USB Partition Menu");
+        WHBLogFreetypePrint(L"===============================");
+        WHBLogFreetypePrintf(L"%C Set up USB Partition", (selectedOption == 0 ? L'>' : L' '));
+        WHBLogFreetypePrintf(L"%C Uninstall USB Partition", (selectedOption == 1 ? L'>' : L' '));
+        WHBLogFreetypePrintf(L"%C Unpartition USB drive (zero out MBR)", (selectedOption == 2 ? L'>' : L' '));
+        WHBLogFreetypePrint(L" ");
+        WHBLogFreetypeScreenPrintBottom(L"===============================");
+        WHBLogFreetypeScreenPrintBottom(L"\uE000 Button = Select Option \uE001 Button = Back");
+        WHBLogFreetypeDrawScreen();
+
+        updateInputs();
+        while (true) {
+            updateInputs();
+            if (navigatedUp() && selectedOption > 0) {
+                selectedOption--;
+                break;
+            }
+            if (navigatedDown() && selectedOption < 2) {
+                selectedOption++;
+                break;
+            }
+            if (pressedOk()) {
+                if (selectedOption == 0) {
+                    setupPartitionedUSBMenu();
+                } else if (selectedOption == 1) {
+                    uninstallUSBPartition();
+                } else if (selectedOption == 2) {
+                    // Zero out USB MBR
+                    FSAClientHandle fsaHandle = FSAAddClient(NULL);
+                    if (fsaHandle >= 0) {
+                        usbAsSd(true);
+                        WHBUnmountSdCard();
+                        FatMountGuard guard;
+                        if (waitForDevice(fsaHandle, L"USB device", guard)) {
+                            FSADeviceInfo deviceInfo;
+                            if ((FSStatus)FSAGetDeviceInfo(fsaHandle, "/dev/sdcard01", &deviceInfo) == FS_STATUS_OK) {
+                                if (showDialogPrompt(L"WARNING: This will DELETE the MBR and ALL partition information on the USB device.\nDo you want to continue?", L"Yes", L"No", nullptr, nullptr, 1, false) == 0) {
+                                    deleteMbr(fsaHandle, "/dev/sdcard01", deviceInfo);
+                                }
+                            }
+                        }
+                        FSADelClient(fsaHandle);
+                        usbAsSd(false);
+                    }
+                }
+                break;
+            }
+            if (pressedBack()) return;
+        }
+    }
+}
+
 void setupPartitionedUSBMenu() {
     uint8_t emulationChoice = showDialogPrompt(L"Do you want to use the first FAT32 partition as an emulated SD card?\nThis should ONLY be used if you don't intend to use a real SD card.", L"Yes (SD Emulation)", L"No", L"Cancel", nullptr, 1);
     if (emulationChoice == 2 || emulationChoice == 255) return;
@@ -1310,7 +1417,6 @@ void setupPartitionedUSBMenu() {
         WHBLogFreetypeDraw();
     }
 
-    bool shutdown = false;
     FatMountGuard guard;
     bool partitioned = false;
     do {
@@ -1354,8 +1460,11 @@ void setupPartitionedUSBMenu() {
     }
         
     if(!sdEmulation){
-        shutdown = showDialogPrompt(L"USB partitioned successfully!\nIt is recommended to shutdown the console now\nand plug your SD card back in.\nDo you want to shutdown now?", L"Yes", L"No") == 0;
-        setShutdownPending(true, shutdown);
+        if (showDialogPrompt(L"USB partitioned successfully!\nIt is recommended to shutdown the console now\nand plug your SD card back in.\nDo you want to shutdown now?", L"Yes", L"No") == 0) {
+            setShutdownPending(true, true);
+        } else {
+            setShutdownPending(true, false);
+        }
     }
 
 exit:

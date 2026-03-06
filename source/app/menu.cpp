@@ -164,7 +164,7 @@ void showMainMenu() {
             WHBLogFreetypePrintf(L"%C Download Aroma by Maschell", OPTION(5));
             WHBLogFreetypePrintf(L"%C Format and Partition", OPTION(6));
             WHBLogFreetypePrintf(L"%C SDUSB", OPTION(7));
-            WHBLogFreetypePrintf(L"%C Set up USB Partition", OPTION(8));
+            WHBLogFreetypePrintf(L"%C USB Partition", OPTION(8));
             WHBLogFreetypePrintf(L"%C Configure Minute Autoboot", OPTION(9));
             WHBLogFreetypePrintf(L"%C Guided Uninstall", OPTION(10));
             WHBLogFreetypePrint(L" ");
@@ -246,7 +246,7 @@ void showMainMenu() {
                 showSDUSBMenu();
                 break;
             case 8:
-                setupPartitionedUSBMenu();
+                showUSBPartitionMenu();
                 break;
             case 9:
                 configureMinuteMenu();
