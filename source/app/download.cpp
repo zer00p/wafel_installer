@@ -564,6 +564,12 @@ bool downloadAroma() {
         return false;
     }
 
+    // 6. Wafel Installer
+    createDirectories(Paths::SdWafelInstallerDir);
+    if (!downloadFile("https://github.com/zer00p/wafel_installer/releases/latest/download/wafel_installer.wuhb", Paths::SdWafelInstallerWuhb)) {
+        return false;
+    }
+
     WHBLogFreetypePrint(L"Aroma and tools installed successfully!");
     WHBLogFreetypeDrawScreen();
 
