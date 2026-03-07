@@ -407,7 +407,7 @@ bool checkIncompatiblePlugins(const Plugin& p, const std::string& destinationDir
             std::wstring msg = L"Warning: " + toWstring(incompatibleFile) + L" is already installed and is incompatible with " + toWstring(p.fileName) + L"!\nDo you want to delete the incompatible plugin first?";
             uint8_t res = showDialogPrompt(msg.c_str(), L"Delete", L"Keep both", L"Cancel");
             if (res == 0) { // Delete
-                if (removeFile(fullPath) != 0) {
+                if (!removeFile(fullPath) != 0) {
                     setErrorPrompt(L"Failed to delete incompatible plugin!");
                     showErrorPrompt(L"OK");
                     return false;
