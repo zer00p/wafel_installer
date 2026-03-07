@@ -162,10 +162,10 @@ void showMainMenu() {
             WHBLogFreetypePrintf(L"%C ISFShax by rw_r_r_0644", OPTION(3));
             WHBLogFreetypePrintf(L"%C Check for Updates", OPTION(4));
             WHBLogFreetypePrintf(L"%C Download Aroma by Maschell", OPTION(5));
-            WHBLogFreetypePrintf(L"%C Format and Partition", OPTION(6));
+            WHBLogFreetypePrintf(L"%C Configure Minute Autoboot", OPTION(6));
             WHBLogFreetypePrintf(L"%C SDUSB", OPTION(7));
             WHBLogFreetypePrintf(L"%C USB Partition", OPTION(8));
-            WHBLogFreetypePrintf(L"%C Configure Minute Autoboot", OPTION(9));
+            WHBLogFreetypePrintf(L"%C Format and Partition", OPTION(9));
             WHBLogFreetypePrintf(L"%C Guided Uninstall", OPTION(10));
             WHBLogFreetypePrint(L" ");
 
@@ -240,7 +240,7 @@ void showMainMenu() {
                 installAromaMenu();
                 break;
             case 6:
-                formatAndPartitionMenu();
+                configureMinuteMenu();
                 break;
             case 7:
                 showSDUSBMenu();
@@ -249,7 +249,7 @@ void showMainMenu() {
                 showUSBPartitionMenu();
                 break;
             case 9:
-                configureMinuteMenu();
+                formatAndPartitionMenu();
                 break;
             case 10:
                 showUninstallMenu();
