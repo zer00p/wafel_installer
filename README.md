@@ -1,18 +1,27 @@
 <div style="text-align: center;">
     <img src="dist/wafel_installer-logo.png" alt="Wafel Installer Logo" style="width: 80px;" />
     <h3>Wafel Installer</h3>
-    <p>Wafel Installer is a tool designed to load and install ISFShax on the Wii U, providing an environment for system recovery and advanced modifications.</p>
+    <p>Wafel Installer is a tool for the Wii U designed to be launched via the browser (at <a href="https://wafel.xyz">wafel.xyz</a>) or directly from Aroma. It assists in preparing storage devices by formatting and partitioning SD cards or USB drives to support both homebrew and game storage. The application automates the setup of Aroma, Stroopwafel CFW, and the ISFShax exploit.</p>
 </div>
+
+## Features
+- **CFW Setup**: Installs Stroopwafel CFW, ISFShax, and the Aroma environment.
+- **Storage Preparation**: Formats and partitions SD cards and USB drives, supporting FAT32 on devices larger than 32GB.
+- **Plugin Management**: Downloads, syncs, and manages Stroopwafel plugins across SD and SLC (internal storage).
+- **Advanced Storage Options**: Configures SDUSB or USB Partition.
+- **Boot Configuration**: Edits autoboot and timeout settings for the `minute` bootloader.
+- **No PC required**
+- **No SD required** can use USB instead.
 
 ## How to use
 **Method 1:**  
 Use [wafel.xyz](https://wafel.xyz) on your Wii U to launch Wafel Installer without any setup or SD card.
 
 **Method 2:**
-Use the Wii U App Store to download ot. See Dumpling's page [here](https://apps.fortheusers.org/wiiu/wafel_installer). (comming soon)
+Use the Wii U App Store to download it. See Dumpling's page [here](https://apps.fortheusers.org/wiiu/wafel_installer). (coming soon)
 
-**Method 2:**  
-Download the [latest release from GitHub](https://zer00p/wafel_installer/releases), and extract the `wafel_installer.zip` file to the root of your SD card.
+**Method 3:**  
+Download the [latest release from GitHub](https://github.com/zer00p/wafel_installer/releases), and extract the `wafel_installer.zip` file to the root of your SD card.
 
 ## How to use
 
