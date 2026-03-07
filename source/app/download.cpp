@@ -211,7 +211,11 @@ bool downloadToBuffer(const std::string& url, std::string& buffer) {
         curl_easy_cleanup(curl_handle);
 
         if (res != CURLE_OK) {
-            setErrorPrompt(L"Curl failed for " + toWstring(url) + L":\n" + toWstring(curl_easy_strerror(res)));
+            std::wstring error = L"Curl failed for " + toWstring(url) + L":\n" + toWstring(curl_easy_strerror(res));
+            if (res == CURLE_PEER_FAILED_VERIFICATION || res == CURLE_SSL_CONNECT_ERROR) {
+                error += L"\nPlease check if your system date and time are correct!";
+            }
+            setErrorPrompt(error);
             if (showErrorPrompt(L"Cancel", true)) {
                 buffer.clear();
                 continue;
