@@ -22,6 +22,7 @@ bool isStroopwafelAvailable();
 bool wasStroopwafelDownloadedInSession();
 void setStroopwafelDownloadedInSession(bool downloaded);
 bool isIsfshaxInstalled();
+bool checkIsfshaxInstalled();
 bool isSdEmulated();
 std::string getStroopwafelPluginPath();
 void setStroopwafelPluginPath(const std::string& path);

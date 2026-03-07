@@ -171,6 +171,7 @@ void showMainMenu() {
 
             WHBLogFreetypeScreenPrintBottom(L"===============================");
             std::wstring bottomStatus = L"CFW: " + std::wstring(getCFWVersionName(getCFWVersion())) + L" | ";
+            bottomStatus += L"ISFShax: " + std::wstring(isIsfshaxInstalled() ? L"Installed" : L"Not installed") + L" | ";
             if (!isStroopwafelAvailable()) {
                 bottomStatus += L"Stroopwafel: Not active";
             } else {

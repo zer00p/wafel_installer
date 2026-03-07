@@ -10,6 +10,7 @@
 #include <stroopwafel/stroopwafel.h> // Assuming this is the correct header
 
 CFWVersion currCFWVersion = CFWVersion::NONE;
+bool isfshax_installed = false;
 bool stroopwafel_available = false;
 bool stroopwafel_downloaded_in_session = false;
 std::string stroopwafel_plugin_path = "";
@@ -154,6 +155,8 @@ bool initCFW() {
         WHBLogPrint("Try restarting your Wii U and launching Wafel Installer again!");
         return false;
     }
+
+    isfshax_installed = checkIsfshaxInstalled();
     return true;
 }
 
@@ -194,6 +197,10 @@ void setStroopwafelDownloadedInSession(bool downloaded) {
 }
 
 bool isIsfshaxInstalled() {
+    return isfshax_installed;
+}
+
+bool checkIsfshaxInstalled() {
     uint32_t val = 0;
     if (Mocha_IOSUKernelRead32(0x1072272C, &val) != MOCHA_RESULT_SUCCESS) {
         return false;
