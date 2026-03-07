@@ -598,6 +598,8 @@ void showPluginManager() {
         }
     }
 
+    options.push_back({L"Check for Updates", "update"});
+
     while(true) {
         WHBLogFreetypeStartScreen();
         WHBLogFreetypePrint(L"Stroopwafel Plugin Manager");
@@ -622,6 +624,11 @@ void showPluginManager() {
                 break;
             }
             if (pressedOk()) {
+                if (options[selectedOption].second == "update") {
+                    checkForUpdates();
+                    break;
+                }
+
                 bool slcSelected = (options[selectedOption].second == Paths::SlcPluginsDir);
                 if (slcSelected && !checkSystemAccess()) {
                     continue;

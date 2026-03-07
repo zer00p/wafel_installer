@@ -159,13 +159,12 @@ void showMainMenu() {
             WHBLogFreetypePrintf(L"%C Load custom fw.img", OPTION(1));
             WHBLogFreetypePrintf(L"%C Stroopwafel by shinyquagsire23", OPTION(2));
             WHBLogFreetypePrintf(L"%C ISFShax by rw_r_r_0644", OPTION(3));
-            WHBLogFreetypePrintf(L"%C Check for Updates", OPTION(4));
-            WHBLogFreetypePrintf(L"%C Download Aroma by Maschell", OPTION(5));
-            WHBLogFreetypePrintf(L"%C Configure Minute Autoboot", OPTION(6));
-            WHBLogFreetypePrintf(L"%C SDUSB", OPTION(7));
-            WHBLogFreetypePrintf(L"%C USB Partition", OPTION(8));
-            WHBLogFreetypePrintf(L"%C Format and Partition", OPTION(9));
-            WHBLogFreetypePrintf(L"%C Guided Uninstall", OPTION(10));
+            WHBLogFreetypePrintf(L"%C Download Aroma by Maschell", OPTION(4));
+            WHBLogFreetypePrintf(L"%C Configure Minute Autoboot", OPTION(5));
+            WHBLogFreetypePrintf(L"%C SDUSB", OPTION(6));
+            WHBLogFreetypePrintf(L"%C USB Partition", OPTION(7));
+            WHBLogFreetypePrintf(L"%C Format and Partition", OPTION(8));
+            WHBLogFreetypePrintf(L"%C Guided Uninstall", OPTION(9));
             WHBLogFreetypePrint(L" ");
 
             WHBLogFreetypeScreenPrintBottom(L"===============================");
@@ -198,7 +197,7 @@ void showMainMenu() {
                     }
                 }
                 if (navigatedDown()) {
-                    if (selectedOption < 10) {
+                    if (selectedOption < 9) {
                         selectedOption++;
                         break;
                     }
@@ -233,24 +232,21 @@ void showMainMenu() {
                 installIsfshaxMenu();
                 break;
             case 4:
-                checkForUpdates();
-                break;
-            case 5:
                 installAromaMenu();
                 break;
-            case 6:
+            case 5:
                 configureMinuteMenu();
                 break;
-            case 7:
+            case 6:
                 showSDUSBMenu();
                 break;
-            case 8:
+            case 7:
                 showUSBPartitionMenu();
                 break;
-            case 9:
+            case 8:
                 formatAndPartitionMenu();
                 break;
-            case 10:
+            case 9:
                 showUninstallMenu();
                 break;
             default:
