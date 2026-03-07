@@ -1209,6 +1209,22 @@ bool uninstallUSBPartition() {
     return true;
 }
 
+bool getInstalledUSBPartitionPlugin(std::string& pluginPath, bool& hasEmulation) {
+    std::string path = getStroopwafelPluginPath();
+    if (!path.empty()) {
+        if (fileExist(path + "/5usbpart.ipx")) {
+            pluginPath = path;
+            hasEmulation = false;
+            return true;
+        } else if (fileExist(path + "/5upartsd.ipx")) {
+            pluginPath = path;
+            hasEmulation = true;
+            return true;
+        }
+    }
+    return false;
+}
+
 void showSDUSBMenu() {
     uint8_t selectedOption = 0;
     while (true) {
@@ -1324,12 +1340,23 @@ void setupSDUSBMenu() {
 void showUSBPartitionMenu() {
     uint8_t selectedOption = 0;
     while (true) {
+std::string pluginPath;
+        bool hasEmulation = false;
+        bool pluginInstalled = getInstalledUSBPartitionPlugin(pluginPath, hasEmulation);
+
         WHBLogFreetypeStartScreen();
         WHBLogFreetypePrint(L"USB Partition Menu");
         WHBLogFreetypePrint(L"===============================");
         WHBLogFreetypePrintf(L"%C Set up USB Partition", (selectedOption == 0 ? L'>' : L' '));
         WHBLogFreetypePrintf(L"%C Uninstall USB Partition", (selectedOption == 1 ? L'>' : L' '));
         WHBLogFreetypePrintf(L"%C Unpartition USB drive (zero out MBR)", (selectedOption == 2 ? L'>' : L' '));
+
+        uint8_t maxOption = 2;
+        if (pluginInstalled) {
+            maxOption = 3;
+            WHBLogFreetypePrintf(L"%C %ls SD emulation", (selectedOption == 3 ? L'>' : L' '), (hasEmulation ? L"Disable" : L"Enable"));
+        }
+
         WHBLogFreetypePrint(L" ");
         WHBLogFreetypeScreenPrintBottom(L"===============================");
         WHBLogFreetypeScreenPrintBottom(L"\uE000 Button = Select Option \uE001 Button = Back");
@@ -1342,7 +1369,7 @@ void showUSBPartitionMenu() {
                 selectedOption--;
                 break;
             }
-            if (navigatedDown() && selectedOption < 2) {
+            if (navigatedDown() && selectedOption < maxOption) {
                 selectedOption++;
                 break;
             }
@@ -1368,6 +1395,26 @@ void showUSBPartitionMenu() {
                         }
                         FSADelClient(fsaHandle);
                         usbAsSd(false);
+                    }
+                } else if (selectedOption == 3) {
+                    bool targetEmulation = !hasEmulation;
+                    if (targetEmulation && pluginPath != Paths::SlcPluginsDir) {
+                        if (showDialogPrompt(L"To use SD Emulation, stroopwafel needs to be installed to the SLC", L"OK", L"Abort", nullptr, nullptr, 1, false) != 0) {
+                            break;
+                        }
+                        removeFile(pluginPath + (hasEmulation ? "/5upartsd.ipx" : "/5usbpart.ipx"));
+                        pluginPath = Paths::SlcPluginsDir;
+                    } else {
+                        removeFile(pluginPath + (hasEmulation ? "/5upartsd.ipx" : "/5usbpart.ipx"));
+                    }
+
+                    setStroopwafelPluginPath(pluginPath);
+                    if (downloadUsbPartitionPlugin(targetEmulation)) {
+                        std::wstring msg = L"SD emulation " + std::wstring(targetEmulation ? L"enabled" : L"disabled") + L" successfully.";
+                        showSuccessPrompt(msg.c_str());
+                        if (targetEmulation) {
+                            performAromaCheck();
+                        }
                     }
                 }
                 break;
