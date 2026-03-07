@@ -12,6 +12,7 @@ bool unmountDisc();
 
 bool isDiscMounted();
 bool isSlcMounted();
+bool isUsbMounted();
 bool testStorage(TITLE_LOCATION location);
 
 // Filesystem helper functions

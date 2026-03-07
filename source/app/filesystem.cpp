@@ -45,7 +45,7 @@ bool mountSystemDrives() {
         //unmountDefaultDevoptab();
         if (Mocha_MountFS("storage_slc", "/dev/slc01", "/vol/storage_slc01") == MOCHA_RESULT_SUCCESS) systemSLCMounted = true;
         // if (Mocha_MountFS("storage_mlc01", nullptr, "/vol/storage_mlc01") == MOCHA_RESULT_SUCCESS) systemMLCMounted = true;
-        // if (Mocha_MountFS("storage_usb01", nullptr, "/vol/storage_usb01") == MOCHA_RESULT_SUCCESS) systemUSBMounted = true;
+        if (Mocha_MountFS("storage_usb01", nullptr, "/vol/storage_usb01") == MOCHA_RESULT_SUCCESS) systemUSBMounted = true;
     }
     else {
         systemMLCMounted = true;
@@ -61,6 +61,10 @@ bool mountSystemDrives() {
 
 bool isSlcMounted() {
     return systemSLCMounted;
+}
+
+bool isUsbMounted() {
+    return systemUSBMounted;
 }
 
 bool mountDisc() {

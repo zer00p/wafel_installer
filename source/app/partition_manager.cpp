@@ -305,7 +305,15 @@ void showDeviceInfoScreen(FSAClientHandle fsaHandle, const char* device, const F
 
 bool waitForDevice(FSAClientHandle fsaHandle, const wchar_t* deviceName, FatMountGuard& guard) {
     while (true) {
-        uint8_t choice = showDialogPrompt(L"Remove ALL SD and USB storage devices NOW!", L"OK", L"Cancel");
+        const wchar_t* msg = L"Remove ALL SD and USB storage devices NOW!";
+        if (isUsbMounted()) {
+            msg = L"To prevent a crash, please SHUTDOWN the console\n"
+                  L"and then unplug the USB device or the SD card\n"
+                  L"in case you are using SDUSB.\n"
+                  L"Relaunch the installer from wafel.xyz\n"
+                  L"if Aroma doesn't load.";
+        }
+        uint8_t choice = showDialogPrompt(msg, L"OK", L"Cancel");
         if (choice != 0) return false;
 
         FSADeviceInfo devInfo;
