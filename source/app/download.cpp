@@ -300,13 +300,11 @@ static bool createIsfsHaxDirectories() {
 }
 
 static bool downloadBasePlugins() {
-    std::string pluginPath = getStroopwafelPluginPath();
-    createDirectories(pluginPath);
-    bool res =  downloadFile(getPluginUrl("00core.ipx"),   pluginPath + "/00core.ipx") &&
-                downloadFile(getPluginUrl("5isfshax.ipx"), pluginPath + "/5isfshax.ipx");
+    bool res =  downloadPlugin("00core.ipx") &&
+                downloadPlugin("5isfshax.ipx");
     bool hasAroma = dirExist(Paths::SdAromaDir);
     if(res && hasAroma)
-        return downloadFile(getPluginUrl("5payldr.ipx"),  pluginPath + "/5payldr.ipx");
+        return downloadPlugin("5payldr.ipx");
     return res;
 }
 
@@ -357,25 +355,70 @@ bool downloadIsfshaxFiles() {
     return true;
 }
 
-static void removeCompetingPlugins() {
-    std::string path = getStroopwafelPluginPath();
-    if (path.empty()) return;
-    if (path.back() != '/') path += "/";
-    removeFile(path + "5usbpart.ipx");
-    removeFile(path + "5upartsd.ipx");
-}
-
 bool downloadPlugin(std::string pluginFile) {
+    const auto* pluginList = getPluginList(false);
+    if (!pluginList) return false;
+
+    const Plugin* p = nullptr;
+    for (const auto& plugin : *pluginList) {
+        if (plugin.fileName == pluginFile) {
+            p = &plugin;
+            break;
+        }
+    }
+
+    if (!p) return false;
+
     std::string path = getStroopwafelPluginPath();
+    if (path.empty()) return false;
+    createDirectories(path);
     if (path.back() != '/') path += "/";
+
+    if (!checkIncompatiblePlugins(*p, path)) {
+        return false;
+    }
+
     path += pluginFile;
-    return downloadFile(getPluginUrl(pluginFile), path);
+    return downloadFile(p->downloadPath, path);
 }
 
 bool downloadUsbPartitionPlugin(bool sdEmulation) {
     std::string pluginFile = sdEmulation ? "5upartsd.ipx" : "5usbpart.ipx";
-    removeCompetingPlugins();
     return downloadPlugin(pluginFile);
+}
+
+bool checkIncompatiblePlugins(const Plugin& p, const std::string& destinationDir) {
+    if (p.incompatiblePlugins.empty()) return true;
+
+    std::stringstream ss(p.incompatiblePlugins);
+    std::string incompatibleFile;
+    while (std::getline(ss, incompatibleFile, ',')) {
+        // trim whitespace
+        size_t first = incompatibleFile.find_first_not_of(" ");
+        if (std::string::npos == first) continue;
+        size_t last = incompatibleFile.find_last_not_of(" ");
+        incompatibleFile = incompatibleFile.substr(first, (last - first + 1));
+
+        std::string fullPath = destinationDir;
+        if (fullPath.back() != '/') fullPath += "/";
+        fullPath += incompatibleFile;
+
+        if (access(convertToWiiUFsPath(fullPath).c_str(), F_OK) == 0) {
+            std::wstring msg = L"Warning: " + toWstring(incompatibleFile) + L" is already installed and is incompatible with " + toWstring(p.fileName) + L"!\nDo you want to delete the incompatible plugin first?";
+            uint8_t res = showDialogPrompt(msg.c_str(), L"Delete", L"Keep both", L"Cancel");
+            if (res == 0) { // Delete
+                if (removeFile(fullPath) != 0) {
+                    setErrorPrompt(L"Failed to delete incompatible plugin!");
+                    showErrorPrompt(L"OK");
+                    return false;
+                }
+                showSuccessPrompt(L"Incompatible plugin deleted.");
+            } else if (res == 2 || res == 255) { // Cancel or Back
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 
@@ -581,16 +624,12 @@ bool downloadAroma() {
     // Freshly downloaded Aroma, also download payloader plugin if Stroopwafel is present
     std::string pluginPath = getStroopwafelPluginPath();
     if (!pluginPath.empty() && dirExist(pluginPath)) {
-        std::string target = pluginPath;        
-        if (target.back() != '/') target += "/";
-        target += "5payldr.ipx";
-
         if (pluginPath.find("storage_slc") != std::string::npos) {
             if (checkSystemAccess()) {
-                downloadFile(getPluginUrl("5payldr.ipx"), target);
+                downloadPlugin("5payldr.ipx");
             }
         } else {
-            downloadFile(getPluginUrl("5payldr.ipx"), target);
+            downloadPlugin("5payldr.ipx");
         }
     }
 

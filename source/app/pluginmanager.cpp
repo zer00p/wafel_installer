@@ -94,36 +94,12 @@ static bool browsePlugins(std::string pluginsPath) {
             if (pressedOk()) {
                 const auto& p = cachedPluginList[selectedOption];
 
-                // Check for incompatible plugins
-                if (!p.incompatiblePlugins.empty()) {
-                    std::stringstream ss(p.incompatiblePlugins);
-                    std::string incompatibleFile;
-                    while (std::getline(ss, incompatibleFile, ',')) {
-                        // trim whitespace
-                        size_t first = incompatibleFile.find_first_not_of(" ");
-                        if (std::string::npos == first) continue;
-                        size_t last = incompatibleFile.find_last_not_of(" ");
-                        incompatibleFile = incompatibleFile.substr(first, (last - first + 1));
+                std::string path = pluginsPath;
+                if (path.back() != '/') path += "/";
 
-                        std::string fullPath = pluginsPath;
-                        if (fullPath.back() != '/') fullPath += "/";
-                        fullPath += incompatibleFile;
-                        if (access(convertToWiiUFsPath(fullPath).c_str(), F_OK) == 0) {
-                            std::wstring msg = L"Warning: " + toWstring(incompatibleFile) + L" is already installed and is incompatible with " + toWstring(p.fileName) + L"!\nDo you want to delete the incompatible plugin first?";
-                            uint8_t res = showDialogPrompt(msg.c_str(), L"Delete", L"Keep both", L"Cancel");
-                            if (res == 0) { // Delete
-                                if (removeFile(fullPath) == 0) {
-                                    showSuccessPrompt(L"Incompatible plugin deleted.");
-                                } else {
-                                    setErrorPrompt(L"Failed to delete incompatible plugin!");
-                                    showErrorPrompt(L"OK");
-                                    goto next_loop;
-                                }
-                            } else if (res == 2 || res == 255) { // Cancel or Back
-                                goto next_loop;
-                            }
-                        }
-                    }
+                // Check for incompatible plugins
+                if (!checkIncompatiblePlugins(p, path)) {
+                    goto next_loop;
                 }
 
                 {

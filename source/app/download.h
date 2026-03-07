@@ -22,6 +22,7 @@ bool downloadUsbPartitionPlugin(bool sdEmulation);
 bool downloadAroma(void);
 bool downloadFile(const std::string& url, const std::string& path);
 bool downloadToBuffer(const std::string& url, std::string& buffer);
+bool checkIncompatiblePlugins(const Plugin& p, const std::string& destinationDir);
 std::string getLatestReleaseAssetDigest(const std::string& repo, const std::string& assetName);
 std::string getDigestFromResponse(const std::string& apiResponse, const std::string& assetName);
 std::string getRepoFromUrl(const std::string& url);
