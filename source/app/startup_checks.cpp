@@ -56,14 +56,10 @@ static void setupUsbStorage(FSAClientHandle fsaHandle, bool& wantsPartitionedSto
 
             guard.unblock();
             if (WHBMountSdCard() == 1) {
-                showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", devInfo);
-                if (!showDialogPrompt(L"USB device detected.\nDo you want to repartition it to store Wii U games on or keep as is?",  L"Keep as is", L"Repartition", nullptr, nullptr, 0, false) == 0) {
-                    wantsPartitionedStorage = true;
-                    guard.block();
-                    if (handlePartitionActionMenu(fsaHandle, devInfo, L"SD card", true)) {
-                        guard.unblock();
-                        WHBMountSdCard();
-                    }
+                guard.block();
+                if (handlePartitionActionMenu(fsaHandle, devInfo, L"SD card", false)) {
+                    guard.unblock();
+                    WHBMountSdCard();
                 }
             } else {
                 // Cannot be mounted
