@@ -49,7 +49,6 @@ int main() {
     if (isShutdownPending()) {
         WHBLogFreetypeStartScreen();
         WHBLogPrint("Shutting down now...");
-        WHBLogPrint("So you can plug your SD card back in.");
         WHBLogFreetypeDraw();
         sleep_for(3s);
         OSShutdown();

@@ -148,10 +148,9 @@ void installAromaMenu() {
 void showMainMenu() {
     uint8_t selectedOption = 0;
     while(true) {
-        if (isShutdownForced()) return;
-
         bool startSelectedOption = false;
         while(!startSelectedOption) {
+            CHECK_SHUTDOWN();
             // Print menu text
             WHBLogFreetypeStartScreen();
             WHBLogFreetypePrint(L"Wafel Installer");
@@ -190,7 +189,6 @@ void showMainMenu() {
             // Loop until there's new input
             updateInputs();
             while(!startSelectedOption) {
-                if (isShutdownForced()) return;
                 updateInputs();
                 // Check each button state
                 if (navigatedUp()) {
@@ -265,11 +263,13 @@ void showMainMenu() {
 // Helper functions
 
 uint8_t showDialogPrompt(const wchar_t* message, const std::vector<std::wstring>& buttons, uint8_t defaultOption, bool clearScreen) {
+    CHECK_SHUTDOWN_VAL(255);
     uint8_t selectedOption = defaultOption;
     uint8_t numButtons = buttons.size();
     uint32_t startPos = clearScreen ? 0 : WHBLogFreetypeGetScreenPosition();
 
     while(true) {
+        CHECK_SHUTDOWN_VAL(255);
         if (clearScreen) WHBLogFreetypeStartScreen();
         else WHBLogFreetypeSetScreenPosition(startPos);
 
@@ -293,6 +293,7 @@ uint8_t showDialogPrompt(const wchar_t* message, const std::vector<std::wstring>
         // Input loop
         updateInputs();
         while (true) {
+            CHECK_SHUTDOWN_VAL(255);
             updateInputs();
             // Handle navigation between the buttons
             if (navigatedUp() && selectedOption > 0) {
@@ -486,7 +487,7 @@ void uninstallStroopwafelMenu(bool showWarning) {
 void showStroopwafelMenu() {
     uint8_t selectedOption = 0;
     while(true) {
-        if (isShutdownForced()) return;
+        CHECK_SHUTDOWN();
 
         WHBLogFreetypeStartScreen();
         WHBLogFreetypePrint(L"Stroopwafel Menu");
@@ -500,7 +501,6 @@ void showStroopwafelMenu() {
 
         updateInputs();
         while(true) {
-            if (isShutdownForced()) return;
             updateInputs();
             if (navigatedUp() && selectedOption > 0) {
                 selectedOption--;
@@ -511,8 +511,12 @@ void showStroopwafelMenu() {
                 break;
             }
             if (pressedOk()) {
-                if (selectedOption == 0) installStroopwafelMenu();
-                else if (selectedOption == 1) uninstallStroopwafelMenu();
+                if (selectedOption == 0) {
+                    installStroopwafelMenu();
+                }
+                else if (selectedOption == 1) {
+                    uninstallStroopwafelMenu();
+                }
                 break;
             }
             if (pressedBack()) return;

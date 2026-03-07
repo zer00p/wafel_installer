@@ -305,6 +305,7 @@ void showDeviceInfoScreen(FSAClientHandle fsaHandle, const char* device, const F
 
 bool waitForDevice(FSAClientHandle fsaHandle, const wchar_t* deviceName, FatMountGuard& guard) {
     while (true) {
+        CHECK_SHUTDOWN_VAL(false);
         const wchar_t* msg = L"Remove ALL SD and USB storage devices NOW!";
         if (isUsbMounted()) {
             msg = L"To prevent a crash, please SHUTDOWN the console\n"
@@ -312,8 +313,13 @@ bool waitForDevice(FSAClientHandle fsaHandle, const wchar_t* deviceName, FatMoun
                   L"in case you are using SDUSB.\n"
                   L"Relaunch the installer from wafel.xyz\n"
                   L"if Aroma doesn't load.";
+            uint8_t choice = showDialogPrompt(msg, L"Shutdown", L"Cancel");
+            if (choice == 0) {
+                setShutdownPending(true, true);
+            }
+            return false;
         }
-        uint8_t choice = showDialogPrompt(msg, L"OK", L"Cancel");
+        uint8_t choice = showDialogPrompt(L"Remove ALL SD and USB storage devices NOW!", L"OK", L"Cancel");
         if (choice != 0) return false;
 
         FSADeviceInfo devInfo;
@@ -329,6 +335,7 @@ bool waitForDevice(FSAClientHandle fsaHandle, const wchar_t* deviceName, FatMoun
 
     std::wstring pluginMsg = L"Plug in ONLY the " + std::wstring(deviceName) + L" you want to work with.\nPlugging in other devices may lead to DATA LOSS!";
     while (true) {
+        CHECK_SHUTDOWN_VAL(false);
         WHBLogFreetypeStartScreen();
         WHBLogFreetypePrint(pluginMsg.c_str());
         WHBLogFreetypePrint(L" ");
@@ -1228,6 +1235,7 @@ bool getInstalledUSBPartitionPlugin(std::string& pluginPath, bool& hasEmulation)
 void showSDUSBMenu() {
     uint8_t selectedOption = 0;
     while (true) {
+        CHECK_SHUTDOWN();
         WHBLogFreetypeStartScreen();
         WHBLogFreetypePrint(L"SDUSB Menu");
         WHBLogFreetypePrint(L"===============================");
@@ -1306,6 +1314,7 @@ void setupSDUSBMenu() {
 
     FatMountGuard guard;
     while (true) {
+        CHECK_SHUTDOWN();
         if (!waitForDevice(fsaHandle, L"SD card", guard)) {
             break;
         }
@@ -1340,7 +1349,8 @@ void setupSDUSBMenu() {
 void showUSBPartitionMenu() {
     uint8_t selectedOption = 0;
     while (true) {
-std::string pluginPath;
+        CHECK_SHUTDOWN();
+        std::string pluginPath;
         bool hasEmulation = false;
         bool pluginInstalled = getInstalledUSBPartitionPlugin(pluginPath, hasEmulation);
 
@@ -1475,6 +1485,7 @@ void setupPartitionedUSBMenu() {
     FatMountGuard guard;
     bool partitioned = false;
     do {
+        CHECK_SHUTDOWN();
         if (!waitForDevice(fsaHandle, L"USB device", guard)) {
             goto exit;
         }
@@ -1498,8 +1509,9 @@ void setupPartitionedUSBMenu() {
 
         checkAndFixPartitionOrder(fsaHandle, "/dev/sdcard01", deviceInfo, partitioned);
 
-        if(!partitioned)
-            partitioned = handlePartitionActionMenu(fsaHandle, deviceInfo, L"USB device", !sdEmulation);            
+        if(!partitioned) {
+            partitioned = handlePartitionActionMenu(fsaHandle, deviceInfo, L"USB device", !sdEmulation);
+        }
     } while (!partitioned);
 
     if(sdEmulation){

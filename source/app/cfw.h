@@ -30,6 +30,9 @@ bool isShutdownPending();
 void setShutdownPending(bool pending, bool forced = false);
 bool isShutdownForced();
 
+#define CHECK_SHUTDOWN() if (isShutdownForced()) return;
+#define CHECK_SHUTDOWN_VAL(v) if (isShutdownForced()) return (v);
+
 bool isRebootPending();
 void setRebootPending(bool pending);
 
