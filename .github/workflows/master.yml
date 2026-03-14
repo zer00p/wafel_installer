@@ -7,15 +7,18 @@ on:
     branches:
       - master
 
+permissions:
+  contents: write
+
 jobs:
   build-binary:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-      - name: Build and cache Docker image
-        uses: docker/build-push-action@v2
+        uses: docker/setup-buildx-action@v3
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
         with:
           context: .
           load: true
@@ -24,26 +27,36 @@ jobs:
           cache-to: type=gha,mode=max
       - name: build binary
         run: |
-          docker run --rm -v ${PWD}:/project builder make
+          docker run --rm -v ${PWD}:/project builder:latest /bin/bash -c "make clean && make"
       - name: create distribution .zip
         run: |
           docker run --rm -v ${PWD}:/project builder make dist
-      - uses: actions/upload-artifact@master
+      - uses: actions/upload-artifact@v4
         with:
           name: wafel_installer
-          path: "./dist/wiiu/"
-  release:
-    if: github.ref == 'refs/heads/master'
+          path: "./dist/wiiu/apps/wafel_installer"
+  deploy-binary:
     needs: build-binary
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v3
+      - name: Get environment variables
+        id: get_repository_name
+        run: |
+          echo "REPOSITORY_NAME=$(echo "$GITHUB_REPOSITORY" | awk -F / '{print $2}' | sed -e "s/:refs//")" >> $GITHUB_ENV
+          echo "DATETIME=$(date '+%Y%m%d-%H%M%S')" >> $GITHUB_ENV
+      - uses: actions/download-artifact@v4
         with:
           name: wafel_installer
           path: wafel_installer
-      - uses: "softprops/action-gh-release@v1"
+      - name: Create Release
+        uses: "softprops/action-gh-release@v2"
         with:
+          tag_name: ${{ env.REPOSITORY_NAME }}-${{ env.DATETIME }}
           draft: true
+          prerelease: true
+          generate_release_notes: true
+          name: Nightly-${{ env.REPOSITORY_NAME }}-${{ env.DATETIME }}
           files: |
-            wafel_installer/apps/wafel_installer/wafel_installer.wuhb
-            wafel_installer/apps/wafel_installer/wafel_installer.rpx
+            wafel_installer/wafel_installer.wuhb
+            wafel_installer/wafel_installer.rpx
