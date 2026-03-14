@@ -41,11 +41,28 @@ bool unmountDefaultDevoptab() {
 bool mountSystemDrives() {
     WHBLogPrint("Mounting system drives...");
     WHBLogFreetypeDraw();
+    
+    FSAClientHandle fsaHandle = FSAAddClient(nullptr);
+    FSAVolumeInfo volumeInfo;
+    FSError res = FSAGetVolumeInfo(fsaHandle, "/vol/storage_usb01", &volumeInfo);
+    FSADelClient(fsaHandle);
+    systemUSBMounted = (res == FS_ERROR_OK);
+    // WHBLogPrintf("FSAGetVolumeInfo for /vol/storage_usb01 returned: %s (%d)", FSAGetStatusStr(res), res);
+    // WHBLogFreetypeDraw();
+    // if (res == FS_ERROR_OK) {
+    //     // print volume info for debugging
+    //     WHBLogPrintf("Volume Label: %s", volumeInfo.volumeLabel);
+    //     WHBLogPrintf("Volume ID: %s", volumeInfo.volumeId);
+    //     WHBLogPrintf("Device Path: %s", volumeInfo.devicePath);
+    //     WHBLogPrintf("Mount Path: %s", volumeInfo.mountPath);
+    //     //systemUSBMounted = true;
+    // }
+    //     WHBLogFreetypeDraw();
     if (USE_LIBMOCHA()) {
         //unmountDefaultDevoptab();
         if (Mocha_MountFS("storage_slc", "/dev/slc01", "/vol/storage_slc01") == MOCHA_RESULT_SUCCESS) systemSLCMounted = true;
         // if (Mocha_MountFS("storage_mlc01", nullptr, "/vol/storage_mlc01") == MOCHA_RESULT_SUCCESS) systemMLCMounted = true;
-        if (Mocha_MountFS("storage_usb01", nullptr, "/vol/storage_usb01") == MOCHA_RESULT_SUCCESS) systemUSBMounted = true;
+        //if (Mocha_MountFS("storage_usb01", nullptr, "/vol/storage_usb01") == MOCHA_RESULT_SUCCESS) systemUSBMounted = true;
     }
     else {
         systemMLCMounted = true;
@@ -54,7 +71,7 @@ bool mountSystemDrives() {
 
     if (systemSLCMounted) WHBLogPrint("Successfully mounted the SLC storage!");
     if (systemMLCMounted) WHBLogPrint("Successfully mounted the internal Wii U storage!");
-    if (systemUSBMounted) WHBLogPrint("Successfully mounted the external Wii U storage!");
+    if (systemUSBMounted) WHBLogPrint("USB storage is mounted!");
     WHBLogFreetypeDraw();
     return systemSLCMounted; // Require only the MLC to be mounted for this function to be successful
 }
