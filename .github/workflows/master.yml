@@ -23,3 +23,18 @@ jobs:
         with:
           name: wafel_installer
           path: "./dist/wiiu/"
+  release:
+    if: github.ref == 'refs/heads/master'
+    needs: build-binary
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: wafel_installer
+          path: wafel_installer
+      - uses: "softprops/action-gh-release@v1"
+        with:
+          draft: true
+          files: |
+            wafel_installer/apps/wafel_installer/wafel_installer.wuhb
+            wafel_installer/apps/wafel_installer/wafel_installer.rpx
