@@ -24,7 +24,7 @@ void ensureMinuteIni() {
     if (!fileExist(iniPath)) {
         int fd = fileOpen(iniPath.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
         if (fd >= 0) {
-            const char* content = "[boot]\nautoboot=3\nautoboot_timeout=0\n";
+            const char* content = "[boot]\nautoboot=3\nautoboot_timeout=0\nodd_power=true\n";
             write(fd, content, strlen(content));
             close(fd);
         }
@@ -37,6 +37,7 @@ void configureMinuteMenu() {
 
     int autoboot = 3;
     int timeout = 0;
+    bool odd_power = true;
 
     // Read current values
     FILE* f = fileFopen(iniPath.c_str(), "r");
@@ -47,6 +48,12 @@ void configureMinuteMenu() {
                 sscanf(line, "autoboot_timeout=%d", &timeout);
             } else if (strstr(line, "autoboot=")) {
                 sscanf(line, "autoboot=%d", &autoboot);
+            } else if (strstr(line, "odd_power=")) {
+                char val[16];
+                if (sscanf(line, "odd_power=%15s", val) == 1) {
+                    if (strcmp(val, "false") == 0) odd_power = false;
+                    else if (strcmp(val, "true") == 0) odd_power = true;
+                }
             }
         }
         fclose(f);
@@ -55,7 +62,7 @@ void configureMinuteMenu() {
     uint8_t selectedOption = 0;
     while (true) {
         WHBLogFreetypeStartScreen();
-        WHBLogFreetypePrint(L"Configure Minute Autoboot");
+        WHBLogFreetypePrint(L"Configure Minute");
         WHBLogFreetypePrint(L"===============================");
 
         std::wstring autobootStr;
@@ -69,11 +76,12 @@ void configureMinuteMenu() {
 
         WHBLogFreetypePrintf(L"%C Autoboot: %S", OPTION(0), autobootStr.c_str());
         WHBLogFreetypePrintf(L"%C Timeout: %d seconds", OPTION(1), timeout);
+        WHBLogFreetypePrintf(L"%C ODD Power: %S", OPTION(2), odd_power ? L"Enabled" : L"Disabled");
         WHBLogFreetypePrint(L" ");
-        WHBLogFreetypePrintf(L"%C Save and Exit", OPTION(2));
+        WHBLogFreetypePrintf(L"%C Save and Exit", OPTION(3));
 
         WHBLogFreetypeScreenPrintBottom(L"===============================");
-        WHBLogFreetypeScreenPrintBottom(L"\u2191/\u2193 = Move, \u2190/\u2192 = Change Timeout, \uE000 = Select, \uE001 = Back");
+        WHBLogFreetypeScreenPrintBottom(L"\u2191/\u2193 = Move, \u2190/\u2192 = Change Timeout/ODD, \uE000 = Select, \uE001 = Back");
         WHBLogFreetypeDrawScreen();
 
         sleep_for(100ms);
@@ -84,7 +92,7 @@ void configureMinuteMenu() {
                 selectedOption--;
                 break;
             }
-            if (navigatedDown() && selectedOption < 2) {
+            if (navigatedDown() && selectedOption < 3) {
                 selectedOption++;
                 break;
             }
@@ -100,12 +108,15 @@ void configureMinuteMenu() {
                     timeout++;
                     break;
                 } else if (selectedOption == 2) {
+                    odd_power = !odd_power;
+                    break;
+                } else if (selectedOption == 3) {
                     // Save
                     std::string minuteDir = Paths::SdMinuteDir;
                     createDirectories(minuteDir);
                     FILE* f = fileFopen(iniPath.c_str(), "w");
                     if (f) {
-                        fprintf(f, "[boot]\nautoboot=%d\nautoboot_timeout=%d\n", autoboot, timeout);
+                        fprintf(f, "[boot]\nautoboot=%d\nautoboot_timeout=%d\nodd_power=%s\n", autoboot, timeout, odd_power ? "true" : "false");
                         fclose(f);
                         showSuccessPrompt(L"Configuration saved!");
                         return;
@@ -126,6 +137,12 @@ void configureMinuteMenu() {
                 }
                 if (navigatedLeft() && timeout > 0) {
                     timeout--;
+                    break;
+                }
+            }
+            if (selectedOption == 2) {
+                if (navigatedRight() || navigatedLeft()) {
+                    odd_power = !odd_power;
                     break;
                 }
             }
