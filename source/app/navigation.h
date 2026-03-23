@@ -7,6 +7,7 @@
 
 void initializeInputs();
 void updateInputs();
+void shutdownInputs();
 
 bool navigatedUp();
 bool navigatedDown();

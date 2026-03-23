@@ -72,7 +72,7 @@ int main() {
     ACPFinalize();
     nn::act::Finalize();
     FSShutdown();
-    VPADShutdown();
+    shutdownInputs();
     shutdownGUI();
 
     exitApplication(reboot, isFullRebootPending());

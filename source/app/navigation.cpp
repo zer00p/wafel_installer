@@ -1,4 +1,5 @@
 #include "navigation.h"
+#include "gui.h"
 #include <chrono>
 
 VPADStatus vpadBuffer[1];
@@ -20,7 +21,14 @@ static bool canTrigger = true;
 void initializeInputs() {
     VPADInit();
     KPADInit();
+    WPADEnableURCC(1);
     lastTriggerTime = std::chrono::steady_clock::now();
+}
+
+void shutdownInputs() {
+    KPADShutdown();
+    WPADShutdown();
+    VPADShutdown();
 }
 
 static bool isAnyTriggered() {
