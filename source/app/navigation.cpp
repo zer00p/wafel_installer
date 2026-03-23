@@ -1,4 +1,5 @@
 #include "navigation.h"
+#include <chrono>
 
 VPADStatus vpadBuffer[1];
 VPADReadError vpadError;
@@ -11,17 +12,38 @@ struct KPADWrapper {
 
 std::array<KPADWrapper, 4> KPADControllers {{{false, WPAD_EXT_CORE, KPADStatus{}}}};
 
+static std::chrono::steady_clock::time_point lastTriggerTime;
+static bool canTrigger = true;
 
 // Technical functions
 
 void initializeInputs() {
     VPADInit();
     KPADInit();
+    lastTriggerTime = std::chrono::steady_clock::now();
+}
+
+static bool isAnyTriggered() {
+    if (vpadError == VPAD_READ_SUCCESS && vpadBuffer[0].trigger != 0) return true;
+    for (const auto& pad : KPADControllers) {
+        if (!pad.connected) continue;
+        if (pad.status.trigger != 0) return true;
+        if (pad.status.extensionType == KPADExtensionType::WPAD_EXT_CLASSIC || pad.status.extensionType == KPADExtensionType::WPAD_EXT_MPLUS_CLASSIC) {
+            if (pad.status.classic.trigger != 0) return true;
+        } else if (pad.status.extensionType == KPADExtensionType::WPAD_EXT_PRO_CONTROLLER) {
+            if (pad.status.pro.trigger != 0) return true;
+        }
+    }
+    return false;
 }
 
 void updateInputs() {
     // Read VPAD (Gamepad) input
     VPADRead(VPADChan::VPAD_CHAN_0, vpadBuffer, 1, &vpadError);
+    if (vpadError != VPAD_READ_SUCCESS) {
+        vpadBuffer[0].trigger = 0;
+        vpadBuffer[0].release = 0;
+    }
 
     // Read WPAD (Pro Controller, Wiimote, Classic) input
     // Loop over each controller channel
@@ -35,7 +57,30 @@ void updateInputs() {
         KPADControllers[i].connected = true;
 
         // Read the input
-        KPADRead((KPADChan)i, &KPADControllers[i].status, 1);
+        int32_t count = KPADRead((KPADChan)i, &KPADControllers[i].status, 1);
+        if (count <= 0) {
+            KPADControllers[i].status.trigger = 0;
+            KPADControllers[i].status.release = 0;
+            if (KPADControllers[i].status.extensionType == KPADExtensionType::WPAD_EXT_CLASSIC || KPADControllers[i].status.extensionType == KPADExtensionType::WPAD_EXT_MPLUS_CLASSIC) {
+                KPADControllers[i].status.classic.trigger = 0;
+                KPADControllers[i].status.classic.release = 0;
+            } else if (KPADControllers[i].status.extensionType == KPADExtensionType::WPAD_EXT_PRO_CONTROLLER) {
+                KPADControllers[i].status.pro.trigger = 0;
+                KPADControllers[i].status.pro.release = 0;
+            }
+        }
+    }
+
+    auto now = std::chrono::steady_clock::now();
+    if (isAnyTriggered()) {
+        if (std::chrono::duration_cast<std::chrono::milliseconds>(now - lastTriggerTime).count() < 150) {
+            canTrigger = false;
+        } else {
+            canTrigger = true;
+            lastTriggerTime = now;
+        }
+    } else {
+        canTrigger = true;
     }
 }
 
@@ -43,23 +88,21 @@ void updateInputs() {
 
 // Check whether the Gamepad is pressing the specified button
 bool vpadButtonPressed(VPADButtons button) {
-    if (vpadError == VPAD_READ_SUCCESS) {
+    if (vpadError == VPAD_READ_SUCCESS && canTrigger) {
         if (vpadBuffer[0].trigger & button) return true;
     }
     return false;
 }
 
-
-
 bool pressedY() {
-    if (vpadError == VPAD_READ_SUCCESS && (vpadBuffer[0].trigger & VPAD_BUTTON_Y)) return true;
+    if (vpadError == VPAD_READ_SUCCESS && (vpadBuffer[0].trigger & VPAD_BUTTON_Y) && canTrigger) return true;
     for (const auto& pad : KPADControllers) {
         if (!pad.connected) continue;
         if (pad.status.extensionType == KPADExtensionType::WPAD_EXT_CLASSIC || pad.status.extensionType == KPADExtensionType::WPAD_EXT_MPLUS_CLASSIC) {
-            if (pad.status.classic.trigger & WPAD_CLASSIC_BUTTON_Y) return true;
+            if ((pad.status.classic.trigger & WPAD_CLASSIC_BUTTON_Y) && canTrigger) return true;
         }
         else if (pad.status.extensionType == KPADExtensionType::WPAD_EXT_PRO_CONTROLLER) {
-            if (pad.status.pro.trigger & WPAD_PRO_BUTTON_Y) return true;
+            if ((pad.status.pro.trigger & WPAD_PRO_BUTTON_Y) && canTrigger) return true;
         }
     }
     return false;
@@ -67,6 +110,7 @@ bool pressedY() {
 
 // Check whether any KPAD controller is pressing the specified button
 bool kpadButtonPressed(WPADButton button) {
+    if (!canTrigger) return false;
     for (const auto& pad : KPADControllers) {
         if (!pad.connected) continue;
 
@@ -151,14 +195,14 @@ bool pressedBack() {
 }
 
 bool pressedX() {
-    if (vpadError == VPAD_READ_SUCCESS && (vpadBuffer[0].trigger & VPAD_BUTTON_X)) return true;
+    if (vpadError == VPAD_READ_SUCCESS && (vpadBuffer[0].trigger & VPAD_BUTTON_X) && canTrigger) return true;
     for (const auto& pad : KPADControllers) {
         if (!pad.connected) continue;
         if (pad.status.extensionType == KPADExtensionType::WPAD_EXT_CLASSIC || pad.status.extensionType == KPADExtensionType::WPAD_EXT_MPLUS_CLASSIC) {
-            if (pad.status.classic.trigger & WPAD_CLASSIC_BUTTON_X) return true;
+            if ((pad.status.classic.trigger & WPAD_CLASSIC_BUTTON_X) && canTrigger) return true;
         }
         else if (pad.status.extensionType == KPADExtensionType::WPAD_EXT_PRO_CONTROLLER) {
-            if (pad.status.pro.trigger & WPAD_PRO_BUTTON_X) return true;
+            if ((pad.status.pro.trigger & WPAD_PRO_BUTTON_X) && canTrigger) return true;
         }
     }
     return false;
