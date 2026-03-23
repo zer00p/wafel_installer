@@ -128,23 +128,6 @@ void installStroopwafelMenu() {
     }
 }
 
-void installAromaMenu() {
-    if (showDialogPrompt(L"Do you want to download Aroma by Maschell and the HB Appstore now?\n \n"
-                         L"Note: Aroma plugins like Inkay (Pretendo) or FTP can be\n"
-                         L"downloaded with the Aroma Updater later.", L"Download", L"Cancel") != 0) {
-        return;
-    }
-
-    while (true) {
-        if (downloadAroma()) {
-            showSuccessPrompt(L"Aroma and tools downloaded and extracted successfully!");
-            break;
-        } else {
-            if (!showErrorPrompt(L"Cancel", true)) break;
-        }
-    }
-}
-
 void showMainMenu() {
     uint8_t selectedOption = 0;
     while(true) {
@@ -232,7 +215,7 @@ void showMainMenu() {
                 installIsfshaxMenu();
                 break;
             case 4:
-                installAromaMenu();
+                askAndDownloadAroma();
                 break;
             case 5:
                 configureMinuteMenu();

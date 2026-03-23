@@ -20,6 +20,7 @@ bool downloadIsfshaxFiles();
 bool downloadPlugin(std::string pluginFile);
 bool downloadUsbPartitionPlugin(bool sdEmulation);
 bool downloadAroma(void);
+bool askAndDownloadAroma(void);
 bool downloadFile(const std::string& url, const std::string& path);
 bool downloadToBuffer(const std::string& url, std::string& buffer);
 bool checkIncompatiblePlugins(const Plugin& p, const std::string& destinationDir);

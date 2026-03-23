@@ -1096,9 +1096,7 @@ void formatAndPartitionMenu() {
 
     if (shouldDownloadAroma) {
         sleep_for(2s);
-        if (showDialogPrompt(L"Device formatted successfully!\nDo you want to download Aroma now?", L"Yes", L"No") == 0) {
-            downloadAroma();
-        }
+        askAndDownloadAroma();
     }
 
     if (use_usb) {
@@ -1159,9 +1157,7 @@ bool uninstallSDUSB() {
                             }
                         }
 
-                        if (showDialogPrompt(L"Do you want to redownload Aroma now?", L"Yes", L"No") == 0) {
-                            downloadAroma();
-                        }
+                        askAndDownloadAroma();
                         
                         showSuccessPrompt(L"SD card unpartitioned successfully.");
                     }
