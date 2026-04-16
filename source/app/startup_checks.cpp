@@ -164,6 +164,10 @@ bool performStartupChecks() {
                 if ((FSStatus)FSAGetDeviceInfo(fsaHandle, "/dev/sdcard01", &devInfo) == FS_STATUS_OK) {
                     bool dummy = false;
                     checkAndFixPartitionOrder(fsaHandle, "/dev/sdcard01", devInfo, dummy);
+
+                    if (checkSdCardPartitioning(fsaHandle, devInfo)) {
+                        wantsPartitionedStorage = true;
+                    }
                 }
                 FSADelClient(fsaHandle);
             }

@@ -34,3 +34,4 @@ bool waitForDevice(FSAClientHandle fsaHandle, const wchar_t* deviceName, FatMoun
 void usbAsSd(bool enable);
 bool handleSDUSBAction(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, FatMountGuard& guard);
 bool handlePartitionActionMenu(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, const wchar_t* deviceTypeName, bool needWFS);
+bool checkSdCardPartitioning(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo);
