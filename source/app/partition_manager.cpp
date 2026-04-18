@@ -780,80 +780,142 @@ bool checkSdCardPartitioning(FSAClientHandle fsaHandle, const FSADeviceInfo& dev
     uint8_t* mbr = (uint8_t*)memalign(0x40, deviceInfo.deviceSectorSize);
     if (!mbr) return false;
 
-    bool hasFat32 = false;
-    bool hasWfs = false;
-    int partitionCount = 0;
-    uint32_t lastOccupiedSector = 1;
-    if ((FSStatus)rawRead(fsaHandle, "/dev/sdcard01", 0, 1, mbr, deviceInfo.deviceSectorSize) == FS_STATUS_OK) {
-        if (mbr[510] == 0x55 && mbr[511] == 0xAA) {
-            for (int i = 0; i < 4; i++) {
-                uint8_t type = mbr[446 + i * 16 + 4];
-                if (type != 0) {
-                    partitionCount++;
-                    if (i == 0 && (type == 0x0B || type == 0x0C)) hasFat32 = true;
-                    if (type == 0x07 || type == 0x17) hasWfs = true;
-                    uint32_t start = read32LE(&mbr[446 + i * 16 + 8]);
-                    uint32_t sectors = read32LE(&mbr[446 + i * 16 + 12]);
-                    if (start + sectors > lastOccupiedSector) {
-                        lastOccupiedSector = start + sectors;
+    bool wantsPartitionedStorage = false;
+
+    auto updateMbrInfo = [&](bool& hasFat32, bool& hasWfs, int& partitionCount, uint32_t& lastOccupiedSector, bool& hasSpace) {
+        hasFat32 = false;
+        hasWfs = false;
+        partitionCount = 0;
+        lastOccupiedSector = 1;
+        if ((FSStatus)rawRead(fsaHandle, "/dev/sdcard01", 0, 1, mbr, deviceInfo.deviceSectorSize) == FS_STATUS_OK) {
+            if (mbr[510] == 0x55 && mbr[511] == 0xAA) {
+                for (int i = 0; i < 4; i++) {
+                    uint8_t type = mbr[446 + i * 16 + 4];
+                    if (type != 0) {
+                        partitionCount++;
+                        if (i == 0 && (type == 0x0B || type == 0x0C)) hasFat32 = true;
+                        if (type == 0x07 || type == 0x17) hasWfs = true;
+                        uint32_t start = read32LE(&mbr[446 + i * 16 + 8]);
+                        uint32_t sectors = read32LE(&mbr[446 + i * 16 + 12]);
+                        if (start + sectors > lastOccupiedSector) {
+                            lastOccupiedSector = start + sectors;
+                        }
                     }
                 }
             }
         }
-    }
-
-    uint64_t unallocatedSpace = (uint64_t)(deviceInfo.deviceSizeInSectors - lastOccupiedSector) * deviceInfo.deviceSectorSize;
-    bool hasSpace = (unallocatedSpace > 4ULL * 1024 * 1024 * 1024) && (partitionCount < 4) && (partitionCount > 0);
-
-    bool wantsPartitionedStorage = false;
+        uint64_t unallocatedSpace = (uint64_t)(deviceInfo.deviceSizeInSectors - lastOccupiedSector) * deviceInfo.deviceSectorSize;
+        hasSpace = (unallocatedSpace > 4ULL * 1024 * 1024 * 1024) && (partitionCount < 4) && (partitionCount > 0);
+    };
 
     if (!hasWiiuDir) {
-        std::vector<std::wstring> buttons;
-        int optKeep = -1, optPartition = -1, optFormatWhole = -1, optCreateWiiU = -1;
+        bool stage1Done = false;
+        while (!stage1Done) {
+            uint8_t choice = showDialogPrompt(L"The SD card seems to be new (no 'wiiu' folder found).\nDo you also want to use the SD card to store Wii U games?", L"Yes", L"No", L"Cancel");
+            if (choice == 1) { // No
+                bool hasFat32, hasWfs, hasSpace;
+                int partitionCount;
+                uint32_t lastOccupiedSector;
+                updateMbrInfo(hasFat32, hasWfs, partitionCount, lastOccupiedSector, hasSpace);
 
-        if (hasFat32) {
-            optKeep = (int)buttons.size();
-            buttons.push_back(L"Keep current partitioning");
+                // Check if we already have a single FAT32 partition using (almost) the whole disk
+                uint32_t p1_end = 0;
+                if (hasFat32) {
+                    uint32_t p1_start = read32LE(&mbr[446 + 8]);
+                    uint32_t p1_size = read32LE(&mbr[446 + 12]);
+                    p1_end = p1_start + p1_size;
+                }
+
+                uint64_t remainingSpace = (uint64_t)(deviceInfo.deviceSizeInSectors - p1_end) * deviceInfo.deviceSectorSize;
+                bool isPerfectFat32 = (partitionCount == 1) && hasFat32 && (remainingSpace < 128ULL * 1024 * 1024);
+
+                if (!isPerfectFat32) {
+                    std::wstring msg = L"The SD card is not formatted to use the full space for homebrew";
+                    if (partitionCount > 1) {
+                        msg += L" (it has multiple partitions).";
+                    } else {
+                        msg += L".";
+                    }
+                    msg += L"\nDo you want to reformat it to use the entire card or keep it as is?";
+
+                    uint8_t fixChoice = showDialogPrompt(msg.c_str(), L"Format", L"Keep", L"Cancel");
+                    if (fixChoice == 0) {
+                        if (formatWholeDrive(fsaHandle, "/dev/sdcard01", deviceInfo)) {
+                            WHBMountSdCard();
+                            stage1Done = true;
+                        }
+                    } else if (fixChoice == 1) {
+                        stage1Done = true;
+                    }
+                    // If Cancel, stay in Stage 1
+                } else {
+                    stage1Done = true;
+                }
+            } else if (choice == 0) { // Yes
+                bool stage2Done = false;
+                while (!stage2Done) {
+                    bool hasFat32, hasWfs, hasSpace;
+                    int partitionCount;
+                    uint32_t lastOccupiedSector;
+                    updateMbrInfo(hasFat32, hasWfs, partitionCount, lastOccupiedSector, hasSpace);
+
+                    std::vector<std::wstring> buttons;
+                    int optKeep = -1, optPartition = -1, optCreateWiiU = -1;
+
+                    if (hasFat32 && hasWfs) {
+                        optKeep = (int)buttons.size();
+                        buttons.push_back(L"Keep current partitioning");
+                    }
+
+                    optPartition = (int)buttons.size();
+                    buttons.push_back(L"Partition for homebrew and Wii U games");
+
+                    if (hasSpace && !hasWfs) {
+                        optCreateWiiU = (int)buttons.size();
+                        buttons.push_back(L"Add Wii U partition");
+                    }
+
+                    buttons.push_back(L"Back");
+                    int optBack = (int)buttons.size() - 1;
+
+                    showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", deviceInfo);
+                    uint8_t s2Choice = showDialogPrompt(L"How do you want to partition the SD card?", buttons, 0, false);
+
+                    if (s2Choice == optBack || s2Choice == 255) {
+                        stage2Done = true; // Go back to stage 1
+                    } else {
+                        if (s2Choice == optKeep) {
+                            wantsPartitionedStorage = true;
+                        } else if (s2Choice == optPartition) {
+                            if (partitionDevice(fsaHandle, "/dev/sdcard01", deviceInfo)) {
+                                wantsPartitionedStorage = true;
+                                WHBMountSdCard();
+                            }
+                        } else if (optCreateWiiU != -1 && s2Choice == optCreateWiiU) {
+                            if (addWiiUPartition(fsaHandle, deviceInfo, mbr, lastOccupiedSector)) {
+                                wantsPartitionedStorage = true;
+                            }
+                        }
+                        stage2Done = true;
+                        stage1Done = true;
+                    }
+                }
+            } else { // Cancel or B
+                stage1Done = true;
+            }
         }
-
-        optPartition = (int)buttons.size();
-        buttons.push_back(L"Partition for homebrew and Wii U games");
-
-        optFormatWhole = (int)buttons.size();
-        buttons.push_back(L"Format for only homebrew");
+    } else {
+        bool hasFat32, hasWfs, hasSpace;
+        int partitionCount;
+        uint32_t lastOccupiedSector;
+        updateMbrInfo(hasFat32, hasWfs, partitionCount, lastOccupiedSector, hasSpace);
 
         if (hasSpace && !hasWfs) {
-            optCreateWiiU = (int)buttons.size();
-            buttons.push_back(L"Add Wii U partition");
-        }
-
-        buttons.push_back(L"Cancel");
-        int optCancel = (int)buttons.size() - 1;
-
-        showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", deviceInfo);
-        uint8_t choice = showDialogPrompt(L"The SD card seems to be new (no 'wiiu' folder found).\nHow do you want to use it?", buttons, 0, false);
-
-        if (choice == optKeep || choice == optCancel || choice == 255) {
-            // Do nothing
-        } else if (choice == optPartition) {
-            if (partitionDevice(fsaHandle, "/dev/sdcard01", deviceInfo)) {
-                wantsPartitionedStorage = true;
-                WHBMountSdCard();
-            }
-        } else if (choice == optFormatWhole) {
-            if (formatWholeDrive(fsaHandle, "/dev/sdcard01", deviceInfo)) {
-                WHBMountSdCard();
-            }
-        } else if (optCreateWiiU != -1 && choice == optCreateWiiU) {
-            if (addWiiUPartition(fsaHandle, deviceInfo, mbr, lastOccupiedSector)) {
-                wantsPartitionedStorage = true;
-            }
-        }
-    } else if (hasSpace && !hasWfs) {
-        showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", deviceInfo);
-        if (showDialogPrompt(L"The SD card has unallocated space.\nDo you want to add a Wii U partition to store games?", L"Yes", L"No") == 0) {
-            if (addWiiUPartition(fsaHandle, deviceInfo, mbr, lastOccupiedSector)) {
-                wantsPartitionedStorage = true;
+            showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", deviceInfo);
+            if (showDialogPrompt(L"The SD card has unallocated space.\nDo you want to add a Wii U partition to store games?", L"Yes", L"No") == 0) {
+                if (addWiiUPartition(fsaHandle, deviceInfo, mbr, lastOccupiedSector)) {
+                    wantsPartitionedStorage = true;
+                }
             }
         }
     }
@@ -861,7 +923,6 @@ bool checkSdCardPartitioning(FSAClientHandle fsaHandle, const FSADeviceInfo& dev
     free(mbr);
     return wantsPartitionedStorage;
 }
-
 bool handleSDUSBAction(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, FatMountGuard& guard) {
     if (handlePartitionActionMenu(fsaHandle, deviceInfo, L"SD card", true)) {
         guard.unblock();
