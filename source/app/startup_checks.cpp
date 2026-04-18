@@ -170,7 +170,7 @@ bool performStartupChecks() {
                             MbrPartitionInfo info;
                             if (getMbrPartitionInfo(fsaHandle, "/dev/sdcard01", devInfo, mbr, info)) {
                                 if (info.hasWfs) {
-                                    if (showDialogPrompt(L"A Wii U partition was detected on the SD card.\nDo you want to use it to store Wii U games?", L"Yes", L"No") == 0) {
+                                    if (showDialogPrompt(L"A Wii U or NTFS partition was detected on the SD card.\nDo you want to use it to store Wii U games?", L"Yes", L"No") == 0) {
                                         wantsPartitionedStorage = true;
                                     }
                                 }

@@ -789,9 +789,16 @@ bool checkSdCardPartitioning(FSAClientHandle fsaHandle, const FSADeviceInfo& dev
 
     // This function is now only called if hasWiiuDir is false
     bool stage1Done = false;
+    uint64_t totalSize = (uint64_t)deviceInfo.deviceSizeInSectors * deviceInfo.deviceSectorSize;
+    uint64_t twoGiB = 2ULL * 1024 * 1024 * 1024;
+
     while (!stage1Done) {
-        uint8_t choice = showDialogPrompt(L"The SD card seems to be new (no 'wiiu' folder found).\nDo you also want to use the SD card to store Wii U games?", L"Yes", L"No", L"Cancel");
-        if (choice == 1) { // No
+        uint8_t choice = 0; // Default to "No"
+        if (totalSize >= twoGiB) {
+            choice = showDialogPrompt(L"The SD card seems to be new (no 'wiiu' folder found).\nDo you also want to use the SD card to store Wii U games?", L"No", L"Yes", L"Cancel");
+        }
+
+        if (choice == 0) { // No
             MbrPartitionInfo info;
             if (!getMbrPartitionInfo(fsaHandle, "/dev/sdcard01", deviceInfo, mbr, info)) {
                 setErrorPrompt(L"Failed to read MBR from device!");
@@ -835,7 +842,7 @@ bool checkSdCardPartitioning(FSAClientHandle fsaHandle, const FSADeviceInfo& dev
             } else {
                 stage1Done = true;
             }
-        } else if (choice == 0) { // Yes
+        } else if (choice == 1) { // Yes
             bool stage2Done = false;
             while (!stage2Done) {
                 MbrPartitionInfo info;
