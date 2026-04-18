@@ -34,3 +34,13 @@ bool waitForDevice(FSAClientHandle fsaHandle, const wchar_t* deviceName, FatMoun
 void usbAsSd(bool enable);
 bool handleSDUSBAction(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, FatMountGuard& guard);
 bool handlePartitionActionMenu(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, const wchar_t* deviceTypeName, bool needWFS);
+struct MbrPartitionInfo {
+    bool hasFat = false;
+    bool hasWfs = false;
+    int partitionCount = 0;
+    uint32_t lastOccupiedSector = 1;
+    bool hasSpace = false;
+};
+
+bool getMbrPartitionInfo(FSAClientHandle fsaHandle, const char* device, const FSADeviceInfo& deviceInfo, uint8_t* mbr, MbrPartitionInfo& info);
+bool checkSdCardPartitioning(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo);

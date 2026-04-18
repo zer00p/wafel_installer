@@ -96,18 +96,13 @@ bool performStroopwafelCheck(void) {
         filesExist = false;
     }
 
-    if (!isStroopwafelAvailable() || !filesExist) {
+    while (!isStroopwafelAvailable() || !filesExist) {
         uint8_t choice = showDialogPrompt(L"Stroopwafel is missing, outdated or not running\nDo you want to download stroopwafel by shinyquagsire23?", L"Yes", L"No");
-        if (choice == 0) {
-            bool toSD = false;
-            if (isSdEmulated()) {
-                toSD = false; // Only SLC for SD emulation
-            } else {
-                toSD = (showDialogPrompt(L"Where do you want to download Stroopwafel?\nSD card is recommended.", L"SD Card", L"SLC") == 0);
-            }
-            return downloadStroopwafelFiles(toSD);
+        if (choice != 0) return false;
+
+        if (installStroopwafel()) {
+            return true;
         }
-        return false;
     }
     return true;
 }
@@ -164,6 +159,25 @@ bool performStartupChecks() {
                 if ((FSStatus)FSAGetDeviceInfo(fsaHandle, "/dev/sdcard01", &devInfo) == FS_STATUS_OK) {
                     bool dummy = false;
                     checkAndFixPartitionOrder(fsaHandle, "/dev/sdcard01", devInfo, dummy);
+
+                    if (!dirExist(Paths::SdRoot + "/wiiu")) {
+                        if (checkSdCardPartitioning(fsaHandle, devInfo)) {
+                            wantsPartitionedStorage = true;
+                        }
+                    } else {
+                        uint8_t* mbr = (uint8_t*)memalign(0x40, devInfo.deviceSectorSize);
+                        if (mbr) {
+                            MbrPartitionInfo info;
+                            if (getMbrPartitionInfo(fsaHandle, "/dev/sdcard01", devInfo, mbr, info)) {
+                                if (info.hasWfs) {
+                                    if (showDialogPrompt(L"A Wii U or NTFS partition was detected on the SD card.\nDo you want to use it to store Wii U games?", L"Yes", L"No") == 0) {
+                                        wantsPartitionedStorage = true;
+                                    }
+                                }
+                            }
+                            free(mbr);
+                        }
+                    }
                 }
                 FSADelClient(fsaHandle);
             }
