@@ -165,8 +165,23 @@ bool performStartupChecks() {
                     bool dummy = false;
                     checkAndFixPartitionOrder(fsaHandle, "/dev/sdcard01", devInfo, dummy);
 
-                    if (checkSdCardPartitioning(fsaHandle, devInfo)) {
-                        wantsPartitionedStorage = true;
+                    if (!dirExist(Paths::SdRoot + "/wiiu")) {
+                        if (checkSdCardPartitioning(fsaHandle, devInfo)) {
+                            wantsPartitionedStorage = true;
+                        }
+                    } else {
+                        uint8_t* mbr = (uint8_t*)memalign(0x40, devInfo.deviceSectorSize);
+                        if (mbr) {
+                            MbrPartitionInfo info;
+                            if (getMbrPartitionInfo(fsaHandle, "/dev/sdcard01", devInfo, mbr, info)) {
+                                if (info.hasWfs) {
+                                    if (showDialogPrompt(L"A Wii U partition was detected on the SD card.\nDo you want to use it to store Wii U games?", L"Yes", L"No") == 0) {
+                                        wantsPartitionedStorage = true;
+                                    }
+                                }
+                            }
+                            free(mbr);
+                        }
                     }
                 }
                 FSADelClient(fsaHandle);
