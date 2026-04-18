@@ -35,7 +35,7 @@ void usbAsSd(bool enable);
 bool handleSDUSBAction(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, FatMountGuard& guard);
 bool handlePartitionActionMenu(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, const wchar_t* deviceTypeName, bool needWFS);
 struct MbrPartitionInfo {
-    bool hasFat32 = false;
+    bool hasFat = false;
     bool hasWfs = false;
     int partitionCount = 0;
     uint32_t lastOccupiedSector = 1;

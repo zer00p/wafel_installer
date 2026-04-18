@@ -669,7 +669,7 @@ bool getMbrPartitionInfo(FSAClientHandle fsaHandle, const char* device, const FS
             uint8_t type = mbr[446 + i * 16 + 4];
             if (type != 0) {
                 info.partitionCount++;
-                if (i == 0 && (type == 0x0B || type == 0x0C)) info.hasFat32 = true;
+                if (i == 0 && (type == 0x01 || type == 0x04 || type == 0x06 || type == 0x0B || type == 0x0C || type == 0x0E)) info.hasFat = true;
                 if (type == 0x07 || type == 0x17) info.hasWfs = true;
                 uint32_t start = read32LE(&mbr[446 + i * 16 + 8]);
                 uint32_t sectors = read32LE(&mbr[446 + i * 16 + 12]);
@@ -747,7 +747,7 @@ bool handlePartitionActionMenu(FSAClientHandle fsaHandle, const FSADeviceInfo& d
         std::vector<std::wstring> buttons;
         int optKeep = -1, optCreate = -1, optRepartition = -1, optCancel = -1;
 
-        if (info.hasFat32 && (!needWFS || info.hasWfs)) {
+        if ((info.hasFat || info.partitionCount == 0) && (!needWFS || info.hasWfs)) {
             optKeep = (int)buttons.size();
             buttons.push_back(L"Keep current partitioning");
         }
@@ -800,19 +800,24 @@ bool checkSdCardPartitioning(FSAClientHandle fsaHandle, const FSADeviceInfo& dev
             }
 
             uint32_t p1_end = 0;
-            if (info.hasFat32) {
+            if (info.hasFat) {
                 uint32_t p1_start = read32LE(&mbr[446 + 8]);
                 uint32_t p1_size = read32LE(&mbr[446 + 12]);
                 p1_end = p1_start + p1_size;
+            } else if (info.partitionCount == 0) {
+                // Superfloppy: if it's mountable (which we know it is), it spans the whole device
+                p1_end = deviceInfo.deviceSizeInSectors;
             }
 
             uint64_t remainingSpace = (uint64_t)(deviceInfo.deviceSizeInSectors - p1_end) * deviceInfo.deviceSectorSize;
-            bool isPerfectFat32 = (info.partitionCount == 1) && info.hasFat32 && (remainingSpace < 128ULL * 1024 * 1024);
+            bool isPerfectFat = (info.partitionCount <= 1) && (remainingSpace < 128ULL * 1024 * 1024);
 
-            if (!isPerfectFat32) {
+            if (!isPerfectFat) {
                 std::wstring msg = L"The SD card is not formatted to use the full space for homebrew";
                 if (info.partitionCount > 1) {
                     msg += L" (it has multiple partitions).";
+                } else if (info.partitionCount == 1 && !info.hasFat) {
+                    msg += L" (unknown partition type: " + toWstring(getPartitionTypeName(mbr[446 + 4])) + L").";
                 } else {
                     msg += L".";
                 }
@@ -843,7 +848,7 @@ bool checkSdCardPartitioning(FSAClientHandle fsaHandle, const FSADeviceInfo& dev
                 std::vector<std::wstring> buttons;
                 int optKeep = -1, optPartition = -1, optCreateWiiU = -1;
 
-                if (info.hasFat32 && info.hasWfs) {
+                if (info.hasFat && info.hasWfs) {
                     optKeep = (int)buttons.size();
                     buttons.push_back(L"Keep current partitioning");
                 }
