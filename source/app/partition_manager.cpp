@@ -371,6 +371,7 @@ bool formatWholeDrive(FSAClientHandle fsaHandle, const char* device, const FSADe
         setCustomFormatSize(0);
         WHBLogFreetypePrint(L"Formatting whole Device with FAT32...\nthis might take a while");
         WHBLogFreetypeDraw();
+        WHBUnmountSdCard();
         FSStatus status = (FSStatus)FSA_Format(fsaHandle, device, fsType, 0, 0, 0);
         if (status != FS_STATUS_OK) {
             WHBLogPrintf("Format failed (status: %d)!\n", status);
@@ -859,12 +860,12 @@ bool checkSdCardPartitioning(FSAClientHandle fsaHandle, const FSADeviceInfo& dev
                     optKeep = (int)buttons.size();
                     buttons.push_back(L"Keep current partitioning");
                 }
-                optPartition = (int)buttons.size();
-                buttons.push_back(L"Partition for homebrew and Wii U games");
                 if (info.hasSpace && !info.hasWfs) {
                     optCreateWiiU = (int)buttons.size();
                     buttons.push_back(L"Add Wii U partition");
                 }
+                optPartition = (int)buttons.size();
+                buttons.push_back(L"Partition for homebrew and Wii U games");
                 buttons.push_back(L"Back");
                 int optBack = (int)buttons.size() - 1;
 
@@ -1033,21 +1034,24 @@ void formatAndPartitionMenu() {
 
                 std::vector<std::wstring> buttons;
                 buttons.push_back(L"Format whole drive to FAT32");
-                buttons.push_back(L"Partition drive");
+                
                 int optFormatWhole = 0;
-                int optPartition = 1;
-                int optOnlyFormatP1 = -1;
+                int optPartition = -1;
                 int optCreateWiiU = -1;
+                int optOnlyFormatP1 = -1;
                 int optDeleteMbr = -1;
                 int optCancel = -1;
+
+                if (info.hasSpace && !info.hasWfs) {
+                    optCreateWiiU = (int)buttons.size();
+                    buttons.push_back(L"Create Wii U partition");
+                }
+                optPartition = (int)buttons.size();
+                buttons.push_back(L"Partition drive");
 
                 if (info.partitionCount > 1) {
                     optOnlyFormatP1 = (int)buttons.size();
                     buttons.push_back(L"Only format Partition 1");
-                }
-                if (info.hasSpace && !info.hasWfs) {
-                    optCreateWiiU = (int)buttons.size();
-                    buttons.push_back(L"Create Wii U partition");
                 }
                 if (mbr[510] == 0x55 && mbr[511] == 0xAA) {
                     optDeleteMbr = (int)buttons.size();
@@ -1095,6 +1099,7 @@ void formatAndPartitionMenu() {
                         WHBLogPrintf("Formatting Partition 1 (size: %u sectors)...\nthis might take a while", p1_size);
                         WHBLogFreetypeDraw();
                         setCustomFormatSize(p1_size);
+                        WHBUnmountSdCard();
                         int32_t f_status = FSA_Format(fsaHandle, "/dev/sdcard01", "fat", 0, 0, 0);
                         if (f_status != FS_STATUS_OK) {
                             WHBLogPrintf("Format failed (status: %d)!\n", f_status);
