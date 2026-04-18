@@ -96,18 +96,13 @@ bool performStroopwafelCheck(void) {
         filesExist = false;
     }
 
-    if (!isStroopwafelAvailable() || !filesExist) {
+    while (!isStroopwafelAvailable() || !filesExist) {
         uint8_t choice = showDialogPrompt(L"Stroopwafel is missing, outdated or not running\nDo you want to download stroopwafel by shinyquagsire23?", L"Yes", L"No");
-        if (choice == 0) {
-            bool toSD = false;
-            if (isSdEmulated()) {
-                toSD = false; // Only SLC for SD emulation
-            } else {
-                toSD = (showDialogPrompt(L"Where do you want to download Stroopwafel?\nSD card is recommended.", L"SD Card", L"SLC") == 0);
-            }
-            return downloadStroopwafelFiles(toSD);
+        if (choice != 0) return false;
+
+        if (installStroopwafel()) {
+            return true;
         }
-        return false;
     }
     return true;
 }

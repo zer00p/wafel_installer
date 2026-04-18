@@ -104,27 +104,34 @@ void loadArbitraryFwImgMenu() {
     }
 }
 
-void installStroopwafelMenu() {
+bool installStroopwafel() {
     bool sdEmulated = isSdEmulated();
     bool toSD = false;
 
     if (sdEmulated) {
         uint8_t choice = showDialogPrompt(L"Where do you want to download Stroopwafel?\nNote: Stroopwafel cannot be installed to the USB device, even when using SD emulation.", L"SLC", L"Cancel");
-        if (choice != 0) return;
+        if (choice != 0) return false;
         toSD = false;
     } else {
         uint8_t choice = showDialogPrompt(L"Where do you want to download Stroopwafel?\nSD card is recommended.", L"SD Card", L"SLC", L"Cancel");
-        if (choice == 2 || choice == 255) return;
+        if (choice == 2 || choice == 255) return false;
         toSD = (choice == 0);
     }
 
-    if (!toSD && !checkSystemAccess()) return;
+    if (!toSD && !checkSystemAccess()) return false;
 
     if (downloadStroopwafelFiles(toSD)) {
         showSuccessPrompt(L"Stroopwafel files downloaded successfully!");
-        performIsfshaxCheck(false, false);
+        return true;
     } else {
         showErrorPrompt(L"OK");
+        return false;
+    }
+}
+
+void installStroopwafelMenu() {
+    if (installStroopwafel()) {
+        performIsfshaxCheck(false, false);
     }
 }
 

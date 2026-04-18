@@ -1211,7 +1211,11 @@ bool uninstallSDUSB() {
 
                         if (stroopOnSd) {
                             if (showDialogPrompt(L"Stroopwafel was installed on the SD card.\nDo you want to redownload it now?", L"Yes", L"No") == 0) {
-                                downloadStroopwafelFiles(true);
+                                if (downloadStroopwafelFiles(true)) {
+                                    showSuccessPrompt(L"Stroopwafel files downloaded successfully!");
+                                } else {
+                                    showErrorPrompt(L"OK");
+                                }
                             }
                         }
 
@@ -1502,14 +1506,12 @@ void setupPartitionedUSBMenu() {
         setStroopwafelPluginPath(Paths::SlcPluginsDir);
     }
 
-    if (pluginTarget.empty() || !dirExist(pluginTarget)) {
+    while (pluginTarget.empty() || !dirExist(pluginTarget)) {
         if (showDialogPrompt(L"Stroopwafel is not detected. It is required for partitioned USB storage.\nDo you want to install it now?", L"Yes", L"Cancel") != 0) return;
-        uint8_t loc = 1;
-        if(!sdEmulation){
-            loc = showDialogPrompt(L"Where do you want to install Stroopwafel?", L"SD Card", L"SLC");
-            if (loc == 255) return;
-        }         // TODO: add option to copy existing stroopwafel install for SD emulation, if it exists on SD
-        if (!downloadStroopwafelFiles(loc == 0)) return;
+        
+        if (installStroopwafel()) {
+            pluginTarget = getStroopwafelPluginPath();
+        }
     }
 
     if(!downloadUsbPartitionPlugin(sdEmulation))
