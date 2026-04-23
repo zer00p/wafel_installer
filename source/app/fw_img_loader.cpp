@@ -201,6 +201,9 @@ void loadFwImg(const std::string& fwPath, uint32_t command, uint32_t parameter) 
             uint32_t undo_val = 0xe0914bcc;
             if (!applyPatch(0x0501f578, &undo_val, 4, L"Undoing ISFShax fallback reload patch...")) return;
         }
+
+        uint32_t bl_LaunchBootrom = 0xebffffca;
+        applyPatch(0x0812a120, &bl_LaunchBootrom, 4, L"Undoing PayloadLoader reboot Patch...");
     }
 
     WHBLogFreetypeClear();
