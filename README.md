@@ -23,12 +23,6 @@ Use the Wii U App Store to download it. See Dumpling's page [here](https://apps.
 **Method 3:**  
 Download the [latest release from GitHub](https://github.com/zer00p/wafel_installer/releases), and extract the `wafel_installer.zip` file to the root of your SD card.
 
-## How to use
-
-If you want to fully homebrew your Wii U, we recommend using [wiiu.hacks.guide](https://wiiu.hacks.guide) to install Tiramisu and installing Wafel Installer using the first two methods mentioned above!
-
-You don't need to run/have Mocha CFW or Haxchi, just launch Wafel Installer from the Homebrew Launcher.
-
 ## How to compile
  - Install [DevkitPro](https://devkitpro.org/wiki/Getting_Started) for your platform.
  - Install xxd and zip if you don't have it already through your Linux package manager (or something equivalent for msys2 on Windows).
