@@ -67,7 +67,7 @@ void loadArbitraryFwImgMenu() {
 
     std::string cfwDir = Paths::SdCfwDir;
     if (!dirExist(cfwDir)) {
-        if (mkdir(cfwDir.c_str(), 0755) != 0 && errno != EEXIST) {
+        if (!createDirectories(cfwDir)) {
             setErrorPrompt(L"Failed to create wiiu/cfw directory on SD!");
             showErrorPrompt(L"OK");
             return;
@@ -99,7 +99,7 @@ void loadArbitraryFwImgMenu() {
 
     uint8_t choice = showDialogPrompt(L"Select a fw.img to load:", files);
     if (choice != 255) {
-        std::string fullPath = Paths::SdCfwDir + "/" + toString(files[choice]);
+        std::string fullPath = Paths::IosSdCfwDir + "/" + toString(files[choice]);
         loadFwImg(fullPath);
     }
 }

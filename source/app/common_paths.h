@@ -23,6 +23,7 @@ namespace Paths {
     inline const std::string SdRoot = "/vol/external01";
     inline const std::string SdPluginsDir = SdRoot + "/wiiu/ios_plugins";
     inline const std::string SdCfwDir = SdRoot + "/wiiu/cfw";
+    inline const std::string IosSdCfwDir = "/vol/sdcard/wiiu/cfw";
     inline const std::string SdAromaDir = SdRoot + "/wiiu/environments/aroma";
     inline const std::string SdWafelInstallerDir = SdRoot + "/wiiu/apps/wafel_installer";
     inline const std::string SdWafelInstallerWuhb = SdWafelInstallerDir + "/wafel_installer.wuhb";
