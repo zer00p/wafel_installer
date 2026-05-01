@@ -170,7 +170,19 @@ bool performStartupChecks() {
                             MbrPartitionInfo info;
                             if (getMbrPartitionInfo(fsaHandle, "/dev/sdcard01", devInfo, mbr, info)) {
                                 if (info.hasWfs) {
-                                    if (showDialogPrompt(L"A Wii U or NTFS partition was detected on the SD card.\nDo you want to use it to store Wii U games?", L"Yes", L"No") == 0) {
+                                    std::string pluginPath = getStroopwafelPluginPath();
+                                    bool alreadyConfigured = false;
+                                    if (!pluginPath.empty()) {
+                                        alreadyConfigured = fileExist(pluginPath + "/5upartsd.ipx") ||
+                                                            fileExist(pluginPath + "/5sdusb.ipx");
+                                    } else {
+                                        alreadyConfigured = fileExist(Paths::SdPluginsDir + "/5upartsd.ipx") ||
+                                                            fileExist(Paths::SlcPluginsDir + "/5upartsd.ipx") ||
+                                                            fileExist(Paths::SdPluginsDir + "/5sdusb.ipx") ||
+                                                            fileExist(Paths::SlcPluginsDir + "/5sdusb.ipx");
+                                    }
+
+                                    if (!alreadyConfigured && showDialogPrompt(L"A Wii U or NTFS partition was detected on the SD card.\nDo you want to use it to store Wii U games?", L"Yes", L"No") == 0) {
                                         wantsPartitionedStorage = true;
                                     }
                                 }
