@@ -4,6 +4,8 @@
 #include <string>
 #include "cfw.h"
 
+extern const wchar_t* WFS_FORMAT_REMINDER;
+
 void setupMountGuard(CFWVersion version);
 void formatAndPartitionMenu();
 void setupSDUSBMenu();

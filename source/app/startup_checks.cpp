@@ -135,6 +135,11 @@ bool performPostSetupChecks(bool usingUSB, bool sdUsb) {
         }
     }
     ret |= performIsfshaxCheck(usingUSB, sdUsb);
+
+    if (sdUsb || usingUSB) {
+        showSuccessPrompt(WFS_FORMAT_REMINDER);
+    }
+
     return ret;
 }
 

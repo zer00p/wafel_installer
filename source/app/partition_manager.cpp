@@ -29,6 +29,10 @@
 
 using namespace std::chrono_literals;
 
+const wchar_t* WFS_FORMAT_REMINDER = L"Important: After the reboot, you will need to format the partition.\n"
+                                     L"If the system prompt doesn't appear, please format it manually\n"
+                                     L"in System Settings -> Data Management.";
+
 typedef struct __attribute__((packed)) {
     uint32_t unused;
     char device[0x280];
@@ -937,6 +941,7 @@ void formatAndPartitionMenu() {
     }
 
     bool shouldDownloadAroma = false;
+    bool createdWiiUPartition = false;
     FatMountGuard guard;
 
     while (true) {
@@ -1077,6 +1082,7 @@ void formatAndPartitionMenu() {
                     if (partitionDevice(fsaHandle, "/dev/sdcard01", deviceInfo)) {
                         shouldDownloadAroma = true;
                         actionCompleted = true;
+                        createdWiiUPartition = true;
                         break;
                     }
                 } else if (optOnlyFormatP1 != -1 && formatChoice == optOnlyFormatP1) { // Only format Partition 1
@@ -1148,6 +1154,7 @@ void formatAndPartitionMenu() {
                 } else if (optCreateWiiU != -1 && formatChoice == optCreateWiiU) {
                     if (addWiiUPartition(fsaHandle, deviceInfo, mbr, info.lastOccupiedSector)) {
                         actionCompleted = true;
+                        createdWiiUPartition = true;
                         break;
                     }
                 } else if (optDeleteMbr != -1 && formatChoice == optDeleteMbr) {
@@ -1176,11 +1183,20 @@ void formatAndPartitionMenu() {
 
     if (use_usb) {
         setShutdownPending(true);
-        if (showDialogPrompt(L"Operation successful!\nIt is recommended to shutdown the console now\nand plug your SD card back in.\nDo you want to shutdown now?", L"Yes", L"No") == 0) {
+        std::wstring msg = L"Operation successful!\n";
+        if (createdWiiUPartition) {
+            msg += std::wstring(WFS_FORMAT_REMINDER) + L"\n\n";
+        }
+        msg += L"It is recommended to shutdown the console now\nand plug your SD card back in.\nDo you want to shutdown now?";
+        if (showDialogPrompt(msg.c_str(), L"Yes", L"No") == 0) {
             setShutdownPending(true, true);
         }
     } else if (shouldDownloadAroma) {
-        showSuccessPrompt(L"Formatting complete!");
+        if (createdWiiUPartition) {
+            showSuccessPrompt((std::wstring(L"Formatting complete!\n\n") + WFS_FORMAT_REMINDER).c_str());
+        } else {
+            showSuccessPrompt(L"Formatting complete!");
+        }
     }
 
     usbAsSd(false);
@@ -1413,6 +1429,7 @@ void setupSDUSBMenu() {
 
         if (handleSDUSBAction(fsaHandle, deviceInfo, guard)) {
             FSADelClient(fsaHandle);
+            showSuccessPrompt(WFS_FORMAT_REMINDER);
             performPostSetupChecks(false, true);
             return;
         }
@@ -1600,7 +1617,11 @@ void setupPartitionedUSBMenu() {
     }
 
     if(!sdEmulation){
-        if (showDialogPrompt(L"USB partitioned successfully!\nIt is recommended to shutdown the console now\nand plug your SD card back in.\nDo you want to shutdown now?", L"Yes", L"No") == 0) {
+        std::wstring msg = L"USB partitioned successfully!\n" + std::wstring(WFS_FORMAT_REMINDER) + L"\n\n"
+                           L"It is recommended to shutdown the console now\n"
+                           L"and plug your SD card back in.\n"
+                           L"Do you want to shutdown now?";
+        if (showDialogPrompt(msg.c_str(), L"Yes", L"No") == 0) {
             setShutdownPending(true, true);
         } else {
             setShutdownPending(true, false);
