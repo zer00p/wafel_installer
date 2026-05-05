@@ -1235,6 +1235,7 @@ bool uninstallSDUSB() {
 
     if (removed) {
         showSuccessPrompt(L"SDUSB plugin removed successfully.");
+        setRebootPending(true);
     } else {
         showDialogPrompt(L"SDUSB plugin not found.", L"OK");
     }
@@ -1297,6 +1298,7 @@ bool uninstallUSBPartition() {
 
     if (removed) {
         showSuccessPrompt(L"USB Partition plugin removed successfully.");
+        setRebootPending(true);
     } else {
         showDialogPrompt(L"USB Partition plugin not found.", L"OK");
     }
@@ -1533,6 +1535,7 @@ void showUSBPartitionMenu() {
                     if (downloadUsbPartitionPlugin(targetEmulation)) {
                         std::wstring msg = L"SD emulation " + std::wstring(targetEmulation ? L"enabled" : L"disabled") + L" successfully.";
                         showSuccessPrompt(msg.c_str());
+                        setRebootPending(true);
                         if (targetEmulation) {
                             performAromaCheck();
                         }
