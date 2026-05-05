@@ -563,9 +563,19 @@ void checkForUpdates() {
 
         if (showDialogPrompt(msg.c_str(), L"Update All", L"Cancel") == 0) {
             bool allSuccess = true;
+            std::map<std::string, std::string> downloadedUrls;
             for (const auto& f : outdatedFiles) {
-                if (!downloadFile(f.downloadUrl, f.localPath)) {
-                    allSuccess = false;
+                auto it = downloadedUrls.find(f.downloadUrl);
+                if (it != downloadedUrls.end()) {
+                    if (!copyFile(it->second, f.localPath)) {
+                        allSuccess = false;
+                    }
+                } else {
+                    if (!downloadFile(f.downloadUrl, f.localPath)) {
+                        allSuccess = false;
+                    } else {
+                        downloadedUrls[f.downloadUrl] = f.localPath;
+                    }
                 }
             }
             if (allSuccess) {
