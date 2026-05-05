@@ -556,7 +556,8 @@ void checkForUpdates() {
     } else {
         std::wstring msg = L"Updates available for:\n";
         for (const auto& f : outdatedFiles) {
-            msg += L"- " + toWstring(f.fileName) + L"\n";
+            std::wstring location = isSlcPath(f.localPath) ? L" (SLC)" : L" (SD)";
+            msg += L"- " + toWstring(f.fileName) + location + L"\n";
         }
         msg += L"\nDo you want to update all?";
 
