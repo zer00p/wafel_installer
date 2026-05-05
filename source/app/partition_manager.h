@@ -27,8 +27,10 @@ public:
     void block();
     void unblock();
     void silent_unblock();
+    void setDeviceName(const std::wstring& name);
 private:
     bool active;
+    std::wstring deviceName;
 };
 
 void showDeviceInfoScreen(FSAClientHandle fsaHandle, const char* device, const FSADeviceInfo& deviceInfo);

@@ -79,27 +79,40 @@ static void unblock_fat_mount(void) {
     }
 }
 
-FatMountGuard::FatMountGuard() : active(false) {}
+static int guard_block_count = 0;
+
+FatMountGuard::FatMountGuard() : active(false), deviceName(L"SD card") {}
+void FatMountGuard::setDeviceName(const std::wstring& name) { deviceName = name; }
 FatMountGuard::~FatMountGuard() { unblock(); }
 void FatMountGuard::block() {
     if (!active && mount_guard_enabled) {
         // We only need the mountguard when we are running aroma, which is indicated by the presence of Mocha.
         // In the other cases the patch to block mounts causes problems (it causes the mount to hang after releasing the guard).
-        block_fat_mount();
+        if (guard_block_count == 0) {
+            block_fat_mount();
+        }
+        guard_block_count++;
         active = true;
     }
 }
 void FatMountGuard::unblock() {
     if (active) {
-        unblock_fat_mount();
-        showDialogPrompt(L"The FAT mount block has been released.\nPlease REPLUG your SD card now to ensure it is detected correctly.", L"OK");
+        guard_block_count--;
+        if (guard_block_count == 0) {
+            unblock_fat_mount();
+            std::wstring msg = L"The FAT mount block has been released.\nPlease REPLUG your " + deviceName + L" now to ensure it is detected correctly.";
+            showDialogPrompt(msg.c_str(), L"OK");
+        }
         active = false;
     }
 }
 
 void FatMountGuard::silent_unblock() {
     if (active) {
-        unblock_fat_mount();
+        guard_block_count--;
+        if (guard_block_count == 0) {
+            unblock_fat_mount();
+        }
         active = false;
     }
 }
@@ -308,6 +321,7 @@ void showDeviceInfoScreen(FSAClientHandle fsaHandle, const char* device, const F
 }
 
 bool waitForDevice(FSAClientHandle fsaHandle, const wchar_t* deviceName, FatMountGuard& guard) {
+    guard.setDeviceName(deviceName);
     while (true) {
         CHECK_SHUTDOWN_VAL(false);
         const wchar_t* msg = L"Remove ALL SD and USB storage devices NOW!";
