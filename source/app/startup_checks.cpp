@@ -20,16 +20,24 @@
 using namespace std::chrono_literals;
 
 static void setupInaccessibleSdCard(FSAClientHandle fsaHandle, FSADeviceInfo& devInfo, bool& wantsPartitionedStorage) {
-    showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", devInfo);
-    if (showDialogPrompt(L"SD card cannot be accessed.\nDo you want to format it to use it on the Wii U?", L"Yes", L"No", nullptr, nullptr, 0, false) == 0) {
-        uint64_t totalSize = (uint64_t)devInfo.deviceSizeInSectors * devInfo.deviceSectorSize;
-        uint64_t twoGiB = 2ULL * 1024 * 1024 * 1024;
+    uint64_t totalSize = (uint64_t)devInfo.deviceSizeInSectors * devInfo.deviceSectorSize;
+    uint64_t twoGiB = 2ULL * 1024 * 1024 * 1024;
 
+    showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", devInfo);
+    
+    int choice = -1;
+    if (totalSize >= twoGiB) {
+        choice = showDialogPrompt(L"The SD card isn't formatted for the Wii U.\nDo you want to format it for homebrew or also store Wii U games on it?", L"Homebrew only", L"Homebrew + Games", L"Cancel", nullptr, 0, false);
+    } else {
+        uint8_t c = showDialogPrompt(L"The SD card isn't formatted for the Wii U.\nDo you want to format it to use it on the Wii U?", L"Format (Homebrew only)", L"Cancel", nullptr, nullptr, 0, false);
+        choice = (c == 0) ? 0 : 2;
+    }
+
+    if (choice == 0 || choice == 1) {
         FatMountGuard guard;
         guard.block();
 
-        showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", devInfo);
-        if (totalSize >= twoGiB && showDialogPrompt(L"Do you also want to use the SD card to install Wii U games to?", L"Yes", L"No", nullptr, nullptr, 0, false) == 0) {
+        if (choice == 1) {
             wantsPartitionedStorage = true;
             if (partitionDevice(fsaHandle, "/dev/sdcard01", devInfo)) {
                 guard.unblock();
@@ -64,14 +72,15 @@ static void setupUsbStorage(FSAClientHandle fsaHandle, bool& wantsPartitionedSto
             } else {
                 // Cannot be mounted
                 showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", devInfo);
-                if (showDialogPrompt(L"USB device cannot be mounted.\nDo you want to use the full drive for homebrew or also store Wii U games on it?", L"Homebrew only", L"Homebrew + Games", nullptr, nullptr, 0, false) == 1) {
+                uint8_t usbChoice = showDialogPrompt(L"The USB device isn't formatted for the Wii U.\nDo you want to format it for homebrew or also store Wii U games on it?", L"Homebrew only", L"Homebrew + Games", L"Cancel", nullptr, 0, false);
+                if (usbChoice == 1) {
                     wantsPartitionedStorage = true;
                     guard.block();
                     if (handlePartitionActionMenu(fsaHandle, devInfo, L"USB device", true)) {
                         guard.unblock();
                         WHBMountSdCard();
                     }
-                } else {
+                } else if (usbChoice == 0) {
                     guard.block();
                     if (formatWholeDrive(fsaHandle, "/dev/sdcard01", devInfo)) {
                         guard.unblock();

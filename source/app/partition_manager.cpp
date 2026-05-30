@@ -814,7 +814,7 @@ bool checkSdCardPartitioning(FSAClientHandle fsaHandle, const FSADeviceInfo& dev
     while (!stage1Done) {
         uint8_t choice = 0; // Default to "No"
         if (totalSize >= twoGiB) {
-            choice = showDialogPrompt(L"The SD card seems to be new (no 'wiiu' folder found).\nDo you also want to use the SD card to store Wii U games?", L"No", L"Yes", L"Cancel");
+            choice = showDialogPrompt(L"The SD card seems to be new (no 'wiiu' folder found).\nDo you want to format it for homebrew or also store Wii U games on it?", L"Homebrew only", L"Homebrew + Games", L"Cancel");
         }
 
         if (choice == 0) { // No
