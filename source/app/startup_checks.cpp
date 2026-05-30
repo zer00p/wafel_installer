@@ -76,7 +76,7 @@ static void setupUsbStorage(FSAClientHandle fsaHandle, bool& wantsPartitionedSto
                 if (usbChoice == 1) {
                     wantsPartitionedStorage = true;
                     guard.block();
-                    if (handlePartitionActionMenu(fsaHandle, devInfo, L"USB device", true)) {
+                    if (partitionDevice(fsaHandle, "/dev/sdcard01", devInfo)) {
                         guard.unblock();
                         WHBMountSdCard();
                     }

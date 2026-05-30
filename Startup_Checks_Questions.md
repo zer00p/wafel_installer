@@ -77,7 +77,7 @@ This document lists all the possible questions a user might be asked during the 
   *(Suffix can be " (it has multiple partitions).", " (unknown partition type: ...).", or ".")*
 
 ## 7. Storage Partitioning Selection
-- **Condition:** Shown when the user chooses `Homebrew + Games` for an unmountable USB device, when they choose `Homebrew + Games` on a new SD card, or when accessing the partition action menu manually.
+- **Condition:** Shown when the user chooses `Homebrew + Games` on a new SD card, or when accessing the partition action menu manually.
 - **Prompt:**
   ```text
   How do you want to partition the [deviceTypeName]?
@@ -90,7 +90,7 @@ This document lists all the possible questions a user might be asked during the 
   *(Where `deviceTypeName` is typically "USB device" or "SD card". Options are dynamic based on available space and existing partitions.)*
 
 ## 8. Partition Size Selector
-- **Condition:** Shown when the user chooses `Repartition` or `Create additional Wii U partition` from the storage partitioning selection menu.
+- **Condition:** Shown when the user chooses `Homebrew + Games` for an unmountable (or unformatted) USB or SD device, or when choosing `Repartition` or `Create additional Wii U partition` from the storage partitioning selection menu.
 - **Prompt:**
   ```text
   FAT32:  [ 50%] ( XX.XX GB)    Homebrew and vWii USB Loader
