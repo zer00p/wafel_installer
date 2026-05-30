@@ -862,52 +862,10 @@ bool checkSdCardPartitioning(FSAClientHandle fsaHandle, const FSADeviceInfo& dev
                 stage1Done = true;
             }
         } else if (choice == 1) { // Yes
-            bool stage2Done = false;
-            while (!stage2Done) {
-                MbrPartitionInfo info;
-                if (!getMbrPartitionInfo(fsaHandle, "/dev/sdcard01", deviceInfo, mbr, info)) {
-                    setErrorPrompt(L"Failed to read MBR from device!");
-                    showErrorPrompt(L"OK");
-                    break;
-                }
-
-                std::vector<std::wstring> buttons;
-                int optKeep = -1, optPartition = -1, optCreateWiiU = -1;
-
-                if (info.hasFat && info.hasWfs) {
-                    optKeep = (int)buttons.size();
-                    buttons.push_back(L"Keep current partitioning");
-                }
-                if (info.hasSpace && !info.hasWfs) {
-                    optCreateWiiU = (int)buttons.size();
-                    buttons.push_back(L"Add Wii U partition");
-                }
-                optPartition = (int)buttons.size();
-                buttons.push_back(L"Partition for homebrew and Wii U games");
-                buttons.push_back(L"Back");
-                int optBack = (int)buttons.size() - 1;
-
-                showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", deviceInfo);
-                uint8_t s2Choice = showDialogPrompt(L"How do you want to partition the SD card?", buttons, 0, false);
-
-                if (s2Choice == optBack || s2Choice == 255) {
-                    stage2Done = true;
-                } else {
-                    if (s2Choice == optKeep) {
-                        wantsPartitionedStorage = true;
-                    } else if (s2Choice == optPartition) {
-                        if (partitionDevice(fsaHandle, "/dev/sdcard01", deviceInfo)) {
-                            wantsPartitionedStorage = true;
-                            WHBMountSdCard();
-                        }
-                    } else if (optCreateWiiU != -1 && s2Choice == optCreateWiiU) {
-                        if (addWiiUPartition(fsaHandle, deviceInfo, mbr, info.lastOccupiedSector)) {
-                            wantsPartitionedStorage = true;
-                        }
-                    }
-                    stage2Done = true;
-                    stage1Done = true;
-                }
+            if (handlePartitionActionMenu(fsaHandle, deviceInfo, L"SD card", true)) {
+                wantsPartitionedStorage = true;
+                WHBMountSdCard();
+                stage1Done = true;
             }
         } else {
             stage1Done = true;
