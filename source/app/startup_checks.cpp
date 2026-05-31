@@ -92,13 +92,14 @@ static void setupUsbStorage(FSAClientHandle fsaHandle, bool& wantsPartitionedSto
     }
 }
 
-void performAromaCheck() {
+bool performAromaCheck() {
     if ((WHBMountSdCard() == 1) && !dirExist(Paths::SdAromaDir)) {
-        askAndDownloadAroma();
+        return askAndDownloadAroma();
     }
+    return true;
 }
 
-bool performStroopwafelCheck(void) {
+bool performStroopwafelCheck(bool& isInstalled) {
     bool filesExist = true;
     std::string path = getStroopwafelPluginPath();
     if (path.empty() || !dirExist(path)) {
@@ -107,12 +108,24 @@ bool performStroopwafelCheck(void) {
 
     while (!isStroopwafelAvailable() || !filesExist) {
         uint8_t choice = showDialogPrompt(L"Stroopwafel is missing, outdated or not running\nDo you want to download stroopwafel by shinyquagsire23?", L"Yes", L"No");
-        if (choice != 0) return false;
-
-        if (installStroopwafel()) {
+        if (choice != 0) {
+            isInstalled = false;
             return true;
         }
+
+        if (installStroopwafel()) {
+            isInstalled = true;
+            return true;
+        } else {
+            uint8_t failChoice = showDialogPrompt(L"Stroopwafel installation failed.\nDo you want to retry?", L"Retry", L"Abort");
+            if (failChoice == 0) continue;
+            if (failChoice == 1) {
+                return false;
+            }
+            return false;
+        }
     }
+    isInstalled = true;
     return true;
 }
 
@@ -132,10 +145,13 @@ bool performIsfshaxCheck(bool usingUSB, bool wantsPartitionedStorage) {
 }
 
 bool performPostSetupChecks(bool usingUSB, bool sdUsb) {
-    performAromaCheck();
-    bool stroopwafel = performStroopwafelCheck();
+    if (!performAromaCheck()) return false;
+
+    bool stroopwafelInstalled = false;
+    if (!performStroopwafelCheck(stroopwafelInstalled)) return false;
+
     bool ret = true;
-    if (stroopwafel) {
+    if (stroopwafelInstalled) {
         if(usingUSB){
             ret = downloadUsbPartitionPlugin(true);
         }
@@ -144,6 +160,7 @@ bool performPostSetupChecks(bool usingUSB, bool sdUsb) {
         }
     }
     ret |= performIsfshaxCheck(usingUSB, sdUsb);
+    if (abortChecks) return false;
 
     if (sdUsb || usingUSB) {
         showSuccessPrompt(WFS_FORMAT_REMINDER);

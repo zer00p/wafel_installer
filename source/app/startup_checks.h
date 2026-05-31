@@ -3,7 +3,7 @@
 #include "common.h"
 
 bool performStartupChecks();
-void performAromaCheck();
-bool performStroopwafelCheck();
+bool performAromaCheck();
+bool performStroopwafelCheck(bool& isInstalled);
 bool performIsfshaxCheck(bool usingUSB, bool wantsPartitionedStorage);
 bool performPostSetupChecks(bool usingUSB, bool sdUsb);

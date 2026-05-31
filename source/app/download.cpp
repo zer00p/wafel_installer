@@ -640,7 +640,7 @@ bool askAndDownloadAroma() {
     if (showDialogPrompt(L"(Unofficial) Do you want to download Aroma by Maschell and the HB Appstore now?\n \n"
                          L"Note: Aroma plugins like Inkay (Pretendo) or FTP can be\n"
                          L"downloaded with the Aroma Updater later.", L"Download", L"Cancel") != 0) {
-        return false;
+        return true;
     }
 
     while (true) {
@@ -648,8 +648,10 @@ bool askAndDownloadAroma() {
             showSuccessPrompt(L"Aroma and tools downloaded and extracted successfully!");
             return true;
         } else {
-            if (!showErrorPrompt(L"Cancel", true)) break;
+            uint8_t choice = showDialogPrompt(L"Aroma download failed.\nDo you want to retry?", L"Retry", L"Abort");
+            if (choice == 0) continue;
+            return false;
         }
     }
-    return false;
+    return true;
 }
