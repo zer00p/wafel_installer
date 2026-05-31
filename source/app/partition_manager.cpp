@@ -452,7 +452,7 @@ bool partitionDevice(FSAClientHandle fsaHandle, const char* device, const FSADev
         WHBLogFreetypePrint((L"Partition " + toWstring(device)).c_str());
         WHBLogFreetypePrint(L"===============================");
         WHBLogFreetypePrintf(L"FAT32:  [%3d%%] (%6.2f GB)    Homebrew and vWii USB Loader", fatPercent, fatGB);
-        WHBLogFreetypePrintf(L"WFS:      [%3d%%] (%6.2f GB)    Wii U games and VC", 100 - fatPercent, ntfsGB);
+        WHBLogFreetypePrintf(L"WFS:      [%3d%%] (%6.2f GB)    Wii U games and Virtual Console", 100 - fatPercent, ntfsGB);
         WHBLogFreetypePrint(L" ");
         WHBLogFreetypePrint(L"Use Left/Right to adjust (1% increments)");
         WHBLogFreetypePrint(L"Use Up/Down to adjust (10% increments)");
