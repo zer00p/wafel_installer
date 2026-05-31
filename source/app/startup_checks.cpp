@@ -119,9 +119,6 @@ bool performStroopwafelCheck(bool& isInstalled) {
         } else {
             uint8_t failChoice = showDialogPrompt(L"Stroopwafel installation failed.\nDo you want to retry?", L"Retry", L"Abort");
             if (failChoice == 0) continue;
-            if (failChoice == 1) {
-                return false;
-            }
             return false;
         }
     }
@@ -160,7 +157,6 @@ bool performPostSetupChecks(bool usingUSB, bool sdUsb) {
         }
     }
     ret |= performIsfshaxCheck(usingUSB, sdUsb);
-    if (abortChecks) return false;
 
     if (sdUsb || usingUSB) {
         showSuccessPrompt(WFS_FORMAT_REMINDER);
