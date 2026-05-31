@@ -9,7 +9,7 @@ This document lists all the possible questions a user might be asked during the 
   No SD card detected.
   
   [ Retry SD ]
-  [ Use USB ]
+  [ Use USB (do NOT connect it just yet) ]
   [ Abort ]
   ```
 
@@ -24,13 +24,13 @@ This document lists all the possible questions a user might be asked during the 
   [ Homebrew + Games ]
   [ Cancel ]
   ```
-  *(Note: If the SD card is smaller than 2 GiB, it will only offer `[ Format (Homebrew only) ]` and `[ Cancel ]`)*
+  *(Note: If the SD card is smaller than 2 GiB, the prompt will instead ask "The SD card isn't formatted for the Wii U.\nDo you want to format it to use it on the Wii U?" and it will only offer `[ Format (Homebrew only) ]` and `[ Cancel ]`)*
 
 ## 3. Inaccessible USB Device
 - **Condition:** Shown when the user chose `Use USB` (after no SD card was detected), and a USB device is found but cannot be mounted.
 - **Prompt:**
   ```text
-  The USB device isn't formatted for the Wii U.
+  The USB device isn't formatted for Homebrew.
   Do you want to format it for homebrew or also store Wii U games on it?
   
   [ Homebrew only ]
@@ -94,7 +94,7 @@ This document lists all the possible questions a user might be asked during the 
 - **Prompt:**
   ```text
   FAT32:  [ 50%] ( XX.XX GB)    Homebrew and vWii USB Loader
-  WFS:      [ 50%] ( YY.YY GB)    Wii U games and VC
+  WFS:      [ 50%] ( YY.YY GB)    Wii U games and Virtual Console
   
   Use Left/Right to adjust (1% increments)
   Use Up/Down to adjust (10% increments)
@@ -159,7 +159,20 @@ This document lists all the possible questions a user might be asked during the 
   [ No ]
   ```
 
-## 14. ISFShax Check
+## 14. Stroopwafel Install Location
+- **Condition:** Shown after the user agrees to download Stroopwafel, asking where to install it.
+- **Prompt:**
+  ```text
+  Where do you want to download Stroopwafel?
+  SD card is recommended.
+  
+  [ SD Card ]
+  [ SLC ]
+  [ Cancel ]
+  ```
+  *(Note: If SD emulation is used, the prompt instead asks: "Where do you want to download Stroopwafel?\nNote: Stroopwafel cannot be installed to the USB device, even when using SD emulation." and offers `[ SLC ]` and `[ Cancel ]`)*
+
+## 15. ISFShax Check
 - **Condition:** Shown when ISFShax is not installed on the system.
 - **Prompt:**
   ```text
@@ -171,7 +184,42 @@ This document lists all the possible questions a user might be asked during the 
   [ No ]
   ```
 
-## 15. Incompatible Plugin Deletion
+## 16. ISFShax Setup Skipped Warning
+- **Condition:** Shown if the user declines to install ISFShax when prompted, but they chose to use USB or partitioned storage.
+- **Prompt:**
+  ```text
+  You chose not to setup ISFShax.
+  Note that USB-as-SD and partitioned storage REQUIRE Stroopwafel and ISFShax to work!
+  
+  [ OK ]
+  ```
+
+## 17. ISFShax Installer Missing
+- **Condition:** Shown if the user chooses to install ISFShax, but the installer `fw.img` is not found on the SLC.
+- **Prompt:**
+  ```text
+  The ISFShax installer (fw.img) is missing.
+  
+  [ Download ]
+  [ Cancel ]
+  ```
+
+## 18. ISFShax Install Confirmation
+- **Condition:** Shown as a final confirmation before launching the ISFShax installer.
+- **Prompt:**
+  ```text
+  WARNING: You are about to make modifications to the console.
+  This software comes with ABSOLUTELY NO WARRANTY!
+  You are choosing to use this at your own risk.
+  The author(s) will not be held liable for any damage.
+   
+  Do you want to proceed with Install?
+  
+  [ Yes ]
+  [ No ]
+  ```
+
+## 19. Incompatible Plugin Deletion
 - **Condition:** Shown if a downloaded plugin during the post-setup checks is found to be incompatible with another already installed plugin.
 - **Prompt:**
   ```text
@@ -181,4 +229,15 @@ This document lists all the possible questions a user might be asked during the 
   [ Delete ]
   [ Keep both ]
   [ Cancel ]
+  ```
+
+## 20. WFS Format Reminder
+- **Condition:** Shown at the end of post-setup checks if the user configured a Wii U partition on SD (SDUSB) or is using a USB device.
+- **Prompt:**
+  ```text
+  Important: After the reboot, you will need to format the partition.
+  The Wii U will ask you to format it, saying it is not compatible.
+  Select 'Format' and follow the instructions.
+  
+  [ OK ]
   ```
