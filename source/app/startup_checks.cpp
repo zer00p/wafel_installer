@@ -156,11 +156,12 @@ bool performPostSetupChecks(bool usingUSB, bool sdUsb) {
             ret =  downloadPlugin("5sdusb.ipx");
         }
     }
-    ret |= performIsfshaxCheck(usingUSB, sdUsb);
 
-    if (sdUsb || usingUSB) {
+    if ((sdUsb || usingUSB) && stroopwafelInstalled) {
         showSuccessPrompt(WFS_FORMAT_REMINDER);
     }
+
+    ret |= performIsfshaxCheck(usingUSB, sdUsb);
 
     return ret;
 }
