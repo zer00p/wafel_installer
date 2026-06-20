@@ -901,9 +901,9 @@ bool checkSdCardPartitioning(FSAClientHandle fsaHandle, const FSADeviceInfo& dev
             if (!isPerfectFat) {
                 std::wstring msg = L"The SD card is not formatted to use the full space for homebrew";
                 if (info.partitionCount > 1) {
-                    msg += L" (it has multiple partitions).";
+                    msg += L"\n(it has multiple partitions).";
                 } else if (info.partitionCount == 1 && !info.hasFat) {
-                    msg += L" (unknown partition type: " + toWstring(getPartitionTypeName(mbr[446 + 4])) + L").";
+                    msg += L"\n(unknown partition type: " + toWstring(getPartitionTypeName(mbr[446 + 4])) + L").";
                 } else {
                     msg += L".";
                 }
