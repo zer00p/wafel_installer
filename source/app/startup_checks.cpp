@@ -79,9 +79,9 @@ static void setupUsbStorage(FSAClientHandle fsaHandle, bool& wantsPartitionedSto
                 
                 int usbChoice = -1;
                 if (totalSize >= twoGiB) {
-                    usbChoice = showDialogPrompt(L"The USB device isn't formatted for Homebrew.\nDo you want to format it for homebrew or also store Wii U games on it?", L"Homebrew only", L"Homebrew + Games", L"Cancel", nullptr, 0, false);
+                    usbChoice = showDialogPrompt(L"The USB device isn't formatted for Homebrew.\nDo you want to format it for Homebrew or also store Wii U games on it?", L"Homebrew only", L"Homebrew + Games", L"Cancel", nullptr, 0, false);
                 } else {
-                    uint8_t c = showDialogPrompt(L"The USB device isn't formatted for Homebrew.\nDo you want to format it to use it on the Wii U?", L"Format (Homebrew only)", L"Cancel", nullptr, nullptr, 0, false);
+                    uint8_t c = showDialogPrompt(L"The USB device isn't formatted for Homebrew.\nDo you want to format it for Homebrew?", L"Format (Homebrew only)", L"Cancel", nullptr, nullptr, 0, false);
                     usbChoice = (c == 0) ? 0 : 2;
                 }
 
