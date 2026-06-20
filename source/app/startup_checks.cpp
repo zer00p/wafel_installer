@@ -72,13 +72,22 @@ static void setupUsbStorage(FSAClientHandle fsaHandle, bool& wantsPartitionedSto
                 }
             } else {
                 // Cannot be mounted
+                uint64_t totalSize = (uint64_t)devInfo.deviceSizeInSectors * devInfo.deviceSectorSize;
+                uint64_t twoGiB = 2ULL * 1024 * 1024 * 1024;
+
                 showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", devInfo);
-                uint8_t usbChoice = showDialogPrompt(L"The USB device isn't formatted for Homebrew.\nDo you want to format it for homebrew or also store Wii U games on it?", L"Homebrew only", L"Homebrew + Games", L"Cancel", nullptr, 0, false);
+                
+                int usbChoice = -1;
+                if (totalSize >= twoGiB) {
+                    usbChoice = showDialogPrompt(L"The USB device isn't formatted for Homebrew.\nDo you want to format it for homebrew or also store Wii U games on it?", L"Homebrew only", L"Homebrew + Games", L"Cancel", nullptr, 0, false);
+                } else {
+                    uint8_t c = showDialogPrompt(L"The USB device isn't formatted for Homebrew.\nDo you want to format it to use it on the Wii U?", L"Format (Homebrew only)", L"Cancel", nullptr, nullptr, 0, false);
+                    usbChoice = (c == 0) ? 0 : 2;
+                }
+
                 if (usbChoice == 1) {
-                    bool createdWiiU = false;
                     guard.block();
-                    if (partitionDevice(fsaHandle, "/dev/sdcard01", devInfo, &createdWiiU)) {
-                        wantsPartitionedStorage = createdWiiU;
+                    if (partitionDevice(fsaHandle, "/dev/sdcard01", devInfo, &wantsPartitionedStorage)) {
                         guard.unblock();
                         WHBMountSdCard();
                     }
@@ -143,7 +152,7 @@ bool performIsfshaxCheck(bool usingUSB, bool wantsPartitionedStorage) {
     return false;
 }
 
-bool performPostSetupChecks(bool usingUSB, bool sdUsb) {
+bool performPostSetupChecks(bool usingUSB, bool wantsPartitionedStorage) {
     if (!performAromaCheck()) return false;
 
     bool stroopwafelInstalled = false;
@@ -153,17 +162,16 @@ bool performPostSetupChecks(bool usingUSB, bool sdUsb) {
     if (stroopwafelInstalled) {
         if(usingUSB){
             ret = downloadUsbPartitionPlugin(true);
-        }
-        if(sdUsb){
+        } else if(wantsPartitionedStorage){
             ret =  downloadPlugin("5sdusb.ipx");
         }
     }
 
-    if ((sdUsb || usingUSB) && stroopwafelInstalled) {
+    if (wantsPartitionedStorage && stroopwafelInstalled) {
         showSuccessPrompt(WFS_FORMAT_REMINDER);
     }
 
-    ret |= performIsfshaxCheck(usingUSB, sdUsb);
+    ret |= performIsfshaxCheck(usingUSB, wantsPartitionedStorage);
 
     return ret;
 }
