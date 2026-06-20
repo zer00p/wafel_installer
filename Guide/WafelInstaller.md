@@ -1,6 +1,6 @@
 # Wafel Installer
 
-During startup the Wafel Installer checks, what is already installed and how the SD or USB is formatted. Depending on the current state, you will not see certain questions, in this case skip to the next.
+During startup the Wafel Installer checks what is already installed and how the SD or USB is formatted. Depending on the current state, you will not see certain questions; in this case, skip to the next.
 
 
 
@@ -40,7 +40,7 @@ You can select Retry to try the detection again.
   [ Cancel ]
   ```
 
-Homebrew needs a FAT32, which also your PC can read. The Wii U can only install games to and run them from a WFS formatted device. You have to choice to format the whole device FAT32, so it can be used for Homebrew or you can split it in two parts, one FAT32 one for Homebrew and a WFS part to install the Wii U games to.
+Homebrew needs a FAT32, which also your PC can read. The Wii U can only install games to and run them from a WFS formatted device. You have the choice to format the whole device FAT32, so it can be used for Homebrew, or you can split it in two parts: one FAT32 part for Homebrew and a WFS part to install the Wii U games to.
 
 
 
@@ -59,12 +59,12 @@ Homebrew needs a FAT32, which also your PC can read. The Wii U can only install 
   Press A to confirm, B to cancel
   ```
 
-Here you can choose how much space you want to allocate for Wii U games. When you later dump your Discs, they will first be temporairly written to the FAT32 partition, before you install them to the WFS partition. So the FAT32 partition should be at least as big as your largest game. Also if you want to add mods to your games they will be stored here.
+Here you can choose how much space you want to allocate for Wii U games. When you later dump your Discs, they will first be temporarily written to the FAT32 partition, before you install them to the WFS partition. So the FAT32 partition should be at least as big as your largest game. Also if you want to add mods to your games they will be stored here.
 Your Wii (not Wii U) games will also be stored on the FAT32 partition.
 
 If you don't have a large Wii library, ~25GB for the FAT32 partition is usually enough. But if you have enough space and plan on having multiple mod packs you should make it larger than that.
 
-This can't be easily changed later, without wiping everything and starting over, so chose wisely.
+This can't be easily changed later, without wiping everything and starting over, so choose wisely.
 
 **Note:** It is also possible to install your Wii games to the Wii U (WFS) partition using a PC tool called UWUVCI but it requires a lot more work.
 
@@ -124,7 +124,7 @@ Other homebrew Apps can later be downloaded using the Homebrew App Store.
   ```
 
 In this setup we will use Stroopwafel to load Aroma, so say `Yes` here. It is also needed for running homebrew from USB.
-Stroopwafel Plugins can be managed with with the Wafel Installer after the setup is finished.
+Stroopwafel Plugins can be managed with the Wafel Installer after the setup is finished.
 
 
 
@@ -168,16 +168,16 @@ When installed to the SD, it will also have configuration in the `minute` folder
   [ No ]
   ```
 
-ISFShax is a coldboot exploit that targets the bootloader (boot1) and so runs before the OS is even loaded. This gives you a very robust brick protection, if you have a functioning SD slot. Here it is used to load minute, which will then load Stroopwafel and its plugins, which den loads Aroma.
+ISFShax is a coldboot exploit that targets the bootloader (boot1) and so runs before the OS is even loaded. This gives you a very robust brick protection, if you have a functioning SD slot. Here it is used to load minute, which will then load Stroopwafel and its plugins, which then loads Aroma.
 
-For the Installation it will download temporarily download the ISFShax Installer and superblock image to `/sys/hax/installer` on the SLC. ISFShax itself gets installed to 4 of the superblocks of the SLC. It is not visible as a file.
+For the Installation it will temporarily download the ISFShax Installer and superblock image to `/sys/hax/installer` on the SLC. ISFShax itself gets installed to 4 of the superblocks of the SLC. It is not visible as a file.
 
 
 
 ```text
 WARNING: You are about to make modifications to the console.
 This software comes with ABSOLUTELY NO WARRANTY!
-You are choosing to uL+DPAD UP+Minusse this at your own risk.
+You are choosing to use this at your own risk.
 The author(s) will not be held liable for any damage.
  
 Do you want to proceed with Install?
@@ -186,7 +186,7 @@ Do you want to proceed with Install?
 [ No ]
 ```
 
-Confirm the the Install with `Yes`. The console will reboot into the ISFShax installer, install ISFShax and reboot again.
+Confirm the Install with `Yes`. The console will reboot into the ISFShax installer, install ISFShax and reboot again.
 
 
 

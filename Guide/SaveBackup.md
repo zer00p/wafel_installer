@@ -4,7 +4,7 @@ This section assumes you already finished the setup with the wafel installer. If
 
 ## OTP and SEEPROM
 
-These are useful to recovery saves from a USB storage, in case your console ever dies. They are backed up automatically by Aroma.
+These are useful to recover saves from a USB storage, in case your console ever dies. They are backed up automatically by Aroma.
 
 You find them on the SD / USB in the `wiiu/backups/[SERIAL]` folder.
 
@@ -37,7 +37,7 @@ To Backup everything:
 **NOTE:** You can also be more selective in the backup by using the appropriate options to backup only the titles you want.
 You can find more [detailed SaveMii HowTos here](https://github.com/w3irDv/savemii/blob/main/README.md#detailed-howtos)
 
-**IMPORTANT:** If you use the same media (SD or USB) for Homebrew and your Wii U games, it is highly recommend to copy the Backup to the PC. Else you would lose both the original and Backup in case the media dies.
+**IMPORTANT:** If you use the same media (SD or USB) for Homebrew and your Wii U games, it is highly recommended to copy the Backup to the PC. Otherwise you would lose both the original and Backup in case the media dies.
 
 
 

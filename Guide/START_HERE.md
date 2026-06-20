@@ -5,25 +5,25 @@ This will install:
 
 - [**ISFShax:**](isfsh.ax) a coldboot exploit, that acts as brick protection and is needed to use Stroopwafel
 - [**Stroopwafel:**](https://github.com/StroopwafelCFW/stroopwafel) It allows patching of the system early during boot. It is used here also to load Aroma
-- [**Aroma:**](https://aroma.foryour.cafe/) This allows you to run Homebrew and using Plugins like Pretendo or FTP 
+- [**Aroma:**](https://aroma.foryour.cafe/) This allows you to run Homebrew and use Plugins like Pretendo or FTP 
 
 
 
 ## Disclaimer
 
-Everything on this Guide as been tested and has been designed to be safe. However you are doing this on your own risk.
+Everything in this Guide has been tested and has been designed to be safe. However, you are doing this at your own risk.
 
 ## What you need
 
 - A Wii U Console
 - The Gamepad Controller
-- A Internet connection on the Wii U
+- An Internet connection on the Wii U
 - Either A SD card **OR** USB Storage Device
 
 *Note*: If the USB Device already has Wii U games on it and you choose to use it for homebrew, then anything on it will be deleted.
 You can also use both, a SD for homebrew and vWii and keep the USB for Wii U games.
 If you want to use the SD card for Wii U games, make sure to get a reliable one, since it will also store the saves.
-I recommend against using a USB pen drive for storing Wii U games. Even from reputable brands they are often unreliable (but they are good enough for storing homebrew only)
+I recommend against using a USB flash drive for storing Wii U games. Even from reputable brands they are often unreliable (but they are good enough for storing homebrew only)
 
 
 
@@ -70,6 +70,6 @@ If the console is stock (unmodded) continue with Option A.
 2. Copy the Wafel Installer to `wiiu/apps/` on the SD card
 3. Safety Eject the SD card
 4. Put the SD back in the Wii U
-5. Run the Wafel Installer Hombrew App
+5. Run the Wafel Installer Homebrew App
 6. Continue to [Wafel Installer](WafelInstaller.md)
 

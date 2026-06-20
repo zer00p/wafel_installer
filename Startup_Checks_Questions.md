@@ -64,7 +64,7 @@ This document lists all the possible questions a user might be asked during the 
   ```
 
 ## 6. Reformat Non-Optimal SD Card
-- **Condition:** Shown if the user chooses `Homebrew only` (to storing Wii U games) on a new SD card, but the SD card is not perfectly formatted as a single FAT32 partition spanning the whole drive.
+- **Condition:** Shown if the user chooses `Homebrew only` (no storing Wii U games) on a new SD card, but the SD card is not perfectly formatted as a single FAT32 partition spanning the whole drive.
 - **Prompt:**
   ```text
   The SD card is not formatted to use the full space for homebrew [optional reason suffix].
