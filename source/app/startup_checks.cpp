@@ -38,8 +38,9 @@ static void setupInaccessibleSdCard(FSAClientHandle fsaHandle, FSADeviceInfo& de
         guard.block();
 
         if (choice == 1) {
-            wantsPartitionedStorage = true;
-            if (partitionDevice(fsaHandle, "/dev/sdcard01", devInfo)) {
+            bool createdWiiU = false;
+            if (partitionDevice(fsaHandle, "/dev/sdcard01", devInfo, &createdWiiU)) {
+                wantsPartitionedStorage = createdWiiU;
                 guard.unblock();
                 WHBMountSdCard();
             }
@@ -74,9 +75,10 @@ static void setupUsbStorage(FSAClientHandle fsaHandle, bool& wantsPartitionedSto
                 showDeviceInfoScreen(fsaHandle, "/dev/sdcard01", devInfo);
                 uint8_t usbChoice = showDialogPrompt(L"The USB device isn't formatted for Homebrew.\nDo you want to format it for homebrew or also store Wii U games on it?", L"Homebrew only", L"Homebrew + Games", L"Cancel", nullptr, 0, false);
                 if (usbChoice == 1) {
-                    wantsPartitionedStorage = true;
+                    bool createdWiiU = false;
                     guard.block();
-                    if (partitionDevice(fsaHandle, "/dev/sdcard01", devInfo)) {
+                    if (partitionDevice(fsaHandle, "/dev/sdcard01", devInfo, &createdWiiU)) {
+                        wantsPartitionedStorage = createdWiiU;
                         guard.unblock();
                         WHBMountSdCard();
                     }

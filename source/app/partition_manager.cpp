@@ -376,10 +376,6 @@ bool formatWholeDrive(FSAClientHandle fsaHandle, const char* device, const FSADe
     FatMountGuard guard;
     guard.block();
 
-    uint64_t totalSize = (uint64_t)deviceInfo.deviceSizeInSectors * deviceInfo.deviceSectorSize;
-    uint64_t twoGiB = 2ULL * 1024 * 1024 * 1024;
-    const char* fsType = (totalSize < twoGiB) ? "fat" : "fat"; // FAT16 is used by system automatically if < 2GiB and we pass "fat"
-
     showDeviceInfoScreen(fsaHandle, device, deviceInfo);
     if (showDialogPrompt(L"WARNING: This will format the whole device and DELETE ALL DATA on it.\nDo you want to continue?", L"Yes", L"No", nullptr, nullptr, 1, false) != 0) {
         return false;
@@ -390,7 +386,7 @@ bool formatWholeDrive(FSAClientHandle fsaHandle, const char* device, const FSADe
         WHBLogFreetypePrint(L"Formatting whole Device with FAT32...\nthis might take a while");
         WHBLogFreetypeDraw();
         WHBUnmountSdCard();
-        FSStatus status = (FSStatus)FSA_Format(fsaHandle, device, fsType, 0, 0, 0);
+        FSStatus status = (FSStatus)FSA_Format(fsaHandle, device, "fat", 0, 0, 0);
         if (status != FS_STATUS_OK) {
             WHBLogPrintf("Format failed (status: %d)!\n", status);
             WHBLogFreetypeDraw();
@@ -405,7 +401,7 @@ bool formatWholeDrive(FSAClientHandle fsaHandle, const char* device, const FSADe
     return true;
 }
 
-bool partitionDevice(FSAClientHandle fsaHandle, const char* device, const FSADeviceInfo& deviceInfo) {
+bool partitionDevice(FSAClientHandle fsaHandle, const char* device, const FSADeviceInfo& deviceInfo, bool* outCreatedWiiUPartition) {
     FatMountGuard guard;
     guard.block();
 
@@ -452,7 +448,11 @@ bool partitionDevice(FSAClientHandle fsaHandle, const char* device, const FSADev
         WHBLogFreetypePrint((L"Partition " + toWstring(device)).c_str());
         WHBLogFreetypePrint(L"===============================");
         WHBLogFreetypePrintf(L"FAT32:  [%3d%%] (%6.2f GB)    Homebrew and vWii USB Loader", fatPercent, fatGB);
-        WHBLogFreetypePrintf(L"WFS:      [%3d%%] (%6.2f GB)    Wii U games and Virtual Console", 100 - fatPercent, ntfsGB);
+        if (fatPercent == 100) {
+            WHBLogFreetypePrint(L"WFS:    [None]                No Wii U partition");
+        } else {
+            WHBLogFreetypePrintf(L"WFS:      [%3d%%] (%6.2f GB)    Wii U games and Virtual Console", 100 - fatPercent, ntfsGB);
+        }
         WHBLogFreetypePrint(L" ");
         WHBLogFreetypePrint(L"Use Left/Right to adjust (1% increments)");
         WHBLogFreetypePrint(L"Use Up/Down to adjust (10% increments)");
@@ -513,27 +513,37 @@ bool partitionDevice(FSAClientHandle fsaHandle, const char* device, const FSADev
     }
 
     showDeviceInfoScreen(fsaHandle, device, deviceInfo);
-    if (showDialogPrompt(L"WARNING: This will RE-PARTITION the whole device\nand DELETE ALL DATA on it.\nDo you want to continue?", L"Yes", L"No", nullptr, nullptr, 1, false) != 0) {
+
+    bool skipWiiUPartition = (fatPercent == 100);
+    const wchar_t* warningMsg = skipWiiUPartition
+        ? L"WARNING: This will format the whole device as FAT32\nand DELETE ALL DATA on it.\nNo Wii U partition will be created.\nDo you want to continue?"
+        : L"WARNING: This will RE-PARTITION the whole device\nand DELETE ALL DATA on it.\nDo you want to continue?";
+
+    if (showDialogPrompt(warningMsg, L"Yes", L"No", nullptr, nullptr, 1, false) != 0) {
         return false;
     }
 
     while (true) {
-        WHBLogPrint("Formatting FAT32 partition...\nthis might take a while");
+        setCustomFormatSize(skipWiiUPartition ? 0 : final_p2_start);
+        WHBLogPrint("Formatting FAT32...\nthis might take a while");
         WHBLogFreetypeDraw();
-        // that also incldues the MBR and alignement gap
-        setCustomFormatSize(final_p2_start);
         WHBUnmountSdCard();
         FSStatus status = (FSStatus)FSA_Format(fsaHandle, device, "fat", 0, 0, 0);
         if (status != FS_STATUS_OK) {
             WHBLogPrintf("Format failed (status: %d)!\n", status);
             WHBLogFreetypeDraw();
-            setErrorPrompt(L"Failed to format FAT32 partition!");
+            setErrorPrompt(L"Failed to format FAT32!");
             if (!showErrorPrompt(L"Cancel", true)) {
                 return false;
             }
         } else {
             break;
         }
+    }
+
+    if (skipWiiUPartition) {
+        if (outCreatedWiiUPartition) *outCreatedWiiUPartition = false;
+        return true;
     }
 
     uint8_t* mbr = (uint8_t*)memalign(0x40, deviceInfo.deviceSectorSize);
@@ -572,6 +582,7 @@ bool partitionDevice(FSAClientHandle fsaHandle, const char* device, const FSADev
         }
     }
     free(mbr);
+    if (outCreatedWiiUPartition) *outCreatedWiiUPartition = true;
     return true;
 }
 
@@ -633,7 +644,7 @@ bool fixPartitionOrder(FSAClientHandle fsaHandle, const char* device, const FSAD
     return success;
 }
 
-bool checkAndFixPartitionOrder(FSAClientHandle fsaHandle, const char* device, const FSADeviceInfo& deviceInfo, bool& repartitioned) {
+bool checkAndFixPartitionOrder(FSAClientHandle fsaHandle, const char* device, const FSADeviceInfo& deviceInfo, bool& repartitioned, bool* outHasWiiUPartition) {
     repartitioned = false;
     uint8_t* mbr = (uint8_t*)memalign(0x40, deviceInfo.deviceSectorSize);
     if (!mbr) return false;
@@ -670,7 +681,7 @@ bool checkAndFixPartitionOrder(FSAClientHandle fsaHandle, const char* device, co
     } else if (fixChoice == 1) {
         FatMountGuard guard;
         guard.block();
-        repartitioned = partitionDevice(fsaHandle, device, deviceInfo);
+        repartitioned = partitionDevice(fsaHandle, device, deviceInfo, outHasWiiUPartition);
         return false;
     }
 
@@ -752,7 +763,7 @@ static bool addWiiUPartition(FSAClientHandle fsaHandle, const FSADeviceInfo& dev
     return false;
 }
 
-bool handlePartitionActionMenu(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, const wchar_t* deviceTypeName, bool needWFS) {
+bool handlePartitionActionMenu(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, const wchar_t* deviceTypeName, bool needWFS, bool* outHasWiiUPartition) {
     uint8_t* mbr = (uint8_t*)memalign(0x40, deviceInfo.deviceSectorSize);
     if (!mbr) {
         setErrorPrompt(L"Failed to allocate memory for MBR!");
@@ -832,12 +843,14 @@ bool handlePartitionActionMenu(FSAClientHandle fsaHandle, const FSADeviceInfo& d
 
         if (choice == optKeep) {
             partitionSuccess = true;
+            if (outHasWiiUPartition) *outHasWiiUPartition = info.hasWfs;
         } else if (optCreate != -1 && choice == optCreate) {
             if (addWiiUPartition(fsaHandle, deviceInfo, mbr, info.lastOccupiedSector)) {
                 partitionSuccess = true;
+                if (outHasWiiUPartition) *outHasWiiUPartition = true;
             }
         } else if (choice == optRepartition) {
-            partitionSuccess = partitionDevice(fsaHandle, "/dev/sdcard01", deviceInfo);
+            partitionSuccess = partitionDevice(fsaHandle, "/dev/sdcard01", deviceInfo, outHasWiiUPartition);
         } else if (choice == optCancel || choice == 255) {
             break;
         }
@@ -909,8 +922,7 @@ bool checkSdCardPartitioning(FSAClientHandle fsaHandle, const FSADeviceInfo& dev
                 stage1Done = true;
             }
         } else if (choice == 1) { // Yes
-            if (handlePartitionActionMenu(fsaHandle, deviceInfo, L"SD card", true)) {
-                wantsPartitionedStorage = true;
+            if (handlePartitionActionMenu(fsaHandle, deviceInfo, L"SD card", true, &wantsPartitionedStorage)) {
                 WHBMountSdCard();
                 stage1Done = true;
             }
@@ -923,8 +935,8 @@ bool checkSdCardPartitioning(FSAClientHandle fsaHandle, const FSADeviceInfo& dev
     return wantsPartitionedStorage;
 }
 
-bool handleSDUSBAction(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, FatMountGuard& guard) {
-    if (handlePartitionActionMenu(fsaHandle, deviceInfo, L"SD card", true)) {
+bool handleSDUSBAction(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, FatMountGuard& guard, bool* outHasWiiUPartition) {
+    if (handlePartitionActionMenu(fsaHandle, deviceInfo, L"SD card", true, outHasWiiUPartition)) {
         guard.unblock();
         WHBMountSdCard();
         return true;
@@ -1098,10 +1110,9 @@ void formatAndPartitionMenu() {
                         break;
                     }
                 } else if (formatChoice == optPartition) { // Partition drive
-                    if (partitionDevice(fsaHandle, "/dev/sdcard01", deviceInfo)) {
+                    if (partitionDevice(fsaHandle, "/dev/sdcard01", deviceInfo, &createdWiiUPartition)) {
                         shouldDownloadAroma = true;
                         actionCompleted = true;
-                        createdWiiUPartition = true;
                         break;
                     }
                 } else if (optOnlyFormatP1 != -1 && formatChoice == optOnlyFormatP1) { // Only format Partition 1
@@ -1448,10 +1459,13 @@ void setupSDUSBMenu() {
             continue;
         }
 
-        if (handleSDUSBAction(fsaHandle, deviceInfo, guard)) {
+        bool hasWiiU = false;
+        if (handleSDUSBAction(fsaHandle, deviceInfo, guard, &hasWiiU)) {
             FSADelClient(fsaHandle);
-            showSuccessPrompt(WFS_FORMAT_REMINDER);
-            performPostSetupChecks(false, true);
+            if (hasWiiU) {
+                showSuccessPrompt(WFS_FORMAT_REMINDER);
+            }
+            performPostSetupChecks(false, hasWiiU);
             return;
         }
     }
@@ -1606,6 +1620,7 @@ void setupPartitionedUSBMenu() {
 
     FatMountGuard guard;
     bool partitioned = false;
+    bool hasWiiU = false;
     do {
         CHECK_SHUTDOWN();
         if (!waitForDevice(fsaHandle, L"USB device", guard)) {
@@ -1629,10 +1644,10 @@ void setupPartitionedUSBMenu() {
             continue;
         }
 
-        checkAndFixPartitionOrder(fsaHandle, "/dev/sdcard01", deviceInfo, partitioned);
+        checkAndFixPartitionOrder(fsaHandle, "/dev/sdcard01", deviceInfo, partitioned, &hasWiiU);
 
         if(!partitioned) {
-            partitioned = handlePartitionActionMenu(fsaHandle, deviceInfo, L"USB device", !sdEmulation);
+            partitioned = handlePartitionActionMenu(fsaHandle, deviceInfo, L"USB device", !sdEmulation, &hasWiiU);
         }
     } while (!partitioned);
 
@@ -1649,10 +1664,13 @@ void setupPartitionedUSBMenu() {
     }
 
     if(!sdEmulation){
-        std::wstring msg = L"USB partitioned successfully!\n" + std::wstring(WFS_FORMAT_REMINDER) + L"\n\n"
-                           L"It is recommended to shutdown the console now\n"
-                           L"and plug your SD card back in.\n"
-                           L"Do you want to shutdown now?";
+        std::wstring msg = L"USB partitioned successfully!\n";
+        if (hasWiiU) {
+            msg += std::wstring(WFS_FORMAT_REMINDER) + L"\n\n";
+        }
+        msg += L"It is recommended to shutdown the console now\n"
+               L"and plug your SD card back in.\n"
+               L"Do you want to shutdown now?";
         if (showDialogPrompt(msg.c_str(), L"Yes", L"No") == 0) {
             setShutdownPending(true, true);
         } else {
