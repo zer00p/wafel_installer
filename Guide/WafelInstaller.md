@@ -207,6 +207,28 @@ Select `Wii U Menu`, then press `Y` to mark it as default and then `A` to load i
 Press `X` to block updates.
 Note: it is also fine to skip this with `B`. It is very unlikely that Nintendo will ever release another update for the Wii U and ISFShax is already preventing boot1 updates (so even if there was an update, ISFShax will continue to work)
 
+### Formatting USB Storage
+
+If you chose to partition the SD or USB for Homebrew and Wii U games, the Wii U will ask you if you want to format the connected USB storage device.
+
+```
+ You have connect a USB storage
+device that has not been setup for
+    use with this console.
+ Do you want to format the device so
+that it can be used with this console?
+
+   (Cancel)        (Format)
+```
+
+Select `Format` . It will only format the part set aside for the Wii U games.
+
+if you don't get that message, despite partitioning it for Wii U games, then do:
+
+1. Launch the `System Settings` App from the Wii U Menu
+2. Go to `Data Management` (second tab)
+3. `Format USB Storage Device`
+4. Press next until it is done formatting
 
 ## Next Step
 
