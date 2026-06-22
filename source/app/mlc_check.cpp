@@ -192,12 +192,13 @@ static int testReadMlcRaw() {
             WHBLogFreetypePrint(L" ");
             WHBLogFreetypePrint(L"Press B to abort test");
             WHBLogFreetypeDrawScreen();
-        }
 
-        updateInputs();
-        if (pressedBack()) {
-            errorCount = -2; // Aborted
-            goto cleanup;
+            updateInputs();
+            if (pressedBack()) {
+                if(!errorCount)
+                    errorCount = -2; // Aborted
+                goto cleanup;
+            }
         }
     }
 
