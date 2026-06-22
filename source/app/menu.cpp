@@ -18,7 +18,7 @@
 #include <mocha/fsa.h>
 #include "fw_img_loader.h"
 #include "startup_checks.h"
-#include "mlc_check.h"
+#include "nand_check.h"
 
 // Menu screens
 
@@ -156,7 +156,7 @@ void showMainMenu() {
             WHBLogFreetypePrintf(L"%C USB Partition", OPTION(7));
             WHBLogFreetypePrintf(L"%C Format and Partition", OPTION(8));
             WHBLogFreetypePrintf(L"%C Guided Uninstall", OPTION(9));
-            WHBLogFreetypePrintf(L"%C Check MLC Health", OPTION(10));
+            WHBLogFreetypePrintf(L"%C Check NAND Health", OPTION(10));
             WHBLogFreetypePrint(L" ");
 
             WHBLogFreetypeScreenPrintBottom(L"===============================");
@@ -242,7 +242,7 @@ void showMainMenu() {
                 showUninstallMenu();
                 break;
             case 10:
-                showCheckMlcMenu();
+                showCheckNandMenu();
                 break;
             default:
                 break;

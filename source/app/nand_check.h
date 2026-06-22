@@ -2,4 +2,4 @@
 
 #include <string>
 
-void showCheckMlcMenu();
+void showCheckNandMenu();
