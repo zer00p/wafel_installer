@@ -83,6 +83,7 @@ struct NandLogErrors {
     int slcMediaErrors = 0;
     int slccmptCorruptionErrors = 0;
     int slccmptMediaErrors = 0;
+    bool scfmCorruption = false;
 };
 
 static bool checkNandLogs(NandLogErrors& errors) {
@@ -129,6 +130,11 @@ static bool checkNandLogs(NandLogErrors& errors) {
                             errors.mlcMediaErrors++;
                         }
                     }
+                }
+                if (line.find("FSAReadFileFromSLC") != std::string::npos ||
+                    line.find("FSAWriteFileToSLC") != std::string::npos ||
+                    line.find("readDataFromCache() FSA resource error") != std::string::npos) {
+                    errors.scfmCorruption = true;
                 }
             }
         }
@@ -360,22 +366,12 @@ static void showMlcAlternatives() {
     showDialogPrompt(msg.c_str(), L"OK");
 }
 
-static void showSlcIssuesReport(const std::wstring& partitionLabel, const SlcCheckResult& fileResult,
-                                int logCorruptionErrors, int logMediaErrors) {
-    std::wstring msg = L"Issues found on " + partitionLabel + L".\n";
-
-    if (logCorruptionErrors > 0) {
-        msg += L"Log corruption errors: " + std::to_wstring(logCorruptionErrors) + L"\n";
+static void showSlcIssuesReport(const std::wstring& partitionLabel, const SlcCheckResult& fileResult) {
+    if (fileResult.corruptedFiles.empty()) {
+        return;
     }
-    if (logMediaErrors > 0) {
-        msg += L"Log media errors: " + std::to_wstring(logMediaErrors) + L"\n";
-    }
-
-    msg += L"This is NOT the usual eMMC (MLC) failure.\n";
-    msg += L"Please ask for assistance before taking action.\n";
-
-    if (!fileResult.corruptedFiles.empty()) {
-        msg += L"\nCorrupted files:\n";
+    
+    std::wstring msg = L"Corrupted files found on " + partitionLabel + L":\n";
         // Show up to 10 corrupted files to avoid overflowing the screen
         int shown = 0;
         for (const auto& path : fileResult.corruptedFiles) {
@@ -388,7 +384,6 @@ static void showSlcIssuesReport(const std::wstring& partitionLabel, const SlcChe
             msg += L"  " + wpath + L"\n";
             shown++;
         }
-    }
 
     showDialogPrompt(msg.c_str(), L"OK");
 }
@@ -407,14 +402,58 @@ void showCheckNandMenu() {
     NandLogErrors logErrors;
     bool logsSuccess = checkNandLogs(logErrors);
 
+    bool slcLogIssues = (logErrors.slcCorruptionErrors > 0 || logErrors.slcMediaErrors > 0 || logErrors.scfmCorruption);
+    bool slccmptLogIssues = (logErrors.slccmptCorruptionErrors > 0 || logErrors.slccmptMediaErrors > 0);
+    bool mlcConfirmedBad = (logErrors.mlcMediaErrors > 0);
+
+    // --- Log Report ---
+    std::wstring logReport = L"=== Log Report ===\n";
+    logReport += L"MLC Manufacturer: " + manufacturerName + (isHynix ? L" (WARNING)\n" : L" (Good)\n");
+
+    if (logsSuccess) {
+        logReport += L"\nMLC Errors:\n";
+        logReport += L"Corruption: " + std::to_wstring(logErrors.mlcCorruptionErrors) + L", Media: " + std::to_wstring(logErrors.mlcMediaErrors) + L"\n";
+        
+        logReport += L"\nSLC Errors:\n";
+        if (logErrors.scfmCorruption) {
+            logReport += L"SCFM cache is corrupted!\n";
+        }
+        logReport += L"Corruption: " + std::to_wstring(logErrors.slcCorruptionErrors) + L", Media: " + std::to_wstring(logErrors.slcMediaErrors) + L"\n";
+        
+        logReport += L"\nSLCCMPT Errors:\n";
+        logReport += L"Corruption: " + std::to_wstring(logErrors.slccmptCorruptionErrors) + L", Media: " + std::to_wstring(logErrors.slccmptMediaErrors) + L"\n";
+
+        if (logErrors.scfmCorruption && logErrors.mlcCorruptionErrors > 0) {
+            logReport += L"\nNote: The MLC errors detected may be a side effect\n";
+            logReport += L"of the SCFM cache corruption on the SLC.\n";
+            logReport += L"Please ask for assistance before taking action.\n";
+        } else if (logErrors.scfmCorruption || slcLogIssues) {
+            logReport += L"\nNote: This is NOT the usual eMMC (MLC) failure.\n";
+            logReport += L"Please ask for assistance before taking action.\n";
+        }
+    } else {
+        logReport += L"\nCould not open logs directory\n";
+    }
+
+    if ((mlcConfirmedBad || logErrors.mlcCorruptionErrors > 0 || isHynix) && !isIsfshaxInstalled()) {
+        logReport += L"\nCRITICAL: You should install ISFShax as a safety\n";
+        logReport += L"net against an impending brick!\n";
+    }
+
+    showDialogPrompt(logReport.c_str(), L"OK");
+
     // --- Phase 3: SLC file read test ---
-    uint8_t scanSlc = showDialogPrompt(
-        L"Do you want to run a file read test on the SLC?\n(Takes a few minutes, usually not necessary)",
-        L"Yes", L"No", nullptr, nullptr, 1
-    );
+    std::wstring slcPrompt = L"Do you want to run a file read test on the SLC?\n(Takes a few minutes)";
+    uint8_t slcDefault = 1;
+    if (slcLogIssues) {
+        slcPrompt = L"SLC errors found in logs. Do you want to run a file\nread test on the SLC to see how bad it is?";
+        slcDefault = 0;
+    }
+    uint8_t scanSlc = showDialogPrompt(slcPrompt.c_str(), L"Yes", L"No", nullptr, nullptr, slcDefault);
     SlcCheckResult slcFileResult;
     if (scanSlc == 0) {
         slcFileResult = checkSlcFiles("/vol/system", L"SLC");
+        showSlcIssuesReport(L"SLC (system storage)", slcFileResult);
     }
 
     // --- Phase 4: SLCCMPT file read test ---
@@ -422,10 +461,13 @@ void showCheckNandMenu() {
     SlcCheckResult slccmptFileResult;
     bool slccmptMounted = false;
     if (USE_LIBMOCHA()) {
-        scanSlccmpt = showDialogPrompt(
-            L"Do you want to run a file read test on SLCCMPT?\n(Takes a few minutes, usually not necessary)",
-            L"Yes", L"No", nullptr, nullptr, 1
-        );
+        std::wstring slccmptPrompt = L"Do you want to run a file read test on SLCCMPT (vWii)?\n(Takes a few minutes)";
+        uint8_t slccmptDefault = 1;
+        if (slccmptLogIssues) {
+            slccmptPrompt = L"SLCCMPT errors found in logs. Do you want to run a file\nread test on SLCCMPT to see how bad it is?";
+            slccmptDefault = 0;
+        }
+        scanSlccmpt = showDialogPrompt(slccmptPrompt.c_str(), L"Yes", L"No", nullptr, nullptr, slccmptDefault);
         if (scanSlccmpt == 0) {
             WHBLogFreetypeStartScreen();
             WHBLogFreetypePrint(L"Mounting SLCCMPT...");
@@ -434,117 +476,32 @@ void showCheckNandMenu() {
                 slccmptMounted = true;
                 slccmptFileResult = checkSlcFiles("/vol/storage_slccmpt01", L"SLCCMPT");
                 Mocha_UnmountFS("storage_slccmpt01");
+                showSlcIssuesReport(L"SLCCMPT (vWii storage)", slccmptFileResult);
             }
         }
     }
 
-    // --- Build and display MLC report ---
-    std::wstring report = L"=== MLC (eMMC) ===\n";
-    report += L"Manufacturer: " + manufacturerName + (isHynix ? L" (WARNING)" : L" (Good)");
-
-    if (logsSuccess) {
-        report += L"\nCorruption errors in logs: " + std::to_wstring(logErrors.mlcCorruptionErrors);
-        report += L"\nMedia errors in logs: " + std::to_wstring(logErrors.mlcMediaErrors);
-    } else {
-        report += L"\nLogs: Could not open logs directory";
-    }
-
-    // SLC/SLCCMPT summary in initial report
-    bool slcLogIssues = (logErrors.slcCorruptionErrors > 0 || logErrors.slcMediaErrors > 0);
-    bool slccmptLogIssues = (logErrors.slccmptCorruptionErrors > 0 || logErrors.slccmptMediaErrors > 0);
-
-    bool slcHasIssues = slcLogIssues || !slcFileResult.corruptedFiles.empty();
-    bool slccmptHasIssues = slccmptLogIssues || !slccmptFileResult.corruptedFiles.empty();
-
-    if (slcHasIssues || slccmptHasIssues) {
-        report += L"\n \n";
-        if (slcHasIssues) report += L"SLC: Issues detected (details follow)\n";
-        if (slccmptHasIssues) report += L"SLCCMPT: Issues detected (details follow)\n";
-    } else {
-        report += L"\n \n";
-        if (scanSlc == 0) {
-            report += L"SLC: OK";
-        } else {
-            report += L"SLC: Log check OK (file scan skipped)";
-        }
-
-        if (slccmptMounted && scanSlccmpt == 0) {
-            report += L"\nSLCCMPT: OK";
-        } else if (scanSlccmpt == 0 && USE_LIBMOCHA()) {
-            report += L"\nSLCCMPT: Could not mount";
-        } else {
-            report += L"\nSLCCMPT: Log check OK (file scan skipped)";
-        }
-    }
-
-    report += L"\n";
-
-    // --- Decision logic ---
-    bool mlcConfirmedBad = false;
-    bool suggestLongRead = false;
-    bool slcCorruptionOverride = false;
-
-    if (slcLogIssues) {
-        // Only SLC log errors override MLC guidance
-        slcCorruptionOverride = true;
-        report += L"\nSLC log errors detected. MLC errors may be a side effect\n";
-        report += L"of SLC corruption (write cache). Ask for assistance.\n";
-    }
-
-    if (logErrors.mlcMediaErrors > 0) {
-        mlcConfirmedBad = true;
-        report += L"\nMedia errors confirm the eMMC is failing.\n";
-    } else if (logErrors.mlcCorruptionErrors > 0) {
-        report += L"\nData corruption could mean failure or just a crash.\n";
-        suggestLongRead = true;
-    }
-
-    if (isHynix && !mlcConfirmedBad) {
-        report += L"Hynix eMMCs are more prone to failure.\n";
-        suggestLongRead = true;
-    }
-
-    if (!slcCorruptionOverride && !mlcConfirmedBad && !isHynix && logErrors.mlcCorruptionErrors == 0) {
-        report += L"\nNo issues detected.\n";
-    }
-
-    if (!slcCorruptionOverride && (mlcConfirmedBad || suggestLongRead) && !isIsfshaxInstalled()) {
-        report += L"\nCRITICAL: You should install ISFShax as a safety\n";
-        report += L"net against an impending brick!\n";
-    }
-
-    showDialogPrompt(report.c_str(), L"OK");
-
-    // --- Show SLC/SLCCMPT detailed reports ---
-    if (slcHasIssues) {
-        showSlcIssuesReport(L"SLC (system storage)", slcFileResult,
-                           logErrors.slcCorruptionErrors, logErrors.slcMediaErrors);
-    }
-    if (slccmptHasIssues) {
-        showSlcIssuesReport(L"SLCCMPT (vWii storage)", slccmptFileResult,
-                           logErrors.slccmptCorruptionErrors, logErrors.slccmptMediaErrors);
-    }
-
-    // --- MLC confirmed bad via logs: show alternatives, no raw read ---
-    if (mlcConfirmedBad && !slcCorruptionOverride) {
-        showMlcAlternatives();
-        return;
-    }
-
     // --- Offer raw read test ---
+    bool suggestLongRead = false;
+    if (logErrors.mlcCorruptionErrors > 0 || (isHynix && !mlcConfirmedBad)) {
+        suggestLongRead = true;
+    }
+
     std::wstring readPrompt = L"Do you want to run the extended raw read test?\n(Takes several hours). ";
-    if (slcCorruptionOverride) {
-        readPrompt += L"\nNote: SLC issues were detected. MLC results\nmay be misleading.";
+    if (mlcConfirmedBad) {
+        readPrompt = L"MLC is confirmed failing from logs.\nDo you still want to run the extended raw read test?\n(Takes several hours, likely not necessary).";
     } else if (!suggestLongRead) {
         readPrompt += L"It is likely not necessary.";
     } else {
         readPrompt += L"It is suggested.";
     }
 
-    uint8_t defaultOpt = suggestLongRead ? 0 : 1;
+    uint8_t defaultOpt = (suggestLongRead && !mlcConfirmedBad) ? 0 : 1;
     uint8_t choice = showDialogPrompt(readPrompt.c_str(), L"Yes", L"No", nullptr, nullptr, defaultOpt);
+    
+    int rawErrors = 0;
     if (choice == 0) {
-        int rawErrors = testReadMlcRaw();
+        rawErrors = testReadMlcRaw();
         if (rawErrors == -2) {
             showDialogPrompt(L"Extended read test aborted.", L"OK");
         } else if (rawErrors > 0) {
@@ -553,21 +510,16 @@ void showCheckNandMenu() {
                 msg += L"\n\nCRITICAL: You should install ISFShax immediately!";
             }
             showDialogPrompt(msg.c_str(), L"OK");
-
-            if (!slcCorruptionOverride) {
-                showMlcAlternatives();
-            } else {
-                showDialogPrompt(
-                    L"SLC issues were also detected.\n"
-                    L"MLC errors may be related to SLC corruption.\n"
-                    L"Please ask for assistance before using redNAND\n"
-                    L"or other MLC replacements.",
-                    L"OK");
-            }
+            mlcConfirmedBad = true; // Mark as bad from raw scan
         } else if (rawErrors == 0) {
             showSuccessPrompt(L"Finished reading MLC!\nNo media errors found.");
         } else {
             showErrorPrompt(L"Failed to execute raw read test.", false);
         }
+    }
+
+    // --- Show alternatives if bad ---
+    if (mlcConfirmedBad) {
+        showMlcAlternatives();
     }
 }
