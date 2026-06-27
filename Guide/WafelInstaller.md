@@ -231,6 +231,12 @@ if you don't get that message, despite partitioning it for Wii U games, then do:
 3. `Format USB Storage Device`
 4. Press next until it is done formatting
 
+## Important Note Regarding Payloadloader Installer
+
+If you have consulted other guides, you may have seen instructions to use the **Payloadloader Installer**. Please **do not use the Payloadloader Installer**. 
+
+This guide uses a different method (Stroopwafel and ISFShax) to load Aroma, making the Payloadloader Installer completely unnecessary. Running it may interfere with your setup. If you are strictly following this guide from start to finish, you can safely ignore this note.
+
 ## Summary
 
 Here is a quick overview of what the installer just did:
