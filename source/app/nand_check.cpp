@@ -438,6 +438,10 @@ void showCheckNandMenu() {
     }
 
     if (!isIsfshaxInstalled()) {
+        if (mlcConfirmedBad) {
+            showMlcAlternatives();
+        }
+
         if (logErrors.scfmCorruption || mlcConfirmedBad) {
             logReport += L"\nCRITICAL: You should install ISFShax IMMEDIATELY\n";
             logReport += L"as a safety net against an impending brick!\n";
@@ -519,6 +523,11 @@ void showCheckNandMenu() {
         }
     }
 
+    // --- Show alternatives if bad ---
+    if (mlcConfirmedBad) {
+        showMlcAlternatives();
+    }
+
     // --- Offer ISFShax Installation ---
     if (!isIsfshaxInstalled()) {
         std::wstring isfshaxMsg = L"";
@@ -535,10 +544,5 @@ void showCheckNandMenu() {
                 installIsfshax(false, false);
             }
         }
-    }
-
-    // --- Show alternatives if bad ---
-    if (mlcConfirmedBad) {
-        showMlcAlternatives();
     }
 }
