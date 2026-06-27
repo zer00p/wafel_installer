@@ -257,7 +257,7 @@ bool performStartupChecks() {
                 break;
             } else {
                 // SD doesn't exist, try USB
-                std::vector<std::wstring> options = { L"Retry SD", L"Use USB (do NOT connect it just yet)", L"Just NAND check", L"Abort" };
+                std::vector<std::wstring> options = { L"Retry SD", L"Use USB (do NOT connect it just yet)", L"Check NAND Health", L"Abort" };
                 uint8_t choice = showDialogPrompt(L"No SD card detected.", options, 0);
 
                 if (choice == 0) {

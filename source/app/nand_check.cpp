@@ -145,23 +145,13 @@ static bool checkNandLogs(NandLogErrors& errors) {
 }
 
 static void readFilesRecursive(const std::string& dirPath, std::vector<std::string>& corruptedFiles, int& filesScanned, const std::wstring& partitionName, bool& aborted) {
-    if (aborted || isShutdownForced()) {
-        aborted = true;
-        return;
-    }
-
     DIR *dir = dirOpen(dirPath);
     if (!dir) {
         return;
     }
 
     struct dirent *dp;
-    while ((dp = readdir(dir)) != nullptr) {
-        if (aborted || isShutdownForced()) {
-            aborted = true;
-            break;
-        }
-
+    while ((dp = readdir(dir)) != nullptr && !aborted) {
         std::string name(dp->d_name);
         if (name == "." || name == "..") continue;
 
@@ -199,23 +189,21 @@ static void readFilesRecursive(const std::string& dirPath, std::vector<std::stri
 
             filesScanned++;
 
-            // Update progress periodically
-            if ((filesScanned % 50) == 0) {
-                WHBLogFreetypeStartScreen();
-                WHBLogFreetypePrintf(L"Scanning %S...", partitionName.c_str());
-                WHBLogFreetypePrintf(L"Files scanned: %d", filesScanned);
-                if (!corruptedFiles.empty()) {
-                    WHBLogFreetypePrintf(L"Corrupted files found: %d", (int)corruptedFiles.size());
-                }
-                WHBLogFreetypePrint(L" ");
-                WHBLogFreetypePrint(L"Press B to abort");
-                WHBLogFreetypeDrawScreen();
+            // Update progress
+            WHBLogFreetypeStartScreen();
+            WHBLogFreetypePrintf(L"Scanning %S...", partitionName.c_str());
+            WHBLogFreetypePrintf(L"Files scanned: %d", filesScanned);
+            if (!corruptedFiles.empty()) {
+                WHBLogFreetypePrintf(L"Corrupted files found: %d", (int)corruptedFiles.size());
+            }
+            WHBLogFreetypePrint(L" ");
+            WHBLogFreetypePrint(L"Press B to abort");
+            WHBLogFreetypeDrawScreen();
 
-                updateInputs();
-                if (pressedBack()) {
-                    aborted = true;
-                    break;
-                }
+            updateInputs();
+            if (pressedBack()) {
+                aborted = true;
+                break;
             }
         }
     }
@@ -354,7 +342,7 @@ cleanup:
 static void showMlcAlternatives() {
     std::wstring msg =
         L"Your eMMC (MLC) appears to be failing.\n"
-        L"Consider one of these alternatives:\n \n"
+        L"Consider one of these fixes:\n \n"
         L"- redNAND: Uses your SD card as replacement\n"
         L"  https://gbatemp.net/threads/642268/\n \n"
         L"- USBMLC: Uses a USB device as replacement\n"
@@ -368,11 +356,26 @@ static void showMlcAlternatives() {
 }
 
 static void showSlcIssuesReport(const std::wstring& partitionLabel, const SlcCheckResult& fileResult) {
+    if (!fileResult.accessible) {
+        std::wstring msg = L"Failed to access " + partitionLabel + L".\nCould not perform read test.";
+        setErrorPrompt(msg);
+        showErrorPrompt(L"OK", false);
+        return;
+    }
+
+    if (fileResult.aborted) {
+        std::wstring msg = L"Read test for " + partitionLabel + L" was aborted.\nFiles scanned: " + std::to_wstring(fileResult.filesScanned);
+        showDialogPrompt(msg.c_str(), L"OK");
+        return;
+    }
+
     if (fileResult.corruptedFiles.empty()) {
+        std::wstring msg = L"Read test for " + partitionLabel + L" completed successfully.\nFiles scanned: " + std::to_wstring(fileResult.filesScanned) + L"\nNo corrupted files were found.";
+        showSuccessPrompt(msg.c_str());
         return;
     }
     
-    std::wstring msg = L"Corrupted files found on " + partitionLabel + L":\n";
+    std::wstring msg = std::to_wstring(fileResult.filesScanned) + L" files scanned.\nCorrupted files found on " + partitionLabel + L":\n";
         // Show up to 10 corrupted files to avoid overflowing the screen
         int shown = 0;
         for (const auto& path : fileResult.corruptedFiles) {
@@ -437,18 +440,19 @@ void showCheckNandMenu() {
         logReport += L"\nCould not open logs directory\n";
     }
 
+    showDialogPrompt(logReport.c_str(), L"OK");
+
     if (!isIsfshaxInstalled()) {
         if (mlcConfirmedBad) {
             showMlcAlternatives();
         }
 
         if (logErrors.scfmCorruption || mlcConfirmedBad) {
-            logReport += L"\nCRITICAL: You should install ISFShax IMMEDIATELY\n";
-            logReport += L"as a safety net against an impending brick!\n";
+            if (showDialogPrompt(L"\nCRITICAL: You should install ISFShax IMMEDIATELY\nas a safety net against an impending brick!", L"Yes, install ISFShax", L"No, skip", nullptr, nullptr, 0) == 0) {
+                installIsfshax(false, false);
+            }
         }
     }
-
-    showDialogPrompt(logReport.c_str(), L"OK");
 
     // --- Phase 3: SLC file read test ---
     std::wstring slcPrompt = L"Do you want to run a file read test on the SLC?\n(Takes a few minutes)";
@@ -467,7 +471,6 @@ void showCheckNandMenu() {
     // --- Phase 4: SLCCMPT file read test ---
     uint8_t scanSlccmpt = 1;
     SlcCheckResult slccmptFileResult;
-    bool slccmptMounted = false;
     if (USE_LIBMOCHA()) {
         std::wstring slccmptPrompt = L"Do you want to run a file read test on SLCCMPT (vWii)?\n(Takes a few minutes)";
         uint8_t slccmptDefault = 1;
@@ -480,12 +483,13 @@ void showCheckNandMenu() {
             WHBLogFreetypeStartScreen();
             WHBLogFreetypePrint(L"Mounting SLCCMPT...");
             WHBLogFreetypeDraw();
-            if (Mocha_MountFS("storage_slccmpt01", "/dev/slccmpt01", "/vol/storage_slccmpt01") == MOCHA_RESULT_SUCCESS) {
-                slccmptMounted = true;
-                slccmptFileResult = checkSlcFiles("/vol/storage_slccmpt01", L"SLCCMPT");
+            if (Mocha_MountFS("storage_slcc01", "/dev/slccmpt01", "/vol/storage_slcc01") == MOCHA_RESULT_SUCCESS) {
+                slccmptFileResult = checkSlcFiles("/vol/storage_slcc01", L"SLCCMPT");
                 Mocha_UnmountFS("storage_slccmpt01");
-                showSlcIssuesReport(L"SLCCMPT (vWii storage)", slccmptFileResult);
+            } else {
+                slccmptFileResult.accessible = false;
             }
+            showSlcIssuesReport(L"SLCCMPT (vWii storage)", slccmptFileResult);
         }
     }
 
@@ -495,7 +499,7 @@ void showCheckNandMenu() {
         suggestLongRead = true;
     }
 
-    std::wstring readPrompt = L"Do you want to run the extended raw read test?\n(Takes several hours). ";
+    std::wstring readPrompt = L"Do you want to run the MLC read test?\n(Takes several hours). ";
     if (mlcConfirmedBad) {
         readPrompt = L"MLC is confirmed failing from logs.\nDo you still want to run the extended raw read test?\n(Takes several hours, likely not necessary).";
     } else if (!suggestLongRead) {
@@ -518,6 +522,7 @@ void showCheckNandMenu() {
             mlcConfirmedBad = true; // Mark as bad from raw scan
         } else if (rawErrors == 0) {
             showSuccessPrompt(L"Finished reading MLC!\nNo media errors found.");
+            mlcConfirmedBad = false;
         } else {
             showErrorPrompt(L"Failed to execute raw read test.", false);
         }
