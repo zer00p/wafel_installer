@@ -436,9 +436,17 @@ void showCheckNandMenu() {
         logReport += L"\nCould not open logs directory\n";
     }
 
-    if ((mlcConfirmedBad || logErrors.mlcCorruptionErrors > 0 || isHynix) && !isIsfshaxInstalled()) {
-        logReport += L"\nCRITICAL: You should install ISFShax as a safety\n";
-        logReport += L"net against an impending brick!\n";
+    if (!isIsfshaxInstalled()) {
+        if (logErrors.scfmCorruption || mlcConfirmedBad) {
+            logReport += L"\nCRITICAL: You should install ISFShax IMMEDIATELY\n";
+            logReport += L"as a safety net against an impending brick!\n";
+        } else if (logErrors.slcCorruptionErrors > 0 || logErrors.mlcCorruptionErrors > 0) {
+            logReport += L"\nWarning: Corruption errors detected. It is highly\n";
+            logReport += L"recommended to install ISFShax as a precaution.\n";
+        } else if (isHynix) {
+            logReport += L"\nNote: You have a Hynix eMMC. You can install ISFShax\n";
+            logReport += L"now to allow easy recovery of potential problems in the future.\n";
+        }
     }
 
     showDialogPrompt(logReport.c_str(), L"OK");
