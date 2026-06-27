@@ -10,6 +10,7 @@
 #include "cfw.h"
 #include "fw_img_loader.h"
 #include "download.h"
+#include "nand_check.h"
 #include <whb/sdcard.h>
 #include <dirent.h>
 #include <algorithm>
@@ -256,7 +257,7 @@ bool performStartupChecks() {
                 break;
             } else {
                 // SD doesn't exist, try USB
-                std::vector<std::wstring> options = { L"Retry SD", L"Use USB (do NOT connect it just yet)", L"Abort" };
+                std::vector<std::wstring> options = { L"Retry SD", L"Use USB (do NOT connect it just yet)", L"Check NAND Health", L"Abort" };
                 uint8_t choice = showDialogPrompt(L"No SD card detected.", options, 0);
 
                 if (choice == 0) {
@@ -271,6 +272,10 @@ bool performStartupChecks() {
                     setupUsbStorage(fsaHandle, wantsPartitionedStorage);
                     if (fsaHandle >= 0) FSADelClient(fsaHandle);
                     break;
+                } else if (choice == 2) {
+                    if (fsaHandle >= 0) FSADelClient(fsaHandle);
+                    showCheckNandMenu();
+                    continue;
                 } else {
                     if (fsaHandle >= 0) FSADelClient(fsaHandle);
                     return true;

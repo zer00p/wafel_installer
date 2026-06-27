@@ -162,7 +162,7 @@ std::string convertToWiiUFsPath(std::string_view volPath) {
     std::string posixPath;
 
     // volPath has to start with /vol/
-    if (!volPath.starts_with("/vol/")) return "";
+    if (!volPath.starts_with("/vol/")) return std::string(volPath);
 
     if (USE_LIBMOCHA()) {
         // Handle /vol/system/ as an alias for /vol/storage_slc/sys/
@@ -185,7 +185,7 @@ std::string convertToWiiUFsPath(std::string_view volPath) {
         if (drivePathEnd == std::string_view::npos) {
             // Return just the mount path
             posixPath.append(volPath.substr(5));
-            posixPath.append(":");
+            posixPath.append(":/");
         } else {
             // Return mount path + the path after it
             posixPath.append(volPath.substr(5, drivePathEnd - 5));
@@ -215,14 +215,21 @@ bool isRoot(std::string_view path) {
 
 bool fileExist(const std::string& path) {
     std::string convertedPath = convertToWiiUFsPath(path);
-    if (isRoot(convertedPath)) return true;
+    if (isRoot(convertedPath)) return false;
     if (lstat(convertedPath.c_str(), &existStat) == 0 && S_ISREG(existStat.st_mode)) return true;
     return false;
 }
 
 bool dirExist(const std::string& path) {
     std::string convertedPath = convertToWiiUFsPath(path);
-    if (isRoot(convertedPath)) return true;
+    if (isRoot(convertedPath)) {
+        DIR* dir = opendir(convertedPath.c_str());
+        if (dir) {
+            closedir(dir);
+            return true;
+        }
+        return false;
+    }
     if (lstat(convertedPath.c_str(), &existStat) == 0 && S_ISDIR(existStat.st_mode)) return true;
     return false;
 }

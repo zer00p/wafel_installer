@@ -48,7 +48,8 @@ To mod your Wii U follow the [Guide](Guide/START_HERE.md).
  - The [wiiu-env](https://github.com/wiiu-env) developers (especially [Maschell](https://github.com/Maschell)) for Aroma.
  - [shinyquagsire23](https://github.com/shinyquagsire23) for stroopwafel and fw_img_loader additions.
  - [rw_r_r_0644](https://github.com/rw_r_r_0644) for ISFShax.
- - [Maschell](https://github.com/Maschell) for Aroma and especially the [AromaUpdater](https://github.com/wiiu-env/AromaUpdater) for code and inspiration
+ - [Maschell](https://github.com/Maschell) for Aroma and especially the [AromaUpdater](https://github.com/wiiu-env/AromaUpdater) for code and inspiration.
+ - [GaryOderNichts](https://github.com/GaryOderNichts) for [WiiUIdent](https://github.com/GaryOderNichts/WiiUIdent).
  - The [fortheusers](https://github.com/fortheusers) team for the Homebrew Appstore.
  - [FIX94](https://github.com/FIX94), [Maschell](https://github.com/Maschell), [Quarky](https://github.com/ashquarky), [GaryOderNichts](https://github.com/GaryOderNichts) and [koolkdev](https://github.com/koolkdev) for making and maintaining homebrew (libraries)
  - [smea](https://github.com/smealum), [plutoo](https://github.com/plutooo), [yellows8](https://github.com/yellows8), [naehrwert](https://github.com/naehrwert), derrek, [dimok](https://github.com/dimok789) and kanye_west for making the exploits and CFW possible
