@@ -404,6 +404,7 @@ void showCheckNandMenu() {
 
     bool slcLogIssues = (logErrors.slcCorruptionErrors > 0 || logErrors.slcMediaErrors > 0 || logErrors.scfmCorruption);
     bool slccmptLogIssues = (logErrors.slccmptCorruptionErrors > 0 || logErrors.slccmptMediaErrors > 0);
+    bool mlcLogIssues = (logErrors.mlcCorruptionErrors > 0 || logErrors.mlcMediaErrors > 0);
     bool mlcConfirmedBad = (logErrors.mlcMediaErrors > 0);
 
     // --- Log Report ---
@@ -426,8 +427,8 @@ void showCheckNandMenu() {
         if (logErrors.scfmCorruption && logErrors.mlcCorruptionErrors > 0) {
             logReport += L"\nNote: The MLC errors detected may be a side effect\n";
             logReport += L"of the SCFM cache corruption on the SLC.\n";
-            logReport += L"Please ask for assistance before taking action.\n";
-        } else if (logErrors.scfmCorruption || slcLogIssues) {
+            logReport += L"Please ask for assistance before taking action. (except installing ISFShax)\n";
+        } else if (logErrors.scfmCorruption || slcLogIssues || (!mlcLogIssues && slccmptLogIssues)) {
             logReport += L"\nNote: This is NOT the usual eMMC (MLC) failure.\n";
             logReport += L"Please ask for assistance before taking action.\n";
         }
@@ -493,7 +494,7 @@ void showCheckNandMenu() {
     } else if (!suggestLongRead) {
         readPrompt += L"It is likely not necessary.";
     } else {
-        readPrompt += L"It is suggested.";
+        readPrompt += L"It is recommended.";
     }
 
     uint8_t defaultOpt = (suggestLongRead && !mlcConfirmedBad) ? 0 : 1;
