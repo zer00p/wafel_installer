@@ -17,6 +17,7 @@ During startup the Wafel Installer checks what is already installed and how the 
   
   [ Retry SD ]
   [ Use USB (do NOT connect it just yet) ]
+  [ Check NAND Health ]
   [ Abort ]
   ```
 
@@ -229,6 +230,24 @@ if you don't get that message, despite partitioning it for Wii U games, then do:
 2. Go to `Data Management` (second tab)
 3. `Format USB Storage Device`
 4. Press next until it is done formatting
+
+## Summary
+
+Here is a quick overview of what the installer just did:
+
+### 1. Storage Preparation
+If you chose to set up your SD card or USB drive for both homebrew and games, the installer created two separate sections (partitions) on it:
+- A **FAT32 partition** for homebrew apps and Wii games.
+- A **WFS partition** (which the Wii U formatted) exclusively for Wii U games.
+
+### 2. Downloaded Components
+The installer automatically downloaded the necessary files directly from GitHub and placed them in the correct spots for you. If you ever need to update or download these manually, you can find them here:
+- **Aroma Environment & Apps** (info at [aroma.foryour.cafe](https://aroma.foryour.cafe)): Placed in the `wiiu` folder on your (emulated) SD card. This is the main homebrew environment.
+- **Stroopwafel & minute** (info at [isfsh.ax](https://isfsh.ax)): Installed to either your SD card or the console's internal memory (SLC). These help launch Aroma smoothly.
+- **ISFShax** (info at [isfsh.ax](https://isfsh.ax)): Installed directly into the console's low-level memory (SLC). This provides robust protection against bricking.
+
+### 3. Autoboot Configuration
+Finally, if you installed stroopwafel to your SD card, a small configuration file (`minute/minute.ini`) was created on your SD card. This tells your console to automatically start the correct option from minute on boot.
 
 ## Next Step
 
