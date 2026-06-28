@@ -3,7 +3,7 @@
 This will help you to fully mod your Wii U. 
 This will install:
 
-- [**ISFShax:**](isfsh.ax) a coldboot exploit, that acts as brick protection and is needed to use Stroopwafel
+- [**ISFShax:**](https://isfsh.ax) a coldboot exploit, that acts as brick protection and is needed to use Stroopwafel
 - [**Stroopwafel:**](https://github.com/StroopwafelCFW/stroopwafel) It allows patching of the system early during boot. It is used here also to load Aroma
 - [**Aroma:**](https://aroma.foryour.cafe/) This allows you to run Homebrew and use Plugins like Pretendo or FTP 
 
