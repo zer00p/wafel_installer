@@ -185,6 +185,14 @@ hr {
     border-radius: 0 4px 4px 0;
 }
 
+/* ===== Inline Icons ===== */
+.inline-icon {
+    height: 1.2em;
+    width: auto;
+    vertical-align: middle;
+    margin-right: 4px;
+}
+
 /* ===== Footer ===== */
 .guide-footer {
     text-align: center;

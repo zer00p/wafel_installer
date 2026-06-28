@@ -23,6 +23,7 @@ OUTPUT_DIR = os.path.join(SCRIPT_DIR, "Guide_html")
 
 # Ordered list of pages: (md_filename, display_title)
 PAGES = [
+    ("index.md", "Home"),
     ("START_HERE.md", "Start Here"),
     ("WafelInstaller.md", "Wafel Installer"),
     ("SaveBackup.md", "Backups"),
@@ -137,6 +138,14 @@ def main():
         shutil.copy2(css_src, css_dst)
     else:
         print(f"  Warning: guide.css not found in {GUIDE_DIR}")
+
+    # Copy wafel_installer-icon.png from source directory to output directory
+    icon_src = os.path.join(GUIDE_DIR, "wafel_installer-icon.png")
+    icon_dst = os.path.join(OUTPUT_DIR, "wafel_installer-icon.png")
+    if os.path.exists(icon_src):
+        shutil.copy2(icon_src, icon_dst)
+    else:
+        print(f"  Warning: wafel_installer-icon.png not found in {GUIDE_DIR}")
 
     for idx, (md_file, title) in enumerate(PAGES):
         md_path = os.path.join(GUIDE_DIR, md_file)
