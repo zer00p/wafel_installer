@@ -35,8 +35,22 @@ jobs:
         with:
           name: wafel_installer
           path: "./dist/wiiu/apps/wafel_installer"
+  build-guide:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pandoc
+        run: sudo apt-get update && sudo apt-get install -y pandoc
+      - name: Build guide HTML
+        run: python3 build_guide.py
+      - name: Create guide.zip
+        run: cd Guide_html && zip -r ../guide.zip .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: guide
+          path: guide.zip
   deploy-binary:
-    needs: build-binary
+    needs: [build-binary, build-guide]
     if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     steps:
@@ -49,6 +63,10 @@ jobs:
         with:
           name: wafel_installer
           path: wafel_installer
+      - uses: actions/download-artifact@v4
+        with:
+          name: guide
+          path: guide
       - name: Create Release
         uses: "softprops/action-gh-release@v2"
         with:
@@ -60,3 +78,4 @@ jobs:
           files: |
             wafel_installer/wafel_installer.wuhb
             wafel_installer/wafel_installer.rpx
+            guide/guide.zip
