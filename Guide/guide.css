@@ -1,0 +1,200 @@
+@import url(https://db.onlinewebfonts.com/c/f21923cb0f60b46d41a66875255790b3?family=Neue+Haas+Grotesk+Display+Pro+65+Medium);
+@import url(https://db.onlinewebfonts.com/c/6e47ef470dd19698c911332a9b4d1cf4?family=Neue+Haas+Grotesk+Text+Pro);
+
+/* ===== Reset & Base ===== */
+html, body {
+    margin: 0;
+    padding: 0;
+    background-color: #FFF7E8;
+    color: #444;
+    font-family: Arial, sans-serif;
+    font-family: "Neue Haas Grotesk Text Pro", Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.7;
+}
+
+/* ===== Page Container ===== */
+.guide-container {
+    max-width: 760px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 30px 24px 60px 24px;
+}
+
+/* ===== Navigation ===== */
+.guide-nav {
+    text-align: center;
+    padding: 16px 0;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #E8D5B8;
+}
+
+.guide-nav-bottom {
+    text-align: center;
+    padding: 20px 0;
+    margin-top: 30px;
+    border-top: 1px solid #E8D5B8;
+}
+
+.guide-nav a,
+.guide-nav-bottom a {
+    display: inline-block;
+    color: white;
+    background-color: #E59700;
+    text-decoration: none;
+    padding: 6px 18px;
+    margin: 4px 6px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: Arial, sans-serif;
+    font-family: "Neue Haas Grotesk Text Pro", Arial, sans-serif;
+}
+
+.guide-nav a.nav-current,
+.guide-nav-bottom a.nav-current {
+    background-color: #FFBF00;
+    font-weight: bold;
+}
+
+/* ===== Headings ===== */
+h1 {
+    font-family: Arial, sans-serif;
+    font-family: "Neue Haas Grotesk Display Pro 65 Medium", Arial, sans-serif;
+    color: #B26B00;
+    font-size: 28px;
+    margin-top: 0;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #FFBF00;
+}
+
+h2 {
+    font-family: Arial, sans-serif;
+    font-family: "Neue Haas Grotesk Display Pro 65 Medium", Arial, sans-serif;
+    color: #B26B00;
+    font-size: 22px;
+    margin-top: 32px;
+    margin-bottom: 12px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #E8D5B8;
+}
+
+h3 {
+    font-family: Arial, sans-serif;
+    font-family: "Neue Haas Grotesk Display Pro 65 Medium", Arial, sans-serif;
+    color: #996800;
+    font-size: 18px;
+    margin-top: 24px;
+    margin-bottom: 8px;
+}
+
+/* ===== Paragraphs & Text ===== */
+p {
+    margin-top: 8px;
+    margin-bottom: 12px;
+}
+
+strong {
+    color: #333;
+}
+
+em {
+    font-style: italic;
+}
+
+/* ===== Links ===== */
+a {
+    color: #B26B00;
+    text-decoration: underline;
+}
+
+/* ===== Lists ===== */
+ul, ol {
+    padding-left: 28px;
+    margin-top: 8px;
+    margin-bottom: 12px;
+}
+
+li {
+    margin-bottom: 6px;
+}
+
+/* ===== Code ===== */
+code {
+    background-color: #F0E4CE;
+    color: #6B4400;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 14px;
+}
+
+pre {
+    background-color: #3D2E1A;
+    color: #F5E6CE;
+    padding: 14px 18px;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin-top: 10px;
+    margin-bottom: 14px;
+    line-height: 1.5;
+}
+
+pre code {
+    background-color: transparent;
+    color: inherit;
+    padding: 0;
+    border-radius: 0;
+    font-size: 13px;
+}
+
+/* ===== Blockquotes (used for Notes/Warnings in some MD) ===== */
+blockquote {
+    border-left: 4px solid #FFBF00;
+    background-color: #FFF0D4;
+    margin: 12px 0;
+    padding: 10px 16px;
+    color: #5A4000;
+}
+
+blockquote p {
+    margin: 4px 0;
+}
+
+/* ===== Horizontal Rules ===== */
+hr {
+    border: none;
+    border-top: 1px solid #E8D5B8;
+    margin: 28px 0;
+}
+
+/* ===== Warning / Note callouts ===== */
+.callout-warning {
+    background-color: #FFF0D4;
+    border-left: 4px solid #E59700;
+    padding: 10px 16px;
+    margin: 12px 0;
+    border-radius: 0 4px 4px 0;
+}
+
+.callout-note {
+    background-color: #FFF0D4;
+    border-left: 4px solid #FFBF00;
+    padding: 10px 16px;
+    margin: 12px 0;
+    border-radius: 0 4px 4px 0;
+}
+
+/* ===== Footer ===== */
+.guide-footer {
+    text-align: center;
+    color: #B0956A;
+    font-size: 13px;
+    margin-top: 40px;
+    padding-top: 16px;
+    border-top: 1px solid #E8D5B8;
+}
+
+.guide-footer a {
+    color: #B26B00;
+}
