@@ -501,7 +501,7 @@ void showCheckNandMenu() {
 
     std::wstring readPrompt = L"Do you want to run the MLC read test?\n(Takes several hours). ";
     if (mlcConfirmedBad) {
-        readPrompt = L"MLC is confirmed failing from logs.\nDo you still want to run the extended raw read test?\n(Takes several hours, likely not necessary).";
+        readPrompt = L"MLC is confirmed failing from logs.\nDo you still want to run the MLC read test?\n(Takes several hours, likely not necessary).";
     } else if (!suggestLongRead) {
         readPrompt += L"It is likely not necessary.";
     } else {
@@ -515,7 +515,7 @@ void showCheckNandMenu() {
     if (choice == 0) {
         rawErrors = testReadMlcRaw();
         if (rawErrors == -2) {
-            showDialogPrompt(L"Extended read test aborted.", L"OK");
+            showDialogPrompt(L"MLC read test aborted.", L"OK");
         } else if (rawErrors > 0) {
             std::wstring msg = L"Finished reading MLC.\nFound " + std::to_wstring(rawErrors) + L" read errors.\nThis indicates a failing eMMC.";
             showDialogPrompt(msg.c_str(), L"OK");
