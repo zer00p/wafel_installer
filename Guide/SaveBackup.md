@@ -38,9 +38,3 @@ To Backup everything:
 You can find more [detailed SaveMii HowTos here](https://github.com/w3irDv/savemii/blob/main/README.md#detailed-howtos)
 
 **IMPORTANT:** If you use the same media (SD or USB) for Homebrew and your Wii U games, it is highly recommended to copy the Backup to the PC. Otherwise you would lose both the original and Backup in case the media dies.
-
-
-
-## Next Step
-
-[Dump and Installing Game Discs](DumpInstallGames.md)

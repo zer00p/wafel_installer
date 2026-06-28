@@ -83,6 +83,9 @@ HTML_TEMPLATE = """\
 </div>
 
 <div class="guide-footer">
+    <div class="guide-contrib">
+        Want to improve this guide? <a href="{github_edit_url}">Contribute on GitHub</a>!
+    </div>
     <a href="https://wafel.xyz">wafel.xyz</a> &mdash;
     <a href="https://github.com/zer00p/wafel_installer">GitHub</a>
 </div>
@@ -147,12 +150,14 @@ def main():
 
         nav = build_nav(PAGES, idx)
         nav_bottom = build_nav_bottom(PAGES, idx)
+        github_edit_url = f"https://github.com/zer00p/wafel_installer/blob/master/Guide/{md_file}"
 
         html = HTML_TEMPLATE.format(
             title=title,
             nav_links=nav,
             nav_links_bottom=nav_bottom,
             content=content,
+            github_edit_url=github_edit_url,
         )
 
         with open(html_path, "w", encoding="utf-8") as f:

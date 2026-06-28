@@ -255,6 +255,3 @@ The installer automatically downloaded the necessary files directly from GitHub 
 ### 3. Autoboot Configuration
 Finally, if you installed stroopwafel to your SD card, a small configuration file (`minute/minute.ini`) was created on your SD card. This tells your console to automatically start the correct option from minute on boot.
 
-## Next Step
-
-Continue on [Backups](SaveBackup.md)
