@@ -69,7 +69,7 @@ This can't be easily changed later, without wiping everything and starting over,
 
 **Note:** It is also possible to install your Wii games to the Wii U (WFS) partition using a PC tool called UWUVCI but it requires a lot more work.
 
-```WARNING: This will RE-PARTITION the whole device
+```text
 WARNING: This will RE-PARTITION the whole device
 and DELETE ALL DATA on it.
 Do you want to continue?
