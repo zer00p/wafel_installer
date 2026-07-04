@@ -9,6 +9,7 @@
 #include <dirent.h>
 #include <sys/unistd.h>
 #include <sys/statvfs.h>
+#include <sys/stat.h>
 
 static bool systemSLCMounted = false;
 static bool systemMLCMounted = false;
@@ -228,14 +229,8 @@ bool fileExist(const std::string& path) {
 
 bool dirExist(const std::string& path) {
     std::string convertedPath = convertToWiiUFsPath(path);
-    if (isRoot(convertedPath)) {
-        DIR* dir = opendir(convertedPath.c_str());
-        if (dir) {
-            closedir(dir);
-            return true;
-        }
-        return false;
-    }
+    if (convertedPath == "fs:/vol" || convertedPath == "fs:/vol/") return true;
+    if (isRoot(convertedPath)) return true;
     if (lstat(convertedPath.c_str(), &existStat) == 0 && S_ISDIR(existStat.st_mode)) return true;
     return false;
 }
@@ -273,11 +268,38 @@ bool removeDir(const std::string& path) {
 
 bool createDirectories(const std::string& path) {
     std::string convertedPath = convertToWiiUFsPath(path);
-    try {
-        return std::filesystem::create_directories(convertedPath);
-    } catch (...) {
-        return false;
+    
+    // Find the prefix (e.g., "storage_slc:/" or "fs:/")
+    size_t startPos = 0;
+    if (convertedPath.starts_with("fs:/")) {
+        startPos = 4; // Start after "fs:/"
+    } else {
+        size_t colon = convertedPath.find(':');
+        if (colon != std::string::npos) {
+            startPos = colon + 1;
+            if (startPos < convertedPath.size() && convertedPath[startPos] == '/') {
+                startPos++;
+            }
+        }
     }
+
+    for (size_t i = startPos; i < convertedPath.size(); i++) {
+        if (convertedPath[i] == '/') {
+            std::string sub = convertedPath.substr(0, i);
+            if (!sub.empty() && !dirExist(sub)) {
+                if (mkdir(sub.c_str(), 0777) != 0 && errno != EEXIST) {
+                    return false;
+                }
+            }
+        }
+    }
+    
+    if (!dirExist(convertedPath)) {
+        if (mkdir(convertedPath.c_str(), 0777) != 0 && errno != EEXIST) {
+            return false;
+        }
+    }
+    return true;
 }
 
 int fileOpen(const std::string& path, int flags, mode_t mode) {

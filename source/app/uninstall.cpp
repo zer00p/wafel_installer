@@ -140,9 +140,13 @@ void showUninstallMenu() {
         if (!dirExist(Paths::SlcHaxDir)) {
             createDirectories(Paths::SlcHaxDir);
         }
-        FILE* f = fileFopen((Paths::SlcHaxDir + "/uninstall_marker").c_str(), "w");
-        if (f) fclose(f);
+        FILE* f = fileFopen((Paths::SlcHaxDir + "/uninst.mrk").c_str(), "w");
+        if (f) {
+            fputs("uninstall", f);
+            fclose(f);
+        }
     }
+
 
     showDialogPrompt(L"Stroopwafel has been removed.\nYour console will now reboot. Please launch the Wafel Installer again\nvia wafel.xyz from the browser to complete the uninstallation.", L"OK");
     setRebootPending(true);

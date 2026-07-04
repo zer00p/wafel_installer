@@ -190,16 +190,13 @@ bool performStartupChecks() {
     if (getStroopwafelPluginPath().find("storage_slc") != std::string::npos) {
         if (!checkSystemAccess(true)) return false;
     }
-    
-    if (checkSystemAccess(false)) {
-        std::string markerPath = Paths::SlcHaxDir + "/uninstall_marker";
-        if (fileExist(markerPath) && !isStroopwafelAvailable()) {
-            uint8_t choice = showDialogPrompt(L"An incomplete uninstall was detected.\nDo you want to continue uninstalling?", L"Yes, continue uninstall", L"No, cancel uninstall");
-            removeFile(markerPath);
-            if (choice == 0) {
-                resumeUninstall();
-                return true;
-            }
+    std::string markerPath = Paths::SlcHaxDir + "/uninst.mrk";
+    if (fileExist(markerPath) && !isStroopwafelAvailable()) {
+        uint8_t choice = showDialogPrompt(L"An incomplete uninstall was detected.\nDo you want to continue uninstalling?", L"Yes, continue uninstall", L"No, cancel uninstall");
+        removeFile(markerPath);
+        if (choice == 0) {
+            resumeUninstall();
+            return true;
         }
     }
 
