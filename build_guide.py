@@ -24,7 +24,7 @@ OUTPUT_DIR = os.path.join(SCRIPT_DIR, "Guide_html")
 # Ordered list of pages: (md_filename, display_title)
 PAGES = [
     ("index.md", "Home"),
-    ("START_HERE.md", "Start Here"),
+    ("GettingStarted.md", "Getting Started"),
     ("WafelInstaller.md", "Wafel Installer"),
     ("SaveBackup.md", "Backups"),
     ("DumpInstallGames.md", "Dump & Install Games"),

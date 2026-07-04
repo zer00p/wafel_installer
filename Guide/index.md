@@ -3,7 +3,7 @@
 Welcome to the Wafel Installer Guide! This guide will walk you through setting up homebrew, configuring coldboot exploit protection with ISFShax, and managing your Wii U console.
 
 <div class="callout-warning">
-<strong>New to modding?</strong> Start with the <strong><a href="START_HERE.md">Start Here</a></strong> section. It covers all the prerequisites, storage preparation, and initial steps to launch the installer on both stock and modded consoles.
+<strong>New to modding?</strong> Start with the <strong><a href="GettingStarted.md">Getting Started</a></strong> section. It covers all the prerequisites, storage preparation, and initial steps to launch the installer on both stock and modded consoles.
 </div>
 
 ---
@@ -12,7 +12,7 @@ Welcome to the Wafel Installer Guide! This guide will walk you through setting u
 
 Choose a section below to jump directly to it:
 
-### 1. 🚀 [Start Here](START_HERE.md)
+### 1. 🚀 [Getting Started](GettingStarted.md)
 * Set the correct date and time, check your internet connection, update your console firmware, and launch the Wafel Installer.
 
 ### 2. <img src="wafel_installer-icon.png" class="inline-icon" alt="Icon"> [Wafel Installer](WafelInstaller.md)

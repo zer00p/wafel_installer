@@ -1,6 +1,6 @@
 # Backups
 
-This section assumes you already finished the setup with the wafel installer. If your console is not modded yet, [start here](START_HERE.md).
+This section assumes you already finished the setup with the wafel installer. If your console is not modded yet, [get started](GettingStarted.md).
 
 ## OTP and SEEPROM
 

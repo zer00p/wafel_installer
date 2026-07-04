@@ -1,4 +1,4 @@
-# Easy Wii U Homebrew Guide
+# Getting Started
 
 This will help you to fully mod your Wii U. 
 This will install:

@@ -6,7 +6,7 @@ Since Wii U Discs are very susceptible to Disc rot, it is highly recommended you
 If you chose to partition your SD to also hold Wii U games, this will also apply when this guide or tools refer to USB, since the Wii U sees the partition as USB.
 SD will refer to the FAT32 partition where your homebrew was installed. This can be either the real SD or the emulated SD Partition on the USB.
 
-This section assumes you already finished the setup with the wafel installer. If your console is not modded yet, [start here](START_HERE.md).
+This section assumes you already finished the setup with the wafel installer. If your console is not modded yet, [get started](GettingStarted.md).
 
 ## Preparation
 
