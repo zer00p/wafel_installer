@@ -61,8 +61,10 @@ If the console is stock (unmodded) continue with Option A.
 4. Enter `https://wafel.xyz`
 5. Press OK. You should now see the Wafel Installer web page
 6. Tap on launch
-7. Tap on launch again. After a few seconds the wafel installer app should load. If it freezes for 3 Minutes, restart and try again.
+7. Tap on launch again. After a few seconds the wafel installer app should load.
 8. Continue to [Wafel Installer](WafelInstaller.md)
+
+**Note:** The installer might get stuck while launching. If that happens and it hangs for 2 minutes, force power off the console (by holding the power button), turn it back on, and try again.
 
 ### Option B: Modded Console
 
