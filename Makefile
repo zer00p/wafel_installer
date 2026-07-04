@@ -102,6 +102,8 @@ export DEPSDIR	:=	$(CURDIR)/$(BUILD)
 
 CFILES			:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
 CPPFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
+CPPFILES		+=	system_hashes_data.cpp
+CPPFILES		:=	$(sort $(CPPFILES))
 SFILES			:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
 BINFILES		:=	$(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*)))
 
