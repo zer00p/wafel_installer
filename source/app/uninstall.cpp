@@ -121,16 +121,14 @@ void showUninstallMenu() {
 
     const wchar_t* warningMessage =
         L"Please read carefully:\n \n"
-        L"Reinstalling ISFShax won't fix any issue. It is recommended\n"
-        L"to always keep ISFShax.\n \n"
-        L"This will undo all modifications this tool might have made to\n"
-        L"the console, turning it stock again. It will also offer to reset\n"
-        L"the SD card if it was partitioned.\n"
+        L"Reinstalling ISFShax won't fix issues. Keeping it is recommended.\n \n"
+        L"This will undo all modifications this tool made, turning it stock.\n"
+        L"It will also offer to reset the SD card if partitioned.\n"
         L"Modifications made by other tools might still persist.\n \n"
         L"IMPORTANT: If you use redNAND, do NOT proceed.\n"
         L"If you installed custom keyboards or themes, you MUST\n"
         L"undo these changes BEFORE uninstalling. Removing\n"
-        L"stroopwafel/isfshax otherwise might cause a BRICK.\n";
+        L"stroopwafel/isfshax otherwise might cause a BRICK.";
 
     if (showDialogPrompt(warningMessage, L"I have undone everything, continue", L"Cancel", nullptr, nullptr, 1) != 0) {
         return;

@@ -600,13 +600,11 @@ bool runSystemIntegrityCheck() {
             
             filesScanned++;
             
-            if ((filesScanned % 10) == 0) {
-                WHBLogFreetypeStartScreen();
-                WHBLogFreetypePrint(L"Running System Integrity Check...");
-                std::wstring scanMsg = L"Files Scanned: " + std::to_wstring(filesScanned) + L" / " + std::to_wstring(g_numSystemFileHashes);
-                WHBLogFreetypePrint(scanMsg.c_str());
-                WHBLogFreetypeDrawScreen();
-            }
+            WHBLogFreetypeStartScreen();
+            WHBLogFreetypePrint(L"Running System Integrity Check...");
+            std::wstring scanMsg = L"Files Scanned: " + std::to_wstring(filesScanned) + L" / " + std::to_wstring(g_numSystemFileHashes);
+            WHBLogFreetypePrint(scanMsg.c_str());
+            WHBLogFreetypeDrawScreen();
         }
     }
     

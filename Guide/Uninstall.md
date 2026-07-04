@@ -18,12 +18,10 @@ To ensure your console can safely boot without modifications, the uninstall proc
 ```text
 Please read carefully:
  
-Reinstalling ISFShax won't fix any issue. It is recommended
-to always keep ISFShax.
+Reinstalling ISFShax won't fix issues. Keeping it is recommended.
  
-This will undo all modifications this tool might have made to
-the console, turning it stock again. It will also offer to reset
-the SD card if it was partitioned.
+This will undo all modifications this tool made, turning it stock.
+It will also offer to reset the SD card if partitioned.
 Modifications made by other tools might still persist.
  
 IMPORTANT: If you use redNAND, do NOT proceed.
