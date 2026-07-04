@@ -20,7 +20,19 @@ def main():
         
     # Group hashes by absolute file path
     # e.g. path: "/vol/system/title/00050010/1000400a/code/nn_dlp.rpl" -> list of valid hashes
-    file_hashes = {}
+    regions = {
+        "ALL": "Common",
+        "JPN": "Jp",
+        "USA": "Us",
+        "EUR": "Eu"
+    }
+
+    file_hashes = {
+        "Common": {},
+        "Jp": {},
+        "Us": {},
+        "Eu": {}
+    }
     
     for title in data:
         title_id = title['title_id'].lower()
@@ -29,17 +41,19 @@ def main():
         high_id = title_id[:8]
         low_id = title_id[8:]
         
-        if high_id == "00050010":
+        if high_id == "00050010" and low_id.startswith("1004"):
             base_path = f"/vol/storage_mlc01/sys/title/{high_id}/{low_id}"
         else:
             base_path = f"/vol/system/title/{high_id}/{low_id}"
         
+        region_key = regions.get(title.get('region', 'ALL'), 'Common')
+        
         for rel_path, filehash in title['files'].items():
             full_path = f"{base_path}/{rel_path}"
             
-            if full_path not in file_hashes:
-                file_hashes[full_path] = set()
-            file_hashes[full_path].add(filehash)
+            if full_path not in file_hashes[region_key]:
+                file_hashes[region_key][full_path] = set()
+            file_hashes[region_key][full_path].add(filehash)
             
     # Write .h
     h_content = """#pragma once
@@ -51,8 +65,17 @@ struct SystemFileHashes {
     size_t num_hashes;
 };
 
-extern const SystemFileHashes g_systemFileHashes[];
-extern const size_t g_numSystemFileHashes;
+extern const SystemFileHashes g_systemFileHashesCommon[];
+extern const size_t g_numSystemFileHashesCommon;
+
+extern const SystemFileHashes g_systemFileHashesJp[];
+extern const size_t g_numSystemFileHashesJp;
+
+extern const SystemFileHashes g_systemFileHashesUs[];
+extern const size_t g_numSystemFileHashesUs;
+
+extern const SystemFileHashes g_systemFileHashesEu[];
+extern const size_t g_numSystemFileHashesEu;
 """
     with open(output_h, 'w') as f:
         f.write(h_content)
@@ -62,19 +85,25 @@ extern const size_t g_numSystemFileHashes;
 
 """
     # Create arrays of hashes
-    for i, (filepath, hashes) in enumerate(file_hashes.items()):
-        cpp_content += f"static const char* s_hashes_{i}[] = {{\n"
-        for h in sorted(list(hashes)):
-            cpp_content += f'    "{h}",\n'
+    for region_name, hashes_dict in file_hashes.items():
+        for i, (filepath, hashes) in enumerate(hashes_dict.items()):
+            cpp_content += f"static const char* s_hashes_{region_name}_{i}[] = {{\n"
+            for h in sorted(list(hashes)):
+                cpp_content += f'    "{h}",\n'
+            cpp_content += "};\n\n"
+            
+    for region_name, hashes_dict in file_hashes.items():
+        if len(hashes_dict) == 0:
+            cpp_content += f"const SystemFileHashes g_systemFileHashes{region_name}[] = {{}};\n\n"
+            cpp_content += f"const size_t g_numSystemFileHashes{region_name} = 0;\n\n"
+            continue
+            
+        cpp_content += f"const SystemFileHashes g_systemFileHashes{region_name}[] = {{\n"
+        for i, (filepath, hashes) in enumerate(hashes_dict.items()):
+            num_hashes = len(hashes)
+            cpp_content += f'    {{"{filepath}", s_hashes_{region_name}_{i}, {num_hashes}}},\n'
         cpp_content += "};\n\n"
-        
-    cpp_content += "const SystemFileHashes g_systemFileHashes[] = {\n"
-    for i, (filepath, hashes) in enumerate(file_hashes.items()):
-        num_hashes = len(hashes)
-        cpp_content += f'    {{"{filepath}", s_hashes_{i}, {num_hashes}}},\n'
-    cpp_content += "};\n\n"
-    
-    cpp_content += "const size_t g_numSystemFileHashes = sizeof(g_systemFileHashes) / sizeof(g_systemFileHashes[0]);\n"
+        cpp_content += f"const size_t g_numSystemFileHashes{region_name} = sizeof(g_systemFileHashes{region_name}) / sizeof(g_systemFileHashes{region_name}[0]);\n\n"
     
     with open(output_cpp, 'w') as f:
         f.write(cpp_content)

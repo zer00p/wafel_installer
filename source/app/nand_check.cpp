@@ -557,6 +557,37 @@ void showCheckNandMenu() {
     }
 }
 
+enum ConsoleRegion {
+    REGION_UNKNOWN = 0,
+    REGION_JP,
+    REGION_US,
+    REGION_EU
+};
+
+static ConsoleRegion detectConsoleRegion() {
+    int regionsFound = 0;
+    ConsoleRegion lastRegion = REGION_UNKNOWN;
+
+    if (dirExist("/vol/storage_mlc01/sys/title/00050010/10040000")) {
+        regionsFound++;
+        lastRegion = REGION_JP;
+    }
+    if (dirExist("/vol/storage_mlc01/sys/title/00050010/10040100")) {
+        regionsFound++;
+        lastRegion = REGION_US;
+    }
+    if (dirExist("/vol/storage_mlc01/sys/title/00050010/10040200")) {
+        regionsFound++;
+        lastRegion = REGION_EU;
+    }
+
+    if (regionsFound == 1) {
+        return lastRegion;
+    }
+
+    return REGION_UNKNOWN;
+}
+
 bool runSystemIntegrityCheck() {
     WHBLogFreetypeStartScreen();
     WHBLogFreetypePrint(L"Running System Integrity Check...");
@@ -567,49 +598,65 @@ bool runSystemIntegrityCheck() {
         return false;
     }
     
+    ConsoleRegion region = detectConsoleRegion();
+
+    if (region == REGION_UNKNOWN) {
+        showDialogPrompt(L"System Integrity Check Failed!\nMultiple or no region folders found.\nUninstalling is not safe.", L"OK");
+        return false;
+    }
+
     // Verify system files
     int filesScanned = 0;
     int filesFailed = 0;
     std::vector<std::string> failedFiles;
 
-    for (size_t i = 0; i < g_numSystemFileHashes; i++) {
-        const auto& fileHash = g_systemFileHashes[i];
-        // Paths will automatically point to /vol/system (SLC) or /vol/storage_mlc01/sys (MLC)
-        std::string fullPath = fileHash.filepath;
-        
-        if (fileExist(fullPath)) {
-            std::string actualHashStr = calculateSHA256(fullPath);
-            if (actualHashStr.empty()) {
-                failedFiles.push_back(fullPath + " (Read Error)");
-                filesFailed++;
-                continue;
-            }
-            
-            bool match = false;
-            for (size_t j = 0; j < fileHash.num_hashes; j++) {
-                if (actualHashStr == fileHash.valid_hashes[j]) {
-                    match = true;
-                    break;
-                }
-            }
-            
-            if (!match) {
-                failedFiles.push_back(fullPath);
-                filesFailed++;
-            }
-            
+    auto scanArray = [&](const SystemFileHashes* hashesArray, size_t numHashes) {
+        for (size_t i = 0; i < numHashes; i++) {
+            const auto& fileHash = hashesArray[i];
+            std::string fullPath = fileHash.filepath;
+
             filesScanned++;
-            
+
             WHBLogFreetypeStartScreen();
             WHBLogFreetypePrint(L"Running System Integrity Check...");
-            std::wstring scanMsg = L"Files Scanned: " + std::to_wstring(filesScanned) + L" / " + std::to_wstring(g_numSystemFileHashes);
+            std::wstring scanMsg = L"Files Scanned: " + std::to_wstring(filesScanned);
             WHBLogFreetypePrint(scanMsg.c_str());
             WHBLogFreetypeDrawScreen();
+
+            if (fileExist(fullPath)) {
+                std::string actualHashStr = calculateSHA256(fullPath);
+                if (actualHashStr.empty()) {
+                    failedFiles.push_back(fullPath + " (Read Error)");
+                    filesFailed++;
+                    continue;
+                }
+                
+                bool match = false;
+                for (size_t j = 0; j < fileHash.num_hashes; j++) {
+                    if (actualHashStr == fileHash.valid_hashes[j]) {
+                        match = true;
+                        break;
+                    }
+                }
+                
+                if (!match) {
+                    failedFiles.push_back(fullPath + " (Modified)");
+                    filesFailed++;
+                }
+            } else {
+                failedFiles.push_back(fullPath + " (Missing)");
+                filesFailed++;
+            }
         }
-    }
+    };
+
+    scanArray(g_systemFileHashesCommon, g_numSystemFileHashesCommon);
+    if (region == REGION_JP) scanArray(g_systemFileHashesJp, g_numSystemFileHashesJp);
+    else if (region == REGION_US) scanArray(g_systemFileHashesUs, g_numSystemFileHashesUs);
+    else if (region == REGION_EU) scanArray(g_systemFileHashesEu, g_numSystemFileHashesEu);
     
     if (filesFailed > 0) {
-        std::wstring msg = L"System Integrity Check Failed!\n" + std::to_wstring(filesFailed) + L" corrupted/modified system files found.\n";
+        std::wstring msg = L"System Integrity Check Failed!\n" + std::to_wstring(filesFailed) + L" corrupted/modified/missing system files found.\n";
         msg += L"Uninstalling would brick your console.\n";
         int shown = 0;
         for(const auto& f : failedFiles) {
