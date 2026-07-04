@@ -21,13 +21,19 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 GUIDE_DIR = os.path.join(SCRIPT_DIR, "Guide")
 OUTPUT_DIR = os.path.join(SCRIPT_DIR, "Guide_html")
 
-# Ordered list of pages: (md_filename, display_title)
-PAGES = [
-    ("index.md", "Home"),
-    ("GettingStarted.md", "Getting Started"),
-    ("WafelInstaller.md", "Wafel Installer"),
-    ("SaveBackup.md", "Backups"),
-    ("DumpInstallGames.md", "Dump & Install Games"),
+# Ordered list of pages paths: [(md_filename, display_title), ...]
+PATHS = [
+    [
+        ("index.md", "Home"),
+        ("GettingStarted.md", "Getting Started"),
+        ("WafelInstaller.md", "Wafel Installer"),
+        ("SaveBackup.md", "Backups"),
+        ("DumpInstallGames.md", "Dump & Install Games"),
+    ],
+    [
+        ("index.md", "Home"),
+        ("Uninstall.md", "Uninstall"),
+    ]
 ]
 
 
@@ -147,32 +153,40 @@ def main():
     else:
         print(f"  Warning: wafel_installer-icon.png not found in {GUIDE_DIR}")
 
-    for idx, (md_file, title) in enumerate(PAGES):
-        md_path = os.path.join(GUIDE_DIR, md_file)
-        html_file = md_file.replace(".md", ".html")
-        html_path = os.path.join(OUTPUT_DIR, html_file)
+    generated = set()
+    total_pages = 0
+    for path in PATHS:
+        for idx, (md_file, title) in enumerate(path):
+            if md_file in generated:
+                continue
+            generated.add(md_file)
+            total_pages += 1
 
-        print(f"  {md_file} -> Guide_html/{html_file}")
+            md_path = os.path.join(GUIDE_DIR, md_file)
+            html_file = md_file.replace(".md", ".html")
+            html_path = os.path.join(OUTPUT_DIR, html_file)
 
-        content = pandoc_convert(md_path)
-        content = rewrite_md_links(content)
+            print(f"  {md_file} -> Guide_html/{html_file}")
 
-        nav = build_nav(PAGES, idx)
-        nav_bottom = build_nav_bottom(PAGES, idx)
-        github_edit_url = f"https://github.com/zer00p/wafel_installer/blob/master/Guide/{md_file}"
+            content = pandoc_convert(md_path)
+            content = rewrite_md_links(content)
 
-        html = HTML_TEMPLATE.format(
-            title=title,
-            nav_links=nav,
-            nav_links_bottom=nav_bottom,
-            content=content,
-            github_edit_url=github_edit_url,
-        )
+            nav = build_nav(path, idx)
+            nav_bottom = build_nav_bottom(path, idx)
+            github_edit_url = f"https://github.com/zer00p/wafel_installer/blob/master/Guide/{md_file}"
 
-        with open(html_path, "w", encoding="utf-8") as f:
-            f.write(html)
+            html = HTML_TEMPLATE.format(
+                title=title,
+                nav_links=nav,
+                nav_links_bottom=nav_bottom,
+                content=content,
+                github_edit_url=github_edit_url,
+            )
 
-    print(f"\nDone! {len(PAGES)} pages written to {OUTPUT_DIR}/")
+            with open(html_path, "w", encoding="utf-8") as f:
+                f.write(html)
+
+    print(f"\nDone! {total_pages} pages written to {OUTPUT_DIR}/")
 
 
 if __name__ == "__main__":

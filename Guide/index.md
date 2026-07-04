@@ -23,3 +23,6 @@ Choose a section below to jump directly to it:
 
 ### 4. 💿 [Dump & Install Games](DumpInstallGames.md)
 * Learn how to dump physical game discs and install games onto your console's storage.
+
+### 5. 🗑️ [Uninstall](Uninstall.md)
+* Learn how to completely remove the homebrew environment, Stroopwafel, and ISFShax to return your console to stock.
