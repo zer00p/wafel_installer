@@ -374,7 +374,7 @@ static uint32_t read32LE(const uint8_t* p) {
     return (uint32_t)p[0] | ((uint32_t)p[1] << 8) | ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);
 }
 
-static bool isRedNAND() {
+bool isRedNAND() {
     if (WHBMountSdCard() != 1) {
         return false;
     }
@@ -401,21 +401,23 @@ static bool isRedNAND() {
 }
 
 void uninstallStroopwafelMenu(bool showWarning) {
+    if (isRedNAND()) {
+        showDialogPrompt(L"redNAND is detected.\nStroopwafel is required for redNAND.\nUninstallation is not possible.", L"OK");
+        return;
+    }
+
     if (showWarning) {
-        if (isRedNAND()) {
-            showDialogPrompt(L"redNAND is detected.\nStroopwafel is required for redNAND.\nUninstallation is not possible.", L"OK");
-            return;
-        }
 
         const wchar_t* warningMessage =
             L"Please read carefully:\n \n"
             L"This will remove Stroopwafel from your console.\n"
             L"Modifications made by other tools might still persist.\n \n"
-            L"IMPORTANT: If you installed custom keyboards or themes, you\n"
-            L"MUST undo these changes BEFORE uninstalling. Removing\n"
+            L"IMPORTANT: If you use redNAND, do NOT proceed.\n"
+            L"If you installed custom keyboards or themes, you MUST\n"
+            L"undo these changes BEFORE uninstalling. Removing\n"
             L"Stroopwafel otherwise might cause a BRICK.\n";
 
-        if (showDialogPrompt(warningMessage, L"Continue", L"Cancel", nullptr, nullptr, 1) != 0) {
+        if (showDialogPrompt(warningMessage, L"I have undone everything, continue", L"Cancel", nullptr, nullptr, 1) != 0) {
             return;
         }
     }
@@ -529,70 +531,49 @@ void showUninstallMenu() {
         L"the console, turning it stock again. It will also offer to reset\n"
         L"the SD card if it was partitioned.\n"
         L"Modifications made by other tools might still persist.\n \n"
-        L"IMPORTANT: If you installed custom keyboards or themes, you\n"
-        L"MUST undo these changes BEFORE uninstalling. Removing\n"
+        L"IMPORTANT: If you use redNAND, do NOT proceed.\n"
+        L"If you installed custom keyboards or themes, you MUST\n"
+        L"undo these changes BEFORE uninstalling. Removing\n"
         L"stroopwafel/isfshax otherwise might cause a BRICK.\n";
 
-    if (showDialogPrompt(warningMessage, L"Continue", L"Cancel", nullptr, nullptr, 1) != 0) {
+    if (showDialogPrompt(warningMessage, L"I have undone everything, continue", L"Cancel", nullptr, nullptr, 1) != 0) {
         return;
     }
 
-    // SD Card Check
+    uninstallStroopwafelMenu(false);
+
+    if (checkSystemAccess()) {
+        if (!dirExist(Paths::SlcHaxDir)) {
+            createDirectories(Paths::SlcHaxDir);
+        }
+        FILE* f = fileFopen((Paths::SlcHaxDir + "/uninstall_marker").c_str(), "w");
+        if (f) fclose(f);
+    }
+
+    showDialogPrompt(L"Stroopwafel has been removed.\nPlease reboot your console and launch the Wafel Installer again\nvia wafel.xyz from the browser to complete the uninstallation.", L"OK");
+}
+
+void resumeUninstall() {
+    // SD Card Check and Format
     if (WHBMountSdCard() == 1) {
         FSAClientHandle fsaHandle = FSAAddClient(nullptr);
         if (fsaHandle >= 0) {
             FSADeviceInfo deviceInfo;
             if ((FSStatus)FSAGetDeviceInfo(fsaHandle, "/dev/sdcard01", &deviceInfo) == FS_STATUS_OK) {
-                uint8_t* mbr = (uint8_t*)memalign(0x40, deviceInfo.deviceSectorSize);
-                if (mbr) {
-                    bool askFormat = false;
-                    IOSHandle handle = -1;
-                    if (FSAEx_RawOpenEx(fsaHandle, "/dev/sdcard01", &handle) >= 0) {
-                        if ((FSStatus)FSAEx_RawReadEx(fsaHandle, mbr, deviceInfo.deviceSectorSize, 1, 0, handle) == FS_STATUS_OK) {
-                            if (mbr[510] == 0x55 && mbr[511] == 0xAA) {
-                                int partitionCount = 0;
-                                uint32_t lastOccupiedSector = 0;
-                                for (int i = 0; i < 4; i++) {
-                                    uint8_t type = mbr[446 + i * 16 + 4];
-                                    if (type != 0) {
-                                        partitionCount++;
-                                        uint32_t start = read32LE(&mbr[446 + i * 16 + 8]);
-                                        uint32_t sectors = read32LE(&mbr[446 + i * 16 + 12]);
-                                        if (start + sectors > lastOccupiedSector) {
-                                            lastOccupiedSector = start + sectors;
-                                        }
-                                    }
-                                }
-                                if (partitionCount > 1) {
-                                    askFormat = true;
-                                }
-                                // If more than 1MB is unallocated
-                                if (deviceInfo.deviceSizeInSectors > lastOccupiedSector + (1 * 1024 * 1024 / deviceInfo.deviceSectorSize)) {
-                                    askFormat = true;
-                                }
-                            }
-                        }
-                        FSAEx_RawCloseEx(fsaHandle, handle);
-                    }
-                    free(mbr);
-
-                    if (askFormat) {
-                        if (showDialogPrompt(L"Your SD card seems to have multiple partitions or unallocated\nspace. Do you want to format the entire SD card to FAT32?\nThis will delete ALL data on it.", L"Yes, format SD", L"No, keep as is") == 0) {
-                            if (getCFWVersion() == MOCHA_FSCLIENT) {
-                                showDialogPrompt(L"Aroma is running. Formatting the SD card while running\n"
-                                                 L"Aroma is not possible from here.\n \n"
-                                                 L"Please come back by using wafel.xyz after uninstalling stroopwafel\n", L"OK");
-                            } else {
-                                int status = WHBUnmountSdCard();
-                                if (status != 1) {
-                                    WHBLogPrintf("Unmount failed (status: %d), ignoring...", status);
-                                    WHBLogFreetypeDraw();
-                                } else if (!formatWholeDrive(fsaHandle, "/dev/sdcard01", deviceInfo)) {
-                                    showErrorPrompt(L"Failed to format SD card. Continuing with uninstall...");
-                                } else {
-                                    showSuccessPrompt(L"SD card formatted successfully.");
-                                }
-                            }
+                if (showDialogPrompt(L"Do you want to format the entire SD card to FAT32?\nThis will delete ALL data on it.", L"Yes, format SD", L"No, keep as is") == 0) {
+                    if (getCFWVersion() == MOCHA_FSCLIENT) {
+                        showDialogPrompt(L"Aroma is running. Formatting the SD card while running\n"
+                                         L"Aroma is not possible from here.\n \n"
+                                         L"Please come back by using wafel.xyz after uninstalling stroopwafel\n", L"OK");
+                    } else {
+                        int status = WHBUnmountSdCard();
+                        if (status != 1) {
+                            WHBLogPrintf("Unmount failed (status: %d), ignoring...", status);
+                            WHBLogFreetypeDraw();
+                        } else if (!formatWholeDrive(fsaHandle, "/dev/sdcard01", deviceInfo)) {
+                            showErrorPrompt(L"Failed to format SD card. Continuing with uninstall...");
+                        } else {
+                            showSuccessPrompt(L"SD card formatted successfully.");
                         }
                     }
                 }
@@ -601,10 +582,6 @@ void showUninstallMenu() {
         }
     }
     WHBUnmountSdCard();
-
-
-    uninstallStroopwafelMenu(false);
-
 
     // ISFShax removal
     if (isIsfshaxInstalled()) {

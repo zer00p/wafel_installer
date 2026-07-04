@@ -8,6 +8,7 @@
 #include "common_paths.h"
 #include "urls.h"
 #include "common.h"
+#include "pluginmanager.h"
 #include <mbedtls/sha1.h>
 #include <isfshax_cmd.h>
 #include <vector>
@@ -19,7 +20,7 @@ using namespace std::chrono_literals;
 
 bool confirmIsfshaxAction(const wchar_t* action, bool isUninstall = false) {
     std::wstring message = L"";
-    if (isUninstall) {
+    if (isUninstall && isStroopwafelAvailable()) {
         message += L"WARNING: Before Uninstalling ISFShax make sure the console\n"
                    L"boots correctly using the 'Patch ISFShax and boot IOS (slc)'\n"
                    L"option in minute. If your console can't boot correctly,\n"
@@ -117,6 +118,11 @@ bool verifySuperblock() {
 }
 
 void installIsfshax(bool uninstall, bool manual) {
+    if (uninstall && isRedNAND()) {
+        showDialogPrompt(L"redNAND is detected.\nISFShax is required for redNAND.\nUninstallation is not possible.", L"OK");
+        return;
+    }
+
     // For automated install, proactively download latest files
     if (!uninstall && !manual) {
         if (!downloadIsfshaxFiles()) return;
