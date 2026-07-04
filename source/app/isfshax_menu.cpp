@@ -123,6 +123,10 @@ void installIsfshax(bool uninstall, bool manual) {
         return;
     }
 
+    if (uninstall && hasUnknownPlugins()) {
+        return;
+    }
+
     // For automated install, proactively download latest files
     if (!uninstall && !manual) {
         if (!downloadIsfshaxFiles()) return;

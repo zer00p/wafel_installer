@@ -406,6 +406,10 @@ void uninstallStroopwafelMenu(bool showWarning) {
         return;
     }
 
+    if (showWarning && hasUnknownPlugins()) {
+        return;
+    }
+
     if (showWarning) {
 
         const wchar_t* warningMessage =
@@ -520,6 +524,10 @@ void showStroopwafelMenu() {
 void showUninstallMenu() {
     if (isRedNAND()) {
         showDialogPrompt(L"redNAND is detected.\nStroopwafel and ISFShax are required for redNAND.\nUninstallation is not possible.", L"OK");
+        return;
+    }
+
+    if (hasUnknownPlugins()) {
         return;
     }
 

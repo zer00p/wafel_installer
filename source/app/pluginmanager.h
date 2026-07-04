@@ -2,3 +2,4 @@
 
 void showPluginManager();
 void checkForUpdates();
+bool hasUnknownPlugins();

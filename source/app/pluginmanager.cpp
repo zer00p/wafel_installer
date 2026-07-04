@@ -590,6 +590,64 @@ void checkForUpdates() {
     }
 }
 
+bool hasUnknownPlugins() {
+    std::vector<std::string> unknownPlugins;
+    const auto* pluginList = getPluginList(false);
+    
+    auto checkDir = [&](const std::string& path) {
+        DIR* dir = dirOpen(path.c_str());
+        if (dir) {
+            struct dirent* ent;
+            while ((ent = readdir(dir)) != nullptr) {
+                if (ent->d_type == DT_REG) {
+                    std::string fileName = ent->d_name;
+                    if (fileName.length() < 4 || fileName.substr(fileName.length() - 4) != ".ipx") {
+                        continue;
+                    }
+                    
+                    bool known = false;
+                    
+                    if (fileName == "00core.ipx" || fileName == "5isfshax.ipx" || fileName == "5payldr.ipx" || 
+                        fileName == "5upartsd.ipx" || fileName == "5usbpart.ipx" || fileName == "5sdusb.ipx") {
+                        known = true;
+                    }
+
+                    if (!known && pluginList) {
+                        for (const auto& p : *pluginList) {
+                            if (p.fileName == fileName) {
+                                known = true;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (!known) {
+                        if (std::find(unknownPlugins.begin(), unknownPlugins.end(), fileName) == unknownPlugins.end()) {
+                            unknownPlugins.push_back(fileName);
+                        }
+                    }
+                }
+            }
+            closedir(dir);
+        }
+    };
+    
+    if (isSlcMounted() && dirExist(Paths::SlcPluginsDir)) checkDir(Paths::SlcPluginsDir);
+    if (WHBMountSdCard() > 0 && dirExist(Paths::SdPluginsDir)) checkDir(Paths::SdPluginsDir);
+    
+    if (!unknownPlugins.empty()) {
+        std::wstring msg = L"Unknown Stroopwafel plugins detected:\n";
+        for (const auto& p : unknownPlugins) {
+            msg += L"- " + toWstring(p) + L"\n";
+        }
+        msg += L"\nPlease remove them manually before uninstalling.\nAn reboot to ensure your console works without them.";
+        showDialogPrompt(msg.c_str(), L"OK");
+        return true; 
+    }
+    
+    return false;
+}
+
 void showPluginManager() {
     bool anyChanged = false;
     std::string currentPath = getStroopwafelPluginPath();
