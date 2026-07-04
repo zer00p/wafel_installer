@@ -238,7 +238,11 @@ $(OUTPUT).wua	:	$(OUTPUT).rpx
 $(OUTPUT).rpx	:	$(OUTPUT).elf
 $(OUTPUT).elf	:	$(OFILES)
 
-$(OFILES_SRC)	: $(HFILES_BIN)
+$(OFILES_SRC)	: $(HFILES_BIN) $(TOPDIR)/source/app/system_hashes_data.h
+
+$(TOPDIR)/source/app/system_hashes_data.cpp $(TOPDIR)/source/app/system_hashes_data.h: $(TOPDIR)/system_hashes.json $(TOPDIR)/tools/build_hashes.py
+	@echo "Generating system_hashes_data..."
+	@python3 $(TOPDIR)/tools/build_hashes.py $(TOPDIR)/system_hashes.json $(TOPDIR)/source/app/system_hashes_data.cpp $(TOPDIR)/source/app/system_hashes_data.h
 
 #-------------------------------------------------------------------------------
 # you need a rule like this for each extension you use as binary data

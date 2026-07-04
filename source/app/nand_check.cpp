@@ -14,6 +14,11 @@
 #include <cerrno>
 #include "filesystem.h"
 #include "isfshax_menu.h"
+#include "pluginmanager.h"
+#include "system_hashes_data.h"
+#include "../utils/sha256.h"
+#include <sstream>
+#include <iomanip>
 
 /*
  * This file contains code and logic inspired by the following open source projects:
@@ -551,3 +556,78 @@ void showCheckNandMenu() {
         }
     }
 }
+
+bool runSystemIntegrityCheck() {
+    WHBLogFreetypeStartScreen();
+    WHBLogFreetypePrint(L"Running System Integrity Check...");
+    WHBLogFreetypeDraw();
+    
+    if (!isSlcMounted() || !isMlcMounted()) {
+        showDialogPrompt(L"System Integrity Check Failed!\nFailed to access system storage.", L"OK");
+        return false;
+    }
+    
+    // Verify system files
+    int filesScanned = 0;
+    int filesFailed = 0;
+    std::vector<std::string> failedFiles;
+
+    for (size_t i = 0; i < g_numSystemFileHashes; i++) {
+        const auto& fileHash = g_systemFileHashes[i];
+        // Paths will automatically point to /vol/system (SLC) or /vol/storage_mlc01/sys (MLC)
+        std::string fullPath = fileHash.filepath;
+        
+        if (fileExist(fullPath)) {
+            std::string actualHashStr = calculateSHA256(fullPath);
+            if (actualHashStr.empty()) {
+                failedFiles.push_back(fullPath + " (Read Error)");
+                filesFailed++;
+                continue;
+            }
+            
+            bool match = false;
+            for (size_t j = 0; j < fileHash.num_hashes; j++) {
+                if (actualHashStr == fileHash.valid_hashes[j]) {
+                    match = true;
+                    break;
+                }
+            }
+            
+            if (!match) {
+                failedFiles.push_back(fullPath);
+                filesFailed++;
+            }
+            
+            filesScanned++;
+            
+            if ((filesScanned % 10) == 0) {
+                WHBLogFreetypeStartScreen();
+                WHBLogFreetypePrint(L"Running System Integrity Check...");
+                std::wstring scanMsg = L"Files Scanned: " + std::to_wstring(filesScanned) + L" / " + std::to_wstring(g_numSystemFileHashes);
+                WHBLogFreetypePrint(scanMsg.c_str());
+                WHBLogFreetypeDrawScreen();
+            }
+        }
+    }
+    
+    if (filesFailed > 0) {
+        std::wstring msg = L"System Integrity Check Failed!\n" + std::to_wstring(filesFailed) + L" corrupted/modified system files found.\n";
+        msg += L"Uninstalling would brick your console.\n";
+        int shown = 0;
+        for(const auto& f : failedFiles) {
+            if (shown >= 5) {
+                msg += L"  ... and " + std::to_wstring(failedFiles.size() - 5) + L" more\n";
+                break;
+            }
+            std::wstring wf(f.begin(), f.end());
+            msg += L"  " + wf + L"\n";
+            shown++;
+        }
+        showDialogPrompt(msg.c_str(), L"OK");
+        return false;
+    }
+    
+    return true;
+}
+
+

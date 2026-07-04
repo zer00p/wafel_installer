@@ -81,5 +81,5 @@ source/cfw/ios_fs/ios_fs_syms.h
 
 # Guide HTML output
 /Guide_html/
-
-
+source/app/system_hashes_data.cpp
+source/app/system_hashes_data.h

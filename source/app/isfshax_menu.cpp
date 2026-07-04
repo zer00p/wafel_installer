@@ -1,15 +1,17 @@
 #include "isfshax_menu.h"
 #include "menu.h"
+#include "uninstall.h"
+#include "nand_check.h"
 #include "gui.h"
 #include "cfw.h"
 #include "fw_img_loader.h"
 #include "download.h"
 #include "filesystem.h"
+#include "../utils/sha1.h"
 #include "common_paths.h"
 #include "urls.h"
 #include "common.h"
 #include "pluginmanager.h"
-#include <mbedtls/sha1.h>
 #include <isfshax_cmd.h>
 #include <vector>
 #include <string>
@@ -39,29 +41,7 @@ bool confirmIsfshaxAction(const wchar_t* action, bool isUninstall = false) {
     return showDialogPrompt(message.c_str(), L"Yes", L"No", nullptr, nullptr, 1) == 0;
 }
 
-std::vector<unsigned char> calculateSHA1(const std::string& path) {
-    FILE* file = fileFopen(path.c_str(), "rb");
-    if (!file) {
-        return {};
-    }
 
-    mbedtls_sha1_context ctx;
-    mbedtls_sha1_init(&ctx);
-    mbedtls_sha1_starts(&ctx);
-
-    unsigned char buffer[4096];
-    size_t bytesRead;
-    while ((bytesRead = fread(buffer, 1, sizeof(buffer), file)) > 0) {
-        mbedtls_sha1_update(&ctx, buffer, bytesRead);
-    }
-
-    unsigned char hash[20];
-    mbedtls_sha1_finish(&ctx, hash);
-    mbedtls_sha1_free(&ctx);
-    fclose(file);
-
-    return std::vector<unsigned char>(hash, hash + 20);
-}
 
 bool verifySuperblock() {
     std::wstring sblockFilename = toWstring(std::filesystem::path(Paths::SlcInstallerSblockImg).filename().string());
@@ -118,13 +98,10 @@ bool verifySuperblock() {
 }
 
 void installIsfshax(bool uninstall, bool manual) {
-    if (uninstall && isRedNAND()) {
-        showDialogPrompt(L"redNAND is detected.\nISFShax is required for redNAND.\nUninstallation is not possible.", L"OK");
-        return;
-    }
-
-    if (uninstall && hasUnknownPlugins()) {
-        return;
+    if (uninstall) {
+        if (!uninstallChecks()) {
+            return;
+        }
     }
 
     // For automated install, proactively download latest files

@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include <string_view>
+#include <vector>
 #include <dirent.h> // Required for DIR type
 
 // Functions related to devices
@@ -12,6 +13,7 @@ bool unmountDisc();
 
 bool isDiscMounted();
 bool isSlcMounted();
+bool isMlcMounted();
 bool isUsbMounted();
 bool testStorage(TITLE_LOCATION location);
 

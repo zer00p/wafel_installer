@@ -1,5 +1,7 @@
 #include "filesystem.h"
 #include "common_paths.h"
+#include <mbedtls/sha1.h>
+#include <mbedtls/sha256.h>
 #include "cfw.h"
 #include "gui.h"
 #include "progress.h"
@@ -61,7 +63,7 @@ bool mountSystemDrives() {
     if (USE_LIBMOCHA()) {
         //unmountDefaultDevoptab();
         if (Mocha_MountFS("storage_slc", "/dev/slc01", "/vol/storage_slc01") == MOCHA_RESULT_SUCCESS) systemSLCMounted = true;
-        // if (Mocha_MountFS("storage_mlc01", nullptr, "/vol/storage_mlc01") == MOCHA_RESULT_SUCCESS) systemMLCMounted = true;
+        if (Mocha_MountFS("storage_mlc01", nullptr, "/vol/storage_mlc01") == MOCHA_RESULT_SUCCESS) systemMLCMounted = true;
         //if (Mocha_MountFS("storage_usb01", nullptr, "/vol/storage_usb01") == MOCHA_RESULT_SUCCESS) systemUSBMounted = true;
     }
     else {
@@ -78,6 +80,10 @@ bool mountSystemDrives() {
 
 bool isSlcMounted() {
     return systemSLCMounted;
+}
+
+bool isMlcMounted() {
+    return systemMLCMounted;
 }
 
 bool isUsbMounted() {
@@ -365,3 +371,5 @@ bool isDirEmpty(const std::string& path) {
     closedir(dirHandle);
     return true;
 }
+
+
