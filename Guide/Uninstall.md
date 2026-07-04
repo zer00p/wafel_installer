@@ -45,7 +45,7 @@ Do you want to remove them?
 ```
 
 Select `[ Yes ]` (or `[ Both ]` if prompted for multiple locations) to completely remove Stroopwafel.
-7. Once Stroopwafel is removed, the installer will prompt you to reboot your console.
+7. Once Stroopwafel is removed, the installer will notify you that the console will reboot. Select `[ OK ]` and your console will reboot.
 
 ## Phase 2: Removing ISFShax
 

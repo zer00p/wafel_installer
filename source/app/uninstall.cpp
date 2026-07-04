@@ -144,7 +144,9 @@ void showUninstallMenu() {
         if (f) fclose(f);
     }
 
-    showDialogPrompt(L"Stroopwafel has been removed.\nPlease reboot your console and launch the Wafel Installer again\nvia wafel.xyz from the browser to complete the uninstallation.", L"OK");
+    showDialogPrompt(L"Stroopwafel has been removed.\nYour console will now reboot. Please launch the Wafel Installer again\nvia wafel.xyz from the browser to complete the uninstallation.", L"OK");
+    setRebootPending(true);
+    setFullRebootPending(true);
 }
 
 void resumeUninstall() {

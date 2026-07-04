@@ -241,6 +241,9 @@ void showMainMenu() {
                 break;
             case 9:
                 showUninstallMenu();
+                if (isRebootPending() || isFullRebootPending()) {
+                    return;
+                }
                 break;
             case 10:
                 showCheckNandMenu();
