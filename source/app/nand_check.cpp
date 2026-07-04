@@ -594,7 +594,7 @@ bool runSystemIntegrityCheck() {
     WHBLogFreetypeDraw();
     
     if (!isSlcMounted() || !isMlcMounted()) {
-        showDialogPrompt(L"System Integrity Check Failed!\nFailed to access system storage.", L"OK");
+        showDialogPrompt(L"System Integrity Check Failed!\nFailed to access system storage.\nPlease make sure to disable 'System Access' in ftpiiu if you have it running.", L"OK");
         return false;
     }
     
@@ -657,7 +657,7 @@ bool runSystemIntegrityCheck() {
     
     if (filesFailed > 0) {
         std::wstring msg = L"System Integrity Check Failed!\n" + std::to_wstring(filesFailed) + L" corrupted/modified/missing system files found.\n";
-        msg += L"Uninstalling would brick your console.\n";
+        msg += L"Uninstalling might brick your console.\n";
         int shown = 0;
         for(const auto& f : failedFiles) {
             if (shown >= 5) {
