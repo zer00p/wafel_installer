@@ -5,6 +5,7 @@ namespace Paths {
     // SLC vol Paths
     inline const std::string SlcRoot = "/vol/storage_slc";
     inline const std::string SlcHaxDir = SlcRoot + "/sys/hax";
+    inline const std::string SlcUninstMrk = SlcHaxDir + "/uninst.mrk";
     inline const std::string SlcInstallerDir = SlcHaxDir + "/installer";
     inline const std::string SlcPluginsDir = SlcHaxDir + "/ios_plugins";
     inline const std::string SlcFwImg = SlcHaxDir + "/fw.img";

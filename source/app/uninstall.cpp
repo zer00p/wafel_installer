@@ -38,13 +38,6 @@ bool uninstallChecks() {
 
 void uninstallStroopwafelMenu(bool showWarning) {
     if (showWarning) {
-        if (!uninstallChecks()) {
-            return;
-        }
-    }
-
-    if (showWarning) {
-
         const wchar_t* warningMessage =
             L"Please read carefully:\n \n"
             L"This will remove Stroopwafel from your console.\n"
@@ -55,6 +48,10 @@ void uninstallStroopwafelMenu(bool showWarning) {
             L"Stroopwafel otherwise might cause a BRICK.\n";
 
         if (showDialogPrompt(warningMessage, L"I have undone everything, continue", L"Cancel", nullptr, nullptr, 1) != 0) {
+            return;
+        }
+
+        if (!uninstallChecks()) {
             return;
         }
     }
@@ -115,10 +112,6 @@ void uninstallStroopwafelMenu(bool showWarning) {
 }
 
 void showUninstallMenu() {
-    if (!uninstallChecks()) {
-        return;
-    }
-
     const wchar_t* warningMessage =
         L"Please read carefully:\n \n"
         L"Reinstalling ISFShax won't fix issues. Keeping it is recommended.\n \n"
@@ -134,13 +127,17 @@ void showUninstallMenu() {
         return;
     }
 
+    if (!uninstallChecks()) {
+        return;
+    }
+
     uninstallStroopwafelMenu(false);
 
     if (checkSystemAccess()) {
         if (!dirExist(Paths::SlcHaxDir)) {
             createDirectories(Paths::SlcHaxDir);
         }
-        FILE* f = fileFopen((Paths::SlcHaxDir + "/uninst.mrk").c_str(), "w");
+        FILE* f = fileFopen(Paths::SlcUninstMrk.c_str(), "w");
         if (f) {
             fputs("uninstall", f);
             fclose(f);

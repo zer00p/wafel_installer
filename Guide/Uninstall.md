@@ -34,7 +34,9 @@ stroopwafel/isfshax otherwise might cause a BRICK.
 ```
 
 5. **Carefully read the warning.** Ensure you have completely removed any custom keyboards or custom themes. If you use redNAND, do NOT proceed. If you proceed with these modifications in place, your console might BRICK. Only select `[ I have undone everything, continue ]` if you are absolutely certain it is safe.
-6. The installer will search for Stroopwafel files on your console's internal memory (SLC) and your SD card. Depending on where they are found, you will be asked to remove them. For example, if they are found on the SD card:
+6. The installer will then automatically perform a **System Integrity Check** to ensure your console is safe to uninstall from.
+   - If the check fails (e.g., due to missing or modified system files, multiple region folders detected, or USBMLC/redNAND being active), the uninstallation will be aborted to prevent a potential brick.
+   - If the check passes, the installer will search for Stroopwafel files on your console's internal memory (SLC) and your SD card. Depending on where they are found, you will be asked to remove them. For example, if they are found on the SD card:
 
 ```text
 Stroopwafel files found on SD card.
@@ -67,7 +69,7 @@ Do you want to continue uninstalling?
 [ No, cancel uninstall ]
 ```
 
-7. Select `[ Yes, continue uninstall ]`.
+6. Select `[ Yes, continue uninstall ]`.
 
 ### SD Card Formatting
 
