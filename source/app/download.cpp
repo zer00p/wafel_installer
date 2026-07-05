@@ -609,12 +609,16 @@ bool downloadAroma() {
     }
 
     // 5. HB App Store
-    auto appstoreMapper = [](std::string path) -> std::string {
-        if (path == "manifest.install" || path == "info.json") {
-            return "wiiu/apps/appstore/.get/packages/appstore/" + path;
-        }
-        return path;
+    auto getAppstoreMapper = [](const std::string& packageName) {
+        return [packageName](std::string path) -> std::string {
+            if (path == "manifest.install" || path == "info.json") {
+                return "wiiu/apps/appstore/.get/packages/" + packageName + "/" + path;
+            }
+            return path;
+        };
     };
+    
+    auto appstoreMapper = getAppstoreMapper("appstore");
 
     if (!downloadAndExtractZipUrl(URLs::HBAppstoreZip, "HB App Store", targetPath, appstoreMapper)) {
         WHBLogFreetypePrintf(L"Failed to download App Store from 4TU repo, falling back to GitHub...");
