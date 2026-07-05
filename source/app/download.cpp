@@ -516,8 +516,7 @@ std::string getRepoFromUrl(const std::string& url) {
     return url.substr(pos, end - pos);
 }
 
-static bool downloadAndExtractZip(const std::string& repo, const std::string& pattern, const std::string& displayName, const std::string& path, std::function<std::string(std::string)> pathMapper = nullptr) {
-    std::string zipUrl = getLatestReleaseAssetUrl(repo, pattern);
+static bool downloadAndExtractZipUrl(const std::string& zipUrl, const std::string& displayName, const std::string& path, std::function<std::string(std::string)> pathMapper = nullptr) {
     if (zipUrl.empty()) return false;
 
     std::string zipData;
@@ -571,6 +570,11 @@ static bool downloadAndExtractZip(const std::string& repo, const std::string& pa
     return true;
 }
 
+static bool downloadAndExtractZip(const std::string& repo, const std::string& pattern, const std::string& displayName, const std::string& path, std::function<std::string(std::string)> pathMapper = nullptr) {
+    std::string zipUrl = getLatestReleaseAssetUrl(repo, pattern);
+    return downloadAndExtractZipUrl(zipUrl, displayName, path, pathMapper);
+}
+
 bool downloadAroma() {
     WHBLogFreetypeStartScreen();
 
@@ -605,13 +609,25 @@ bool downloadAroma() {
     }
 
     // 5. HB App Store
-    std::string appstoreUrl = getLatestReleaseAssetUrl(URLs::RepoAppstore, "appstore.wuhb");
-    if (appstoreUrl.empty()) return false;
+    auto appstoreMapper = [](std::string path) -> std::string {
+        if (path == "manifest.install" || path == "info.json") {
+            return "wiiu/apps/appstore/" + path;
+        }
+        return path;
+    };
 
-    std::string appstorePath = targetPath + "/wiiu/apps/appstore/";
-    createDirectories(appstorePath);
-    if (!downloadFile(appstoreUrl, appstorePath + "appstore.wuhb")) {
-        return false;
+    if (!downloadAndExtractZipUrl(URLs::HBAppstoreZip, "HB App Store", targetPath, appstoreMapper)) {
+        WHBLogFreetypePrintf(L"Failed to download App Store from 4TU repo, falling back to GitHub...");
+        WHBLogFreetypeDrawScreen();
+
+        std::string appstoreUrl = getLatestReleaseAssetUrl(URLs::RepoAppstore, "appstore.wuhb");
+        if (appstoreUrl.empty()) return false;
+
+        std::string appstorePath = targetPath + "/wiiu/apps/appstore/";
+        createDirectories(appstorePath);
+        if (!downloadFile(appstoreUrl, appstorePath + "appstore.wuhb")) {
+            return false;
+        }
     }
 
     // 6. Wafel Installer

@@ -8,6 +8,7 @@ namespace URLs {
     inline const std::string RepoPayloadLoaderPayload = "wiiu-env/PayloadLoaderPayload";
     inline const std::string RepoAroma = "wiiu-env/Aroma";
     inline const std::string RepoAppstore = "fortheusers/hb-appstore";
+    inline const std::string HBAppstoreZip = "https://wiiu.cdn.fortheusers.org/zips/appstore.zip";
     inline const std::string RepoWafelInstaller = "zer00p/wafel_installer";
     inline const std::string RepoMinute = "StroopwafelCFW/minute_minute";
     inline const std::string RepoIsfshax = "isfshax/isfshax";
