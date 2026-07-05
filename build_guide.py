@@ -97,7 +97,7 @@ HTML_TEMPLATE = """\
     <a href="https://github.com/zer00p/wafel_installer">GitHub</a>
     <br>
     <span style="font-size: 0.8em; color: #888;">
-        Some icons provided by <a href="https://twemoji.twitter.com/" target="_blank">Twemoji</a> under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">CC-BY 4.0</a>.
+        Some icons provided by <a href="https://icons.getbootstrap.com/" target="_blank">Bootstrap Icons</a>.
     </span>
 </div>
 
