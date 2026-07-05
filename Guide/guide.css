@@ -189,7 +189,7 @@ hr {
 .inline-icon {
     height: 1.2em;
     width: auto;
-    vertical-align: middle;
+    vertical-align: -0.2em;
     margin-right: 4px;
 }
 
