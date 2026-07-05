@@ -611,7 +611,7 @@ bool downloadAroma() {
     // 5. HB App Store
     auto appstoreMapper = [](std::string path) -> std::string {
         if (path == "manifest.install" || path == "info.json") {
-            return "wiiu/apps/appstore/" + path;
+            return "wiiu/apps/appstore/.get/packages/appstore/" + path;
         }
         return path;
     };
