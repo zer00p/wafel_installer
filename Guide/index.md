@@ -12,17 +12,17 @@ Welcome to the Wafel Installer Guide! This guide will walk you through setting u
 
 Choose a section below to jump directly to it:
 
-### 1. 🚀 [Getting Started](GettingStarted.md)
+### 1. <img src="assets/getting_started-icon.png" class="inline-icon" alt="Icon"> [Getting Started](GettingStarted.md)
 * Set the correct date and time, check your internet connection, update your console firmware, and launch the Wafel Installer.
 
-### 2. <img src="wafel_installer-icon.png" class="inline-icon" alt="Icon"> [Wafel Installer](WafelInstaller.md)
+### 2. <img src="assets/wafel_installer-icon.png" class="inline-icon" alt="Icon"> [Wafel Installer](WafelInstaller.md)
 * Walk through the installer prompts, configure partitions (FAT32/WFS), and download/install Aroma, Stroopwafel, and ISFShax.
 
-### 3. 💾 [Backups](SaveBackup.md)
+### 3. <img src="assets/backups-icon.png" class="inline-icon" alt="Icon"> [Backups](SaveBackup.md)
 * Locate automated backups of system-unique keys (OTP/SEEPROM) and perform manual backups of your game saves using SaveMii.
 
-### 4. 💿 [Dump & Install Games](DumpInstallGames.md)
+### 4. <img src="assets/games-icon.png" class="inline-icon" alt="Icon"> [Dump & Install Games](DumpInstallGames.md)
 * Learn how to dump physical game discs and install games onto your console's storage.
 
-### 5. 🗑️ [Uninstall](Uninstall.md)
+### 5. <img src="assets/uninstall-icon.png" class="inline-icon" alt="Icon"> [Uninstall](Uninstall.md)
 * Learn how to completely remove the homebrew environment, Stroopwafel, and ISFShax to return your console to stock.

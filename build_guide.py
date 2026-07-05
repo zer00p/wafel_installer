@@ -95,6 +95,10 @@ HTML_TEMPLATE = """\
     </div>
     <a href="https://wafel.xyz">wafel.xyz</a> &mdash;
     <a href="https://github.com/zer00p/wafel_installer">GitHub</a>
+    <br>
+    <span style="font-size: 0.8em; color: #888;">
+        Some icons provided by <a href="https://twemoji.twitter.com/" target="_blank">Twemoji</a> under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">CC-BY 4.0</a>.
+    </span>
 </div>
 
 </div>
@@ -145,13 +149,13 @@ def main():
     else:
         print(f"  Warning: guide.css not found in {GUIDE_DIR}")
 
-    # Copy wafel_installer-icon.png from source directory to output directory
-    icon_src = os.path.join(GUIDE_DIR, "wafel_installer-icon.png")
-    icon_dst = os.path.join(OUTPUT_DIR, "wafel_installer-icon.png")
-    if os.path.exists(icon_src):
-        shutil.copy2(icon_src, icon_dst)
+    # Copy all assets from source directory to output directory
+    assets_src = os.path.join(GUIDE_DIR, "assets")
+    assets_dst = os.path.join(OUTPUT_DIR, "assets")
+    if os.path.exists(assets_src):
+        shutil.copytree(assets_src, assets_dst, dirs_exist_ok=True)
     else:
-        print(f"  Warning: wafel_installer-icon.png not found in {GUIDE_DIR}")
+        print(f"  Warning: assets folder not found in {GUIDE_DIR}")
 
     generated = set()
     total_pages = 0
