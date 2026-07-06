@@ -210,3 +210,47 @@ hr {
 .guide-contrib {
     margin-bottom: 12px;
 }
+
+/* ===== Index Navigation Links ===== */
+.index-card {
+    position: relative;
+    padding: 6px 16px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    transition: background-color 0.2s, border-color 0.2s;
+    margin-bottom: 2px;
+}
+
+.index-card:hover {
+    background-color: #FFF0D4;
+    border-color: #E8D5B8;
+}
+
+.index-card a::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1;
+}
+
+.index-card h3 {
+    margin-top: 0;
+}
+
+.index-card h3 a {
+    text-decoration: underline;
+}
+
+.index-card:hover h3 a {
+    color: #B26B00;
+}
+
+.index-card ul {
+    margin-bottom: 0;
+    color: #444;
+    list-style-type: none;
+    padding-left: 31px;
+}
