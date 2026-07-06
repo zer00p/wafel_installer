@@ -4,9 +4,9 @@ If you wish to completely remove the homebrew environment, Stroopwafel, and ISFS
 
 To ensure your console can safely boot without modifications, the uninstall process is split into two phases. The first phase removes your plugins, and the second phase removes ISFShax.
 
-<div class="callout-warning">
-<strong>Important:</strong> Please ensure you have undone any custom themes or custom keyboards installed to the system before proceeding. Failure to do so might cause a BRICK!
-</div>
+::: {.callout-warning}
+**Important:** Please ensure you have undone any custom themes or custom keyboards installed to the system before proceeding. Failure to do so might cause a BRICK!
+:::
 
 ## Phase 1: Removing Stroopwafel and Plugins
 
