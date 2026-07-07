@@ -199,14 +199,14 @@ If everything worked, you will be greeted by the Environment Loader
 
 Select `aroma`, then press `Y` to mark it as default and then `A` to load it.
 
-### Boot Selector
-
-Select `Wii U Menu`, then press `Y` to mark it as default and then `A` to load it.
-
 ### Blocking Updates
 
 Press `X` to block updates.
 Note: it is also fine to skip this with `B`. It is very unlikely that Nintendo will ever release another update for the Wii U and ISFShax is already preventing boot1 updates (so even if there was an update, ISFShax will continue to work)
+
+### Boot Selector
+
+Select `Wii U Menu`, then press `Y` to mark it as default and then `A` to load it.
 
 ### Formatting USB Storage
 
