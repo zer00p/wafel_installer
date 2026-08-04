@@ -382,7 +382,6 @@ bool isRedNAND() {
     }
     std::string iniPath = Paths::SdMinuteDir + "/minute.ini";
     if (!fileExist(iniPath)) {
-        WHBUnmountSdCard();
         return false;
     }
 
@@ -398,7 +397,6 @@ bool isRedNAND() {
         }
         fclose(f);
     }
-    WHBUnmountSdCard();
     return autoboot == 2;
 }
 

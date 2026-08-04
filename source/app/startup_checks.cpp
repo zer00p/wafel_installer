@@ -221,7 +221,7 @@ bool performStartupChecks() {
                         if (mbr) {
                             MbrPartitionInfo info;
                             if (getMbrPartitionInfo(fsaHandle, "/dev/sdcard01", devInfo, mbr, info)) {
-                                if (info.hasWfs) {
+                                if (info.hasWfs && !isRedNAND()) {
                                     std::string pluginPath = getStroopwafelPluginPath();
                                     bool alreadyConfigured = false;
                                     if (!pluginPath.empty()) {

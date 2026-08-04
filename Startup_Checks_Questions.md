@@ -125,7 +125,7 @@ This document lists all the possible questions a user might be asked during the 
   ```
 
 ## 11. Unconfigured Wii U Partition on SD Card
-- **Condition:** Shown when the SD card has a `wiiu` folder, contains a WFS (Wii U) partition in its MBR, but the required partition plugins (`5upartsd.ipx` or `5sdusb.ipx`) are not present.
+- **Condition:** Shown when the SD card has a `wiiu` folder, contains a WFS (Wii U) partition in its MBR, redNAND is not active, but the required partition plugins (`5upartsd.ipx` or `5sdusb.ipx`) are not present.
 - **Prompt:**
   ```text
   A Wii U or NTFS partition was detected on the SD card.
