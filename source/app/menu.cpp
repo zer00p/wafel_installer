@@ -106,12 +106,12 @@ void loadArbitraryFwImgMenu() {
     }
 }
 
-bool installStroopwafel() {
+bool installStroopwafel(bool forceSLC) {
     bool sdEmulated = isSdEmulated();
     bool toSD = false;
 
-    if (sdEmulated) {
-        uint8_t choice = showDialogPrompt(L"Where do you want to download Stroopwafel?\nNote: Stroopwafel cannot be installed to the USB device, even when using SD emulation.", L"SLC", L"Cancel");
+    if (sdEmulated || forceSLC) {
+        uint8_t choice = showDialogPrompt(L"Where do you want to download Stroopwafel?\nNote: For SD emulation, Stroopwafel must be installed to the SLC.", L"SLC", L"Cancel");
         if (choice != 0) return false;
         toSD = false;
     } else {

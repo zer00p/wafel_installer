@@ -1551,6 +1551,15 @@ void showUSBPartitionMenu() {
                     }
 
                     setStroopwafelPluginPath(pluginPath);
+                    while (pluginPath.empty() || !dirExist(pluginPath)) {
+                        if (showDialogPrompt(L"Stroopwafel is not detected. It is required for partitioned USB storage.\nDo you want to install it now?", L"Yes", L"Cancel") != 0) break;
+
+                        if (installStroopwafel(targetEmulation)) {
+                            pluginPath = getStroopwafelPluginPath();
+                        }
+                    }
+                    if (pluginPath.empty() || !dirExist(pluginPath)) break;
+
                     if (downloadUsbPartitionPlugin(targetEmulation)) {
                         std::wstring msg = L"SD emulation " + std::wstring(targetEmulation ? L"enabled" : L"disabled") + L" successfully.";
                         showSuccessPrompt(msg.c_str());
@@ -1589,7 +1598,7 @@ void setupPartitionedUSBMenu() {
     while (pluginTarget.empty() || !dirExist(pluginTarget)) {
         if (showDialogPrompt(L"Stroopwafel is not detected. It is required for partitioned USB storage.\nDo you want to install it now?", L"Yes", L"Cancel") != 0) return;
         
-        if (installStroopwafel()) {
+        if (installStroopwafel(sdEmulation)) {
             pluginTarget = getStroopwafelPluginPath();
         }
     }

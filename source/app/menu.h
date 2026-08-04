@@ -8,7 +8,7 @@ void showLoadingScreen();
 void showMainMenu();
 void loadArbitraryFwImgMenu();
 void installStroopwafelMenu();
-bool installStroopwafel();
+bool installStroopwafel(bool forceSLC = false);
 bool checkSystemAccess(bool suggestExit = false);
 bool isRedNAND();
 
