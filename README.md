@@ -28,7 +28,7 @@ Download the [latest release from GitHub](https://github.com/zer00p/wafel_instal
 
 ## Guide
 
-To mod your Wii U follow the [Guide](Guide/GettingStarted.md).
+To mod your Wii U follow the [Guide](https://wafel.xyz/guide/index.html).
 
 ## How to compile
  - Install [DevkitPro](https://devkitpro.org/wiki/Getting_Started) for your platform.
