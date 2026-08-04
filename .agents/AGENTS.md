@@ -4,7 +4,7 @@ These rules dictate how agents should interact with the Wafel Installer project.
 
 ## Building the App
 - The application is built using `make`. It relies on the DevkitPro and `wut` toolchain.
-- Typically, this is run inside a Docker container (e.g., `docker run --rm -v ${PWD}:/project builder:latest /bin/bash -c "make clean && make"`).
+- Typically, this is run inside a container using Podman or Docker (e.g., `podman run --rm -v ${PWD}:/project localhost/wafel-builder:latest /bin/bash -c "make clean && make"`).
 
 ## Building the Guide
 - The HTML guide is built using a custom Python script.
