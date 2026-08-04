@@ -43,7 +43,7 @@ Stroopwafel files found on SD card.
 Do you want to remove them?
 
 [ Yes ]
-[ No ]
+[ Cancel ]
 ```
 
 Select `[ Yes ]` (or `[ Both ]` if prompted for multiple locations) to completely remove Stroopwafel.

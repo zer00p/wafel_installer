@@ -36,7 +36,7 @@ bool uninstallChecks() {
     return true;
 }
 
-void uninstallStroopwafelMenu(bool showWarning) {
+bool uninstallStroopwafelMenu(bool showWarning) {
     if (showWarning) {
         const wchar_t* warningMessage =
             L"Please read carefully:\n \n"
@@ -48,11 +48,11 @@ void uninstallStroopwafelMenu(bool showWarning) {
             L"Stroopwafel otherwise might cause a BRICK.\n";
 
         if (showDialogPrompt(warningMessage, L"I have undone everything, continue", L"Cancel", nullptr, nullptr, 1) != 0) {
-            return;
+            return false;
         }
 
         if (!uninstallChecks()) {
-            return;
+            return false;
         }
     }
 
@@ -60,55 +60,59 @@ void uninstallStroopwafelMenu(bool showWarning) {
     bool stroopOnSlc = dirExist(Paths::SlcPluginsDir) || fileExist(Paths::SlcFwImg);
     bool stroopOnSd = dirExist(Paths::SdPluginsDir) || fileExist(Paths::SdFwImg) || dirExist(Paths::SdMinuteDir);
 
+    if (!stroopOnSlc && !stroopOnSd) {
+        showDialogPrompt(L"No Stroopwafel files found on SLC or SD card.", L"OK");
+        return true;
+    }
+
     uint8_t stroopChoice = 255;
     if (stroopOnSlc && stroopOnSd) {
-        stroopChoice = showDialogPrompt(L"Stroopwafel files found on both SLC and SD card.\nWhere do you want to remove them from?", L"Both", L"SLC only", L"SD card only", L"Skip");
+        stroopChoice = showDialogPrompt(L"Stroopwafel files found on both SLC and SD card.\nWhere do you want to remove them from?", L"Both", L"SLC only", L"SD card only", L"Cancel");
+        if (stroopChoice > 2) return false;
     } else if (stroopOnSlc) {
-        if (showDialogPrompt(L"Stroopwafel files found on SLC.\nDo you want to remove them?", L"Yes", L"No") == 0) {
-            stroopChoice = 1; // SLC only
-        }
+        if (showDialogPrompt(L"Stroopwafel files found on SLC.\nDo you want to remove them?", L"Yes", L"Cancel") != 0) return false;
+        stroopChoice = 1; // SLC only
     } else if (stroopOnSd) {
-        if (showDialogPrompt(L"Stroopwafel files found on SD card.\nDo you want to remove them?", L"Yes", L"No") == 0) {
-            stroopChoice = 2; // SD only
-        }
+        if (showDialogPrompt(L"Stroopwafel files found on SD card.\nDo you want to remove them?", L"Yes", L"Cancel") != 0) return false;
+        stroopChoice = 2; // SD only
     }
 
-    if (stroopChoice != 255 && stroopChoice != 3) {
-        WHBLogFreetypeStartScreen();
-        WHBLogFreetypePrint(L"Removing Stroopwafel files...");
-        WHBLogFreetypeDraw();
-        setFullRebootPending(true);
+    WHBLogFreetypeStartScreen();
+    WHBLogFreetypePrint(L"Removing Stroopwafel files...");
+    WHBLogFreetypeDraw();
+    setFullRebootPending(true);
 
-        // Remove from SLC
-        if (stroopChoice == 0 || stroopChoice == 1) {
-            if (checkSystemAccess()) {
-                WHBLogFreetypePrint(L"Removing SLC files...");
-                WHBLogFreetypeDraw();
-                removeFile(Paths::SlcFwImg);
-                deleteDirContent(Paths::SlcPluginsDir);
-                removeDir(Paths::SlcPluginsDir);
-                if (isDirEmpty(Paths::SlcHaxDir)) {
-                     removeDir(Paths::SlcHaxDir);
-                }
+    // Remove from SLC
+    if (stroopChoice == 0 || stroopChoice == 1) {
+        if (checkSystemAccess()) {
+            WHBLogFreetypePrint(L"Removing SLC files...");
+            WHBLogFreetypeDraw();
+            removeFile(Paths::SlcFwImg);
+            deleteDirContent(Paths::SlcPluginsDir);
+            removeDir(Paths::SlcPluginsDir);
+            if (isDirEmpty(Paths::SlcHaxDir)) {
+                 removeDir(Paths::SlcHaxDir);
             }
         }
-        // Remove from SD
-        if (stroopChoice == 0 || stroopChoice == 2) {
-            if (WHBMountSdCard() == 1) {
-                WHBLogFreetypePrint(L"Removing SD files...");
-                WHBLogFreetypeDraw();
-                removeFile(Paths::SdFwImg);
-                deleteDirContent(Paths::SdPluginsDir);
-                removeDir(Paths::SdPluginsDir);
-                deleteDirContent(Paths::SdMinuteDir);
-                removeDir(Paths::SdMinuteDir);
-                WHBUnmountSdCard();
-            }
-        }
-        WHBLogFreetypePrint(L"Done removing Stroopwafel files.");
-        WHBLogFreetypeDraw();
-        sleep_for(2s);
     }
+    // Remove from SD
+    if (stroopChoice == 0 || stroopChoice == 2) {
+        if (WHBMountSdCard() == 1) {
+            WHBLogFreetypePrint(L"Removing SD files...");
+            WHBLogFreetypeDraw();
+            removeFile(Paths::SdFwImg);
+            deleteDirContent(Paths::SdPluginsDir);
+            removeDir(Paths::SdPluginsDir);
+            deleteDirContent(Paths::SdMinuteDir);
+            removeDir(Paths::SdMinuteDir);
+            WHBUnmountSdCard();
+        }
+    }
+    WHBLogFreetypePrint(L"Done removing Stroopwafel files.");
+    WHBLogFreetypeDraw();
+    sleep_for(2s);
+
+    return true;
 }
 
 void showUninstallMenu() {
@@ -131,7 +135,9 @@ void showUninstallMenu() {
         return;
     }
 
-    uninstallStroopwafelMenu(false);
+    if (!uninstallStroopwafelMenu(false)) {
+        return;
+    }
 
     if (checkSystemAccess()) {
         if (!dirExist(Paths::SlcHaxDir)) {
@@ -143,7 +149,6 @@ void showUninstallMenu() {
             fclose(f);
         }
     }
-
 
     showDialogPrompt(L"Stroopwafel has been removed.\nYour console will now reboot. Please launch the Wafel Installer again\nvia wafel.xyz from the browser to complete the uninstallation.", L"OK");
     setRebootPending(true);
