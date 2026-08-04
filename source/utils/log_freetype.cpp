@@ -93,7 +93,7 @@ static void FreetypeAddLine(const char *line) {
         }
         p++;
     }
-    if (p > start) {
+    if (p > start || start == line) {
         FreetypeAddSingleLine(start, p - start);
     }
 }
@@ -130,7 +130,7 @@ static void FreetypeAddLine(const wchar_t *line) {
         }
         p++;
     }
-    if (p > start) {
+    if (p > start || start == line) {
         FreetypeAddSingleLine(start, p - start);
     }
 }
