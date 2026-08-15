@@ -57,26 +57,25 @@ You can launch USB Loader GX in three ways:
 - From the **Homebrew Channel** within the vWii Menu.
 
 ::: {.callout-note}
-
 - **Using USB Storage:** USB Loader GX will automatically detect your drive and load directly into the game menu. If your USB drive is not detected, ensure it is connected to the top rear USB port (Port 0).
 - **Using an SD Card:** If you do not have a USB drive connected, USB Loader GX will wait for a USB device with a 20-second countdown. Press `B` on your Wii Remote while it is waiting to switch to SD card mode.
-  :::
+:::
 
 ### Basic Navigation & Settings
 
 The bottom navigation bar provides essential controls:
 
-- **SD Mode Toggle (leftmost icon):** Switch between SD card and USB drive storage modes.
-- **Settings (gears icon):** Configure USB Loader GX settings.
+- **SD Mode Toggle** ![SD Card Mode](assets/ulgx/sdcard.png){.inline-icon}: Switch between SD card and USB drive storage modes.
+- **Settings** ![Settings](assets/ulgx/settings_button.png){.inline-icon}: Configure USB Loader GX settings.
   - *Recommended setting:* Go to `Settings` &rarr; `Loader Settings` &rarr; `Return To` and select `UNEO` (or `UNEO USB Loader GX`). When you exit a Wii game, the console will return straight to USB Loader GX instead of the vWii System Menu.
-- **Power (standby icon):** Turn off the console.
-- **View Display Mode:** Change how games are displayed (List View, Grid View, Carousel / CoverFlow, or Channel View). Channel View imitates the classic Wii Menu channels and displays animated banners without requiring downloaded 2D/3D cover art.
-- **Game Source Filter:** Toggle visibility of different game types (Wii, GameCube, and NAND channels). If you do not have custom WiiWare channels installed, you can uncheck "NAND" to keep the game list clean.
-- **Homebrew Launcher (TV icon in middle bar):** Launch vWii homebrew applications directly from USB Loader GX.
+- **Power** ![Power](assets/ulgx/wiimote_poweroff.png){.inline-icon}: Turn off the console.
+- **View Display Mode:** Change how games are displayed (List View ![List View](assets/ulgx/arrangeList.png){.inline-icon}, Grid View ![Grid View](assets/ulgx/arrangeGrid.png){.inline-icon}, Carousel / CoverFlow ![Carousel View](assets/ulgx/arrangeCarousel.png){.inline-icon}, or Channel View ![Channel View](assets/ulgx/arrangeBannerGrid.png){.inline-icon}). Channel View imitates the classic Wii Menu channels and displays animated banners without requiring downloaded 2D/3D cover art.
+- **Game Source Filter** ![Game Source Filter](assets/ulgx/loader_mode.png){.inline-icon}: Toggle visibility of different game types (Wii, GameCube, and NAND channels). If you do not have custom WiiWare channels installed, you can uncheck "NAND" to keep the game list clean.
+- **Homebrew Launcher** ![Homebrew Launcher](assets/ulgx/browser.png){.inline-icon}: Launch vWii homebrew applications directly from USB Loader GX.
 
 ### Installing (Dumping) Games
 
-1. Insert your Wii game disc into the console disc drive (or press the `+` button in the toolbar).
+1. Insert your Wii game disc into the console disc drive (or press the ![Install](assets/ulgx/button_install.png){.inline-icon} button in the toolbar).
 2. Select **Install** and confirm with **OK**.
 3. Repeat for any other Wii game discs you want to dump.
 4. Press `1` on your Wii Remote to automatically download box art and disc banners from GameTDB.
