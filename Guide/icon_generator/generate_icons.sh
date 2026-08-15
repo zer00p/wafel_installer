@@ -16,9 +16,9 @@ fi
 python3 create_gradient.py
 
 # Process icons
-for icon in rocket floppy disc controller trash; do
-  if [ "$icon" = "disc" ]; then
-    SIZE="110x110\!"
+for icon in rocket floppy disc vwii trash; do
+  if [ "$icon" = "disc" ] || [ "$icon" = "vwii" ]; then
+    SIZE="106x106\!"
   else
     SIZE="96x96\!"
   fi
@@ -39,9 +39,13 @@ done
 mv rocket-icon.png ../assets/getting_started-icon.png
 mv floppy-icon.png ../assets/backups-icon.png
 mv disc-icon.png ../assets/games-icon.png
-mv controller-icon.png ../assets/vwii-icon.png
+mv vwii-icon.png ../assets/vwii-icon.png
 mv trash-icon.png ../assets/uninstall-icon.png
 
 # Cleanup temps
 rm mask.png grad.png *_color.png
+
+# Rebuild guide
+python3 ../../build_guide.py
+
 
