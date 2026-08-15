@@ -36,8 +36,6 @@ This will install:
   - Also includes Forwarders for the Wii U and vWii Menu
 - Open Shop Channel: Download additional Wii Homebrew via Libre Shop or Homebrew Browser
 
-
-
 ## USB Loader GX
 
 USB Loader GX (ULGX)can dump your Wii Games to the FAT32 Partition on either the SD card or USB storage. The games can then be launched directly from ULGX without further installation.
@@ -72,15 +70,22 @@ You can also launch Homebrew Apps, by pressing the TV Homebrew Channel Icon in t
 3. Repeat for all your games
 4. Press `1` on the Wii Mote to download Covers
 
-
-
 ### Launching Games
 
 Just click on the Game you want to launch
 
+## Installing Additional Homebrew Apps
 
+Additional Wii homebrew apps can be installed from the [Open Shop Channel](https://oscwii.org/) (OSC). There are two ways of accessing the OSC. Both can be launched from the Homebrew Channel on the vWii System Menu.
 
-## Installing Additional Hombrew Apps
+#### Homebrew Browser
+
+Graphical browser for the OSC. This app was originally developed 15 years ago, still works, but isn't the most stable one
+
+#### Libre Shop
+
+New text based alternative to the old Homebrew Browser. While not as visually pleasing, it is clean and very stable.
+
 
 
 
