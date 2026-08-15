@@ -156,7 +156,7 @@ bool performIsfshaxCheck(bool usingUSB, bool wantsPartitionedStorage) {
     return false;
 }
 
-bool performPostSetupChecks(bool usingUSB, bool wantsPartitionedStorage) {
+bool performPostSetupChecks(bool usingUSB, bool wantsPartitionedStorage, bool newlyPartitioned) {
     if (!performAromaCheck()) return false;
 
     bool stroopwafelInstalled = false;
@@ -171,7 +171,7 @@ bool performPostSetupChecks(bool usingUSB, bool wantsPartitionedStorage) {
         }
     }
 
-    if (wantsPartitionedStorage && stroopwafelInstalled) {
+    if (newlyPartitioned && wantsPartitionedStorage && stroopwafelInstalled) {
         showSuccessPrompt(WFS_FORMAT_REMINDER);
     }
 

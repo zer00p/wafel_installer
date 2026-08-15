@@ -6,6 +6,7 @@
 #include "gui.h"
 #include "filesystem.h"
 #include "download.h"
+#include "pluginmanager.h"
 #include "common.h"
 #include "navigation.h"
 #include "cfw.h"
@@ -763,7 +764,7 @@ static bool addWiiUPartition(FSAClientHandle fsaHandle, const FSADeviceInfo& dev
     return false;
 }
 
-bool handlePartitionActionMenu(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, const wchar_t* deviceTypeName, bool needWFS, bool* outHasWiiUPartition) {
+bool handlePartitionActionMenu(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, const wchar_t* deviceTypeName, bool needWFS, bool* outHasWiiUPartition, bool* outNewlyPartitioned) {
     uint8_t* mbr = (uint8_t*)memalign(0x40, deviceInfo.deviceSectorSize);
     if (!mbr) {
         setErrorPrompt(L"Failed to allocate memory for MBR!");
@@ -844,13 +845,16 @@ bool handlePartitionActionMenu(FSAClientHandle fsaHandle, const FSADeviceInfo& d
         if (choice == optKeep) {
             partitionSuccess = true;
             if (outHasWiiUPartition) *outHasWiiUPartition = info.hasWfs;
+            if (outNewlyPartitioned) *outNewlyPartitioned = false;
         } else if (optCreate != -1 && choice == optCreate) {
             if (addWiiUPartition(fsaHandle, deviceInfo, mbr, info.lastOccupiedSector)) {
                 partitionSuccess = true;
                 if (outHasWiiUPartition) *outHasWiiUPartition = true;
+                if (outNewlyPartitioned) *outNewlyPartitioned = true;
             }
         } else if (choice == optRepartition) {
             partitionSuccess = partitionDevice(fsaHandle, "/dev/sdcard01", deviceInfo, outHasWiiUPartition);
+            if (partitionSuccess && outNewlyPartitioned) *outNewlyPartitioned = true;
         } else if (choice == optCancel || choice == 255) {
             break;
         }
@@ -935,8 +939,8 @@ bool checkSdCardPartitioning(FSAClientHandle fsaHandle, const FSADeviceInfo& dev
     return wantsPartitionedStorage;
 }
 
-bool handleSDUSBAction(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, FatMountGuard& guard, bool* outHasWiiUPartition) {
-    if (handlePartitionActionMenu(fsaHandle, deviceInfo, L"SD card", true, outHasWiiUPartition)) {
+bool handleSDUSBAction(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, FatMountGuard& guard, bool* outHasWiiUPartition, bool* outNewlyPartitioned) {
+    if (handlePartitionActionMenu(fsaHandle, deviceInfo, L"SD card", true, outHasWiiUPartition, outNewlyPartitioned)) {
         guard.unblock();
         WHBMountSdCard();
         return true;
@@ -1460,17 +1464,51 @@ void setupSDUSBMenu() {
         }
 
         bool hasWiiU = false;
-        if (handleSDUSBAction(fsaHandle, deviceInfo, guard, &hasWiiU)) {
+        bool newlyPartitioned = false;
+        if (handleSDUSBAction(fsaHandle, deviceInfo, guard, &hasWiiU, &newlyPartitioned)) {
             FSADelClient(fsaHandle);
-            if (hasWiiU) {
-                showSuccessPrompt(WFS_FORMAT_REMINDER);
-            }
-            performPostSetupChecks(false, hasWiiU);
+            performPostSetupChecks(false, hasWiiU, newlyPartitioned);
             return;
         }
     }
 
     FSADelClient(fsaHandle);
+}
+
+static bool ensureSlcStroopwafelForSdEmulation() {
+    bool stroopOnSlc = fileExist(Paths::SlcFwImg) && dirExist(Paths::SlcPluginsDir);
+    std::string pluginTarget = getStroopwafelPluginPath();
+
+    if (pluginTarget != Paths::SlcPluginsDir) {
+        if (!stroopOnSlc) {
+            if (showDialogPrompt(L"To use SD Emulation, stroopwafel and minute must be installed to the SLC", L"OK", L"Abort", nullptr, nullptr, 1, false) != 0) {
+                return false;
+            }
+        }
+        setStroopwafelPluginPath(Paths::SlcPluginsDir);
+    }
+
+    if (!checkSystemAccess()) {
+        return false;
+    }
+
+    if (!stroopOnSlc) {
+        while (!fileExist(Paths::SlcFwImg) || !dirExist(Paths::SlcPluginsDir)) {
+            if (showDialogPrompt(L"Stroopwafel or minute is missing on SLC. It is required for SD emulation.\nDo you want to install them now?", L"Yes", L"Cancel") != 0) {
+                return false;
+            }
+
+            if (!installStroopwafel(true)) {
+                return false;
+            }
+        }
+    } else {
+        if (showDialogPrompt(L"Stroopwafel is installed on SLC.\nDo you want to check if Stroopwafel files on SLC are up to date?", L"Yes", L"No") == 0) {
+            checkForUpdates();
+        }
+    }
+
+    return true;
 }
 
 void showUSBPartitionMenu() {
@@ -1536,29 +1574,19 @@ void showUSBPartitionMenu() {
                 } else if (selectedOption == 3) {
                     bool targetEmulation = !hasEmulation;
 
-                    if ((targetEmulation || pluginPath == Paths::SlcPluginsDir) && !checkSystemAccess()) {
+                    if (targetEmulation) {
+                        if (!ensureSlcStroopwafelForSdEmulation()) {
+                            break;
+                        }
+                    } else if (pluginPath == Paths::SlcPluginsDir && !checkSystemAccess()) {
                         break;
                     }
 
-                    if (targetEmulation && pluginPath != Paths::SlcPluginsDir) {
-                        if (showDialogPrompt(L"To use SD Emulation, stroopwafel needs to be installed to the SLC", L"OK", L"Abort", nullptr, nullptr, 1, false) != 0) {
-                            break;
-                        }
-                        removeFile(pluginPath + (hasEmulation ? "/5upartsd.ipx" : "/5usbpart.ipx"));
+                    removeFile(pluginPath + (hasEmulation ? "/5upartsd.ipx" : "/5usbpart.ipx"));
+                    if (targetEmulation) {
                         pluginPath = Paths::SlcPluginsDir;
-                    } else {
-                        removeFile(pluginPath + (hasEmulation ? "/5upartsd.ipx" : "/5usbpart.ipx"));
                     }
-
                     setStroopwafelPluginPath(pluginPath);
-                    while (pluginPath.empty() || !dirExist(pluginPath)) {
-                        if (showDialogPrompt(L"Stroopwafel is not detected. It is required for partitioned USB storage.\nDo you want to install it now?", L"Yes", L"Cancel") != 0) break;
-
-                        if (installStroopwafel(targetEmulation)) {
-                            pluginPath = getStroopwafelPluginPath();
-                        }
-                    }
-                    if (pluginPath.empty() || !dirExist(pluginPath)) break;
 
                     if (downloadUsbPartitionPlugin(targetEmulation)) {
                         std::wstring msg = L"SD emulation " + std::wstring(targetEmulation ? L"enabled" : L"disabled") + L" successfully.";
@@ -1580,30 +1608,28 @@ void setupPartitionedUSBMenu() {
     uint8_t emulationChoice = showDialogPrompt(L"Do you want to use the first FAT32 partition as an emulated SD card?\nThis should ONLY be used if you don't intend to use a real SD card.", L"Yes (SD Emulation)", L"No", L"Cancel", nullptr, 1);
     if (emulationChoice == 2 || emulationChoice == 255) return;
 
-    std::string pluginTarget = getStroopwafelPluginPath();
     bool sdEmulation = (emulationChoice == 0);
 
-    if(sdEmulation && pluginTarget != Paths::SlcPluginsDir){
-        if(showDialogPrompt(L"To use SD Emulation, stroopwafel needs to be installed to the SLC", L"OK", L"Abort", nullptr, nullptr, 1, false) != 0){
+    if (sdEmulation) {
+        if (!ensureSlcStroopwafelForSdEmulation()) {
             return;
         }
-        setStroopwafelPluginPath(Paths::SlcPluginsDir);
-        pluginTarget = Paths::SlcPluginsDir;
-    }
-
-    if ((sdEmulation || pluginTarget == Paths::SlcPluginsDir) && !checkSystemAccess()) {
-        return;
-    }
-
-    while (pluginTarget.empty() || !dirExist(pluginTarget)) {
-        if (showDialogPrompt(L"Stroopwafel is not detected. It is required for partitioned USB storage.\nDo you want to install it now?", L"Yes", L"Cancel") != 0) return;
-        
-        if (installStroopwafel(sdEmulation)) {
+    } else {
+        std::string pluginTarget = getStroopwafelPluginPath();
+        if (pluginTarget == Paths::SlcPluginsDir && !checkSystemAccess()) {
+            return;
+        }
+        while (pluginTarget.empty() || !dirExist(pluginTarget)) {
+            if (showDialogPrompt(L"Stroopwafel is not detected. It is required for partitioned USB storage.\nDo you want to install it now?", L"Yes", L"Cancel") != 0) return;
+            
+            if (!installStroopwafel(false)) {
+                return;
+            }
             pluginTarget = getStroopwafelPluginPath();
         }
     }
 
-    if(!downloadUsbPartitionPlugin(sdEmulation))
+    if (!downloadUsbPartitionPlugin(sdEmulation))
         return;
 
     WHBLogPrint("Opening /dev/fsa...");
@@ -1630,6 +1656,7 @@ void setupPartitionedUSBMenu() {
     FatMountGuard guard;
     bool partitioned = false;
     bool hasWiiU = false;
+    bool newlyPartitioned = false;
     do {
         CHECK_SHUTDOWN();
         if (!waitForDevice(fsaHandle, L"USB device", guard)) {
@@ -1654,9 +1681,10 @@ void setupPartitionedUSBMenu() {
         }
 
         checkAndFixPartitionOrder(fsaHandle, "/dev/sdcard01", deviceInfo, partitioned, &hasWiiU);
-
-        if(!partitioned) {
-            partitioned = handlePartitionActionMenu(fsaHandle, deviceInfo, L"USB device", !sdEmulation, &hasWiiU);
+        if (partitioned) {
+            newlyPartitioned = true;
+        } else {
+            partitioned = handlePartitionActionMenu(fsaHandle, deviceInfo, L"USB device", !sdEmulation, &hasWiiU, &newlyPartitioned);
         }
     } while (!partitioned);
 
@@ -1673,9 +1701,14 @@ void setupPartitionedUSBMenu() {
     }
 
     if(!sdEmulation){
-        std::wstring msg = L"USB partitioned successfully!\n";
-        if (hasWiiU) {
-            msg += std::wstring(WFS_FORMAT_REMINDER) + L"\n\n";
+        std::wstring msg;
+        if (newlyPartitioned) {
+            msg = L"USB partitioned successfully!\n";
+            if (hasWiiU) {
+                msg += std::wstring(WFS_FORMAT_REMINDER) + L"\n\n";
+            }
+        } else {
+            msg = L"USB configuration complete!\n\n";
         }
         msg += L"It is recommended to shutdown the console now\n"
                L"and plug your SD card back in.\n"

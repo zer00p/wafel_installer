@@ -36,8 +36,8 @@ private:
 void showDeviceInfoScreen(FSAClientHandle fsaHandle, const char* device, const FSADeviceInfo& deviceInfo);
 bool waitForDevice(FSAClientHandle fsaHandle, const wchar_t* deviceName, FatMountGuard& guard);
 void usbAsSd(bool enable);
-bool handleSDUSBAction(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, FatMountGuard& guard, bool* outHasWiiUPartition = nullptr);
-bool handlePartitionActionMenu(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, const wchar_t* deviceTypeName, bool needWFS, bool* outHasWiiUPartition = nullptr);
+bool handleSDUSBAction(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, FatMountGuard& guard, bool* outHasWiiUPartition = nullptr, bool* outNewlyPartitioned = nullptr);
+bool handlePartitionActionMenu(FSAClientHandle fsaHandle, const FSADeviceInfo& deviceInfo, const wchar_t* deviceTypeName, bool needWFS, bool* outHasWiiUPartition = nullptr, bool* outNewlyPartitioned = nullptr);
 struct MbrPartitionInfo {
     bool hasFat = false;
     bool hasWfs = false;
