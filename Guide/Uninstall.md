@@ -2,7 +2,7 @@
 
 If you wish to completely remove the homebrew environment, Stroopwafel, and ISFShax from your console, you can use the guided uninstall option within the Wafel Installer.
 
-To ensure your console can safely boot without modifications, the uninstall process is split into two phases. The first phase removes your plugins, and the second phase removes ISFShax.
+To ensure your console can safely boot without modifications, the uninstall process is split into two phases. The first phase removes your plugins and Stroopwafel, and the second phase completes the uninstallation with optional SD card formatting and optional ISFShax removal.
 
 ::: {.callout-warning}
 **Important:** Please ensure you have undone any custom themes or custom keyboards installed to the system before proceeding. Failure to do so might cause a BRICK!
@@ -36,7 +36,20 @@ stroopwafel/isfshax otherwise might cause a BRICK.
 5. **Carefully read the warning.** Ensure you have completely removed any custom keyboards or custom themes. If you use redNAND, do NOT proceed. If you proceed with these modifications in place, your console might BRICK. Only select `[ I have undone everything, continue ]` if you are absolutely certain it is safe.
 6. The installer will then automatically perform a **System Integrity Check** to ensure your console is safe to uninstall from.
    - If the check fails (e.g., due to missing or modified system files, multiple region folders detected, or USBMLC/redNAND being active), the uninstallation will be aborted to prevent a potential brick.
-   - If the check passes, the installer will search for Stroopwafel files on your console's internal memory (SLC) and your SD card. Depending on where they are found, you will be asked to remove them. For example, if they are found on the SD card:
+
+7. **System Update Folder Recreation**: If your console had system updates blocked (for example, by replacing the update folder with a dummy file or deleting it), the installer will detect this and offer to restore the real update folder so that official system updates can work normally:
+
+```text
+The update folder currently exists as a file (system updates blocked).
+Do you want to restore it as a real folder?
+
+[ Yes, recreate folder ]
+[ No, keep as is ]
+```
+
+Select `[ Yes, recreate folder ]` to restore the directory.
+
+8. If the integrity check passes, the installer will search for Stroopwafel files on your console's internal memory (SLC) and your SD card. Depending on where they are found, you will be asked to remove them. For example, if they are found on the SD card:
 
 ```text
 Stroopwafel files found on SD card.
@@ -47,9 +60,9 @@ Do you want to remove them?
 ```
 
 Select `[ Yes ]` (or `[ Both ]` if prompted for multiple locations) to completely remove Stroopwafel.
-7. Once Stroopwafel is removed, the installer will notify you that the console will reboot. Select `[ OK ]` and your console will reboot.
+9. Once Stroopwafel is removed, the installer will notify you that the console will reboot. Select `[ OK ]` and your console will reboot.
 
-## Phase 2: Removing ISFShax
+## Phase 2: Completing Uninstallation (SD Reset & ISFShax)
 
 By removing Stroopwafel first, we ensure that the console can successfully boot without loading any plugins. If your console fails to boot after completing Phase 1, do **NOT** proceed. You can recover by manually placing the Stroopwafel and plugin files back onto your SD card.
 

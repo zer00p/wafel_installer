@@ -10,6 +10,7 @@
 #include "partition_manager.h"
 #include <whb/sdcard.h>
 #include <mocha/fsa.h>
+#include <mocha/mocha.h>
 #include <chrono>
 
 using namespace std::chrono_literals;
@@ -115,6 +116,60 @@ bool uninstallStroopwafelMenu(bool showWarning) {
     return true;
 }
 
+bool checkAndRecreateUpdateFolder() {
+    if (!isMlcMounted()) {
+        return false;
+    }
+
+    // If the update folder already exists and is a real directory, nothing to do
+    if (dirExist(Paths::MlcUpdateDir)) {
+        return true;
+    }
+
+    bool isFile = fileExist(Paths::MlcUpdateDir);
+    const wchar_t* promptMsg = nullptr;
+    if (isFile) {
+        promptMsg = L"The update folder currently exists as a file (system updates blocked).\n"
+                    L"Do you want to restore it as a real folder?";
+    } else {
+        promptMsg = L"The update folder is missing (system updates deleted).\n"
+                    L"Do you want to recreate the update folder?";
+    }
+
+    if (showDialogPrompt(promptMsg, L"Yes, recreate folder", L"No, keep as is") != 0) {
+        return false;
+    }
+
+    WHBLogFreetypeStartScreen();
+    WHBLogFreetypePrint(L"Recreating update folder...");
+    WHBLogFreetypeDraw();
+
+    // Remove any existing dummy file or directory
+    removeFile(Paths::MlcUpdateDir);
+    removeDir(Paths::MlcUpdateDir);
+
+    // Recreate directory
+    createDirectories(Paths::MlcUpdateDir);
+
+    // Also use FSA client as direct fallback/guarantee
+    FSAClientHandle client = FSAAddClient(nullptr);
+    if (client > 0) {
+        Mocha_UnlockFSClientEx(client);
+        FSARemove(client, Paths::MlcUpdateDir.c_str());
+        FSAMakeDir(client, Paths::MlcUpdateDir.c_str(), static_cast<FSMode>(0777));
+        FSAFlushVolume(client, Paths::MlcRoot.c_str());
+        FSADelClient(client);
+    }
+
+    if (dirExist(Paths::MlcUpdateDir)) {
+        showSuccessPrompt(L"Update folder recreated successfully.");
+        return true;
+    } else {
+        showErrorPrompt(L"Failed to recreate update folder.");
+        return false;
+    }
+}
+
 void showUninstallMenu() {
     const wchar_t* warningMessage =
         L"Please read carefully:\n \n"
@@ -134,6 +189,9 @@ void showUninstallMenu() {
     if (!uninstallChecks()) {
         return;
     }
+
+    // Check and offer to recreate update folder before removing Stroopwafel
+    checkAndRecreateUpdateFolder();
 
     if (!uninstallStroopwafelMenu(false)) {
         return;

@@ -19,6 +19,7 @@ namespace Paths {
     inline const std::string UsbRoot = "/vol/storage_usb01";
     inline const std::string MlcUsrDir = MlcRoot + "/usr";
     inline const std::string UsbUsrDir = UsbRoot + "/usr";
+    inline const std::string MlcUpdateDir = MlcRoot + "/sys/update";
 
     // SD vol Paths
     inline const std::string SdRoot = "/vol/external01";
