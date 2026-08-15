@@ -8,6 +8,19 @@ To ensure your console can safely boot without modifications, the uninstall proc
 **Important:** Please ensure you have undone any custom themes or custom keyboards installed to the system before proceeding. Failure to do so might cause a BRICK!
 :::
 
+
+
+## Unmod vWii
+
+If you didn't mod the vWii or want to keep it modded, you can skipt this.
+
+1. Launch the the `vWii Compat Installer` App from the Wii U Menu
+2. Select `Express Uninstall`
+3. Follow the instructions on the screen
+4. Remove remaining (if any) Homebrew Channels from the vWii Data Management.
+
+
+
 ## Phase 1: Removing Stroopwafel and Plugins
 
 1. **Boot your console** and launch the Wafel Installer (either from the Home Menu or via `https://wafel.xyz` in the Internet Browser).
