@@ -8,6 +8,7 @@ if [ ! -f source_icons/rocket.svg ]; then
   wget -q https://raw.githubusercontent.com/twbs/icons/main/icons/rocket-fill.svg -O source_icons/rocket.svg
   wget -q https://raw.githubusercontent.com/twbs/icons/main/icons/floppy-fill.svg -O source_icons/floppy.svg
   wget -q https://raw.githubusercontent.com/twbs/icons/main/icons/disc-fill.svg -O source_icons/disc.svg
+  wget -q https://raw.githubusercontent.com/twbs/icons/main/icons/controller.svg -O source_icons/controller.svg
   wget -q https://raw.githubusercontent.com/twbs/icons/main/icons/trash3-fill.svg -O source_icons/trash.svg
 fi
 
@@ -15,7 +16,7 @@ fi
 python3 create_gradient.py
 
 # Process icons
-for icon in rocket floppy disc trash; do
+for icon in rocket floppy disc controller trash; do
   if [ "$icon" = "disc" ]; then
     SIZE="110x110\!"
   else
@@ -38,7 +39,9 @@ done
 mv rocket-icon.png ../assets/getting_started-icon.png
 mv floppy-icon.png ../assets/backups-icon.png
 mv disc-icon.png ../assets/games-icon.png
+mv controller-icon.png ../assets/vwii-icon.png
 mv trash-icon.png ../assets/uninstall-icon.png
 
 # Cleanup temps
 rm mask.png grad.png *_color.png
+

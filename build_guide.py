@@ -29,6 +29,7 @@ PATHS = [
         ("WafelInstaller.md", "Wafel Installer"),
         ("SaveBackup.md", "Backups"),
         ("DumpInstallGames.md", "Dump & Install Games"),
+        ("vWii.md", "vWii Modding"),
     ],
     [
         ("index.md", "Home"),

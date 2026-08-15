@@ -52,3 +52,7 @@ You can dump multiple games in one go, if you have enough storage.
 3. (Optional) Select `Del. after install` (This will delete the dump from the SD, you can also keep them there if you want)
 4. Press `Install` then `Yes`
 5. Select where you want to install it to. `NAND` is the internal memory. `USB` is the USB HDD or the Wii U SD partition, if you set that up.
+
+## Next Steps
+
+To dump and play Wii games or mod the Virtual Wii environment, continue to **[vWii Modding](vWii.md)**.

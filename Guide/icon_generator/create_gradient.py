@@ -35,4 +35,7 @@ for y in range(size):
     for x in range(size):
         img.putpixel((x, y), get_color(x, y))
 
-img.save('Guide/assets/grad.png')
+import os
+
+output_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'grad.png')
+img.save(output_path)

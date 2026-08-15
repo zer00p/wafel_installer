@@ -12,12 +12,15 @@ To ensure your console can safely boot without modifications, the uninstall proc
 
 ## Unmod vWii
 
-If you didn't mod the vWii or want to keep it modded, you can skipt this.
+If you did not mod the vWii or want to keep it modded, you can skip this step.
 
-1. Launch the the `vWii Compat Installer` App from the Wii U Menu
-2. Select `Express Uninstall`
-3. Follow the instructions on the screen
-4. Remove remaining (if any) Homebrew Channels from the vWii Data Management.
+1. Launch the **vWii Compat Installer** app from the Wii U Menu.
+2. Select **Express Uninstall**.
+3. Press `+` to proceed with the uninstallation of the selected components.
+4. Select `Yes, start uninstallation`.
+5. Follow the on-screen instructions.
+6. (Optional) Remove any remaining homebrew channels from the vWii Data Management (`Wii Options` &rarr; `Data Management` &rarr; `Channels`).
+
 
 
 

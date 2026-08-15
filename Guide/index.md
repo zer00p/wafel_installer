@@ -33,6 +33,12 @@ Choose a section below to jump directly to it:
 :::
 
 ::: {.index-card}
+### ![Icon](assets/vwii-icon.png){.inline-icon} [vWii Modding](vWii.md)
+* Mod the Virtual Wii (vWii) with the Homebrew Channel, d2x cIOS, USB Loader GX, and Open Shop Channel.
+:::
+
+::: {.index-card}
 ### ![Icon](assets/uninstall-icon.png){.inline-icon} [Uninstall](Uninstall.md)
 * Learn how to completely remove the homebrew environment, Stroopwafel, and ISFShax to return your console to stock.
 :::
+
