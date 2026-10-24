@@ -498,22 +498,14 @@ void showCheckNandMenu() {
         }
     }
 
-    // --- Offer raw read test ---
-    bool suggestLongRead = false;
-    if (logErrors.mlcCorruptionErrors > 0 || (isHynix && !mlcConfirmedBad)) {
-        suggestLongRead = true;
-    }
-
-    std::wstring readPrompt = L"Do you want to run the MLC read test?\n(Takes several hours). ";
+    std::wstring readPrompt = L"Do you want to run the MLC read test?\n(Takes ~30 minutes). ";
     if (mlcConfirmedBad) {
-        readPrompt = L"MLC is confirmed failing from logs.\nDo you still want to run the MLC read test?\n(Takes several hours, likely not necessary).";
-    } else if (!suggestLongRead) {
-        readPrompt += L"It is likely not necessary.";
+        readPrompt = L"MLC is confirmed failing from logs.\nDo you still want to run the MLC read test?\n(Takes ~30 minutes, likely not necessary).";
     } else {
         readPrompt += L"It is recommended.";
     }
 
-    uint8_t defaultOpt = (suggestLongRead && !mlcConfirmedBad) ? 0 : 1;
+    uint8_t defaultOpt = mlcConfirmedBad ? 1 : 0;
     uint8_t choice = showDialogPrompt(readPrompt.c_str(), L"Yes", L"No", nullptr, nullptr, defaultOpt);
     
     int rawErrors = 0;
