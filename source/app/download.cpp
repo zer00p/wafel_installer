@@ -635,9 +635,16 @@ bool downloadAroma() {
     }
 
     // 6. Wafel Installer
-    createDirectories(Paths::SdWafelInstallerDir);
-    if (!downloadFile(URLs::WafelInstallerWuhb, Paths::SdWafelInstallerWuhb)) {
-        return false;
+    auto wafelInstallerMapper = getAppstoreMapper("WafelInstaller");
+
+    if (!downloadAndExtractZipUrl(URLs::WafelInstallerZip, "Wafel Installer", targetPath, wafelInstallerMapper)) {
+        WHBLogFreetypePrintf(L"Failed to download Wafel Installer from 4TU repo, falling back to GitHub...");
+        WHBLogFreetypeDrawScreen();
+
+        createDirectories(Paths::SdWafelInstallerDir);
+        if (!downloadFile(URLs::WafelInstallerWuhb, Paths::SdWafelInstallerWuhb)) {
+            return false;
+        }
     }
 
     WHBLogFreetypePrint(L"Aroma and tools installed successfully!");
