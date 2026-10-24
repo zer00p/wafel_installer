@@ -21,7 +21,7 @@ To mod your Wii U follow the [Guide](Guide/GettingStarted.md).
 Use [wafel.xyz](https://wafel.xyz) on your Wii U to launch Wafel Installer without any setup or SD card.
 
 **Method 2:**
-Use the Wii U App Store to download it. (coming soon)
+Download it from the [Homebrew App Store](https://hb-app.store/wiiu/WafelInstaller) on your Wii U. Updates can also be installed through the App Store.
 
 **Method 3:**  
 Download the [latest release from GitHub](https://github.com/zer00p/wafel_installer/releases), and extract the `wafel_installer.zip` file to the root of your SD card.
