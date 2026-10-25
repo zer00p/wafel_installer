@@ -26,6 +26,8 @@ During startup the Wafel Installer checks what is already installed and how the 
 **If you have a SD card inserted**, try replugging the SD or changing the Adapter in case of a Micro SD. The SD needs to be inserted into the front slot of the console (not via a USB Adapter). If you want to use a SD with a USB Adapter, it will be treated as any other USB storage device.
 You can select Retry to try the detection again.
 
+**If you want to check your NAND**, select `Check NAND Health`. See [NAND Health Check](NandCheck.md) for details.
+
 ### USB / SD Format
 
 - **Condition:** Shown when an SD card or USB is physically detected but is not MBR + FAT32 formatted or doesn't contain a `wiiu` folder yet.

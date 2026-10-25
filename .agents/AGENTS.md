@@ -18,5 +18,8 @@ These rules dictate how agents should interact with the Wafel Installer project.
 ## Keeping the Guide Updated
 - Whenever you make changes to the application's UI, features, or workflows, you must ensure that the markdown files in the `Guide` directory are kept up-to-date to reflect those changes.
 
+## Avoiding the PC
+- The guide should avoid requiring a PC wherever possible. On modded consoles, have users download apps (including the Wafel Installer itself) through the Homebrew App Store (`HB App Store`) instead of downloading from GitHub and copying files to the SD card.
+
 ## Learning from the User
 - If the user has to explicitly explain a project-specific concept, rule, or workflow to you, you should proactively append that information to this `AGENTS.md` file so that future agents are aware of it.

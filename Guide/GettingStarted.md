@@ -68,6 +68,17 @@ If the console is stock (unmodded) continue with Option A.
 
 ### Option B: Modded Console
 
+If you already have the HB App Store:
+
+1. Open the `HB App Store` App from the Wii U Menu
+2. *Search* for `wafel` and select [`Wafel Installer`](https://hb-app.store/wiiu/WafelInstaller)
+3. Press `A` to Download
+4. Exit the HB App Store
+5. Run the Wafel Installer Homebrew App
+6. Continue to [Wafel Installer](WafelInstaller.md)
+
+If you don't have the HB App Store:
+
 1. Download the Wafel Installer from [GitHub](https://github.com/zer00p/wafel_installer/releases). If you are running Aroma download `wafel_installer.wuhb` , for Tiramisu use `wafel_installer.rpx`
 2. Copy the Wafel Installer to `wiiu/apps/` on the SD card
 3. Safety Eject the SD card

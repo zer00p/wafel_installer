@@ -38,6 +38,11 @@ Choose a section below to jump directly to it:
 :::
 
 ::: {.index-card}
+### ![Icon](assets/nand_check-icon.png){.inline-icon} [NAND Health Check](NandCheck.md)
+* Check if your console has the failure-prone Hynix eMMC and if its internal storage is already failing. No mods required.
+:::
+
+::: {.index-card}
 ### ![Icon](assets/uninstall-icon.png){.inline-icon} [Uninstall](Uninstall.md)
 * Learn how to completely remove the homebrew environment, Stroopwafel, and ISFShax to return your console to stock.
 :::
