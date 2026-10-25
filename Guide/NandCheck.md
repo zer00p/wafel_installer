@@ -150,7 +150,7 @@ See [My eMMC is failing](#my-emmc-is-failing) below.
 
 ### Finishing
 
-If ISFShax is not installed yet, the installer might offer to install it depending on the result (see below). If you only want to check your NAND, choose `No, skip`.
+If ISFShax is not installed yet, the installer might offer to install it depending on the result (see [Install ISFShax](#install-isfshax) below). If you only want to check your NAND, choose `No, skip`. If you install it, the console will reboot to install ISFShax.
 
 When the check is finished, you return to where you started it from:
 
@@ -189,6 +189,10 @@ Would you like to install ISFShax now?
 ISFShax runs before the system on the eMMC is even loaded. This allows you to recover the console, even if it no longer boots because of the failing eMMC. Install it as soon as possible, ideally right away by selecting `Yes, install ISFShax`.
 
 The installer will also recommend ISFShax if corruption errors were found, and offer it if you have a Hynix eMMC, to allow easy recovery of potential problems in the future.
+
+::: {.callout-warning}
+**Installed ISFShax from the NAND Health Check?** This only installs the bare ISFShax, without Stroopwafel. To complete the setup, follow the guide from [Getting Started](GettingStarted.md) and run the Wafel Installer again, so it can also install Stroopwafel (and Aroma).
+:::
 
 ### 2. Replace the eMMC
 
