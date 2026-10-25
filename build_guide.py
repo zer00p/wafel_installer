@@ -34,6 +34,10 @@ PATHS = [
     [
         ("index.md", "Home"),
         ("Uninstall.md", "Uninstall"),
+    ],
+    [
+        ("index.md", "Home"),
+        ("NandCheck.md", "NAND Health Check"),
     ]
 ]
 

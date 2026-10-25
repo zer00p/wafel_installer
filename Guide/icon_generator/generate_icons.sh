@@ -11,12 +11,15 @@ if [ ! -f source_icons/rocket.svg ]; then
   wget -q https://raw.githubusercontent.com/twbs/icons/main/icons/controller.svg -O source_icons/controller.svg
   wget -q https://raw.githubusercontent.com/twbs/icons/main/icons/trash3-fill.svg -O source_icons/trash.svg
 fi
+if [ ! -f source_icons/heartpulse.svg ]; then
+  wget -q https://raw.githubusercontent.com/twbs/icons/main/icons/heart-pulse-fill.svg -O source_icons/heartpulse.svg
+fi
 
 # Generate 128x128 exact Wafel gradient
 python3 create_gradient.py
 
 # Process icons
-for icon in rocket floppy disc vwii trash; do
+for icon in rocket floppy disc vwii trash heartpulse; do
   if [ "$icon" = "disc" ] || [ "$icon" = "vwii" ]; then
     SIZE="106x106\!"
   else
@@ -41,6 +44,7 @@ mv floppy-icon.png ../assets/backups-icon.png
 mv disc-icon.png ../assets/games-icon.png
 mv vwii-icon.png ../assets/vwii-icon.png
 mv trash-icon.png ../assets/uninstall-icon.png
+mv heartpulse-icon.png ../assets/nand_check-icon.png
 
 # Cleanup temps
 rm mask.png grad.png *_color.png
